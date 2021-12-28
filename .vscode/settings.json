@@ -3,19 +3,19 @@
     "[go]": {
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
-            "source.organizeImports": false,
+            "source.organizeImports": false
         },
-        "editor.snippetSuggestions": "none",
+        "editor.snippetSuggestions": "none"
     },
     "[go.mod]": {
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
-            "source.organizeImports": true,
-        },
+            "source.organizeImports": true
+        }
     },
     "gopls": {
         "usePlaceholders": true,
         "completeUnimported": true,
-        "staticcheck": true,
+        "staticcheck": true
     }
 }
