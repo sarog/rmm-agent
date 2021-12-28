@@ -2,15 +2,15 @@
     "FixedFileInfo": {
         "FileVersion": {
             "Major": 1,
-            "Minor": 4,
-            "Patch": 14,
-            "Build": 0
+            "Minor": 5,
+            "Patch": 1,
+            "Build": 1000
         },
         "ProductVersion": {
             "Major": 1,
-            "Minor": 4,
-            "Patch": 14,
-            "Build": 0
+            "Minor": 5,
+            "Patch": 1,
+            "Build": 1000
         },
         "FileFlagsMask": "3f",
         "FileFlags ": "00",
@@ -20,16 +20,16 @@
     },
     "StringFileInfo": {
         "Comments": "",
-        "CompanyName": "Tactical Techs",
-        "FileDescription": "Tactical RMM Agent",
-        "FileVersion": "v1.4.14.0",
-        "InternalName": "tacticalrmm.exe",
-        "LegalCopyright": "Copyright (c) 2020 Tactical Techs",
+        "CompanyName": "ACME",
+        "FileDescription": "ACME RMM Agent OSS",
+        "FileVersion": "v1.5.1.0",
+        "InternalName": "acmermm.exe",
+        "LegalCopyright": "Copyright (c) 2021 ACME",
         "LegalTrademarks": "",
         "OriginalFilename": "tacticalrmm.exe",
         "PrivateBuild": "",
-        "ProductName": "Tactical RMM Agent",
-        "ProductVersion": "v1.4.14.0",
+        "ProductName": "ACME RMM Agent",
+        "ProductVersion": "v1.5.1.0",
         "SpecialBuild": ""
     },
     "VarFileInfo": {

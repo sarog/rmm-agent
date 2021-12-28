@@ -1,23 +1,22 @@
 package agent
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"math"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"sync"
-	"syscall"
-	"time"
+    "bytes"
+    "context"
+    "encoding/json"
+    "fmt"
+    "io/ioutil"
+    "math"
+    "os"
+    "os/exec"
+    "path/filepath"
+    "sync"
+    "syscall"
+    "time"
 
-	ps "github.com/elastic/go-sysinfo"
-	"github.com/go-resty/resty/v2"
-	"github.com/shirou/gopsutil/v3/disk"
-	rmm "github.com/wh1te909/rmmagent/shared"
+    ps "github.com/elastic/go-sysinfo"
+    rmm "github.com/sarog/rmmagent/shared"
+    "github.com/shirou/gopsutil/v3/disk"
 )
 
 func (a *WindowsAgent) CheckRunner() {

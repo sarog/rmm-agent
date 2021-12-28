@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	wapi "github.com/iamacarpet/go-win64api"
-	rmm "github.com/wh1te909/rmmagent/shared"
+	rmm "github.com/sarog/rmmagent/shared"
 )
 
 func (a *WindowsAgent) GetInstalledSoftware() []rmm.SoftwareList {

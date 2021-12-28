@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/capnspacehook/taskmaster"
-	rmm "github.com/wh1te909/rmmagent/shared"
+	rmm "github.com/sarog/rmmagent/shared"
 )
 
 func (a *WindowsAgent) RunTask(id int) error {

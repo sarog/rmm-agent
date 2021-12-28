@@ -10,7 +10,7 @@ import (
 
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
-	rmm "github.com/wh1te909/rmmagent/shared"
+	rmm "github.com/sarog/rmmagent/shared"
 	"golang.org/x/sys/windows/registry"
 )
 

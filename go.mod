@@ -1,4 +1,4 @@
-module github.com/wh1te909/rmmagent
+module github.com/sarog/rmmagent
 
 go 1.16
 
@@ -15,6 +15,6 @@ require (
 	github.com/shirou/gopsutil/v3 v3.21.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/ugorji/go/codec v1.2.4
-	github.com/wh1te909/go-win64api v0.0.0-20201021040544-8fba2a0fc3d0
+	github.com/sarog/go-win64api v0.0.0-20201021040544-8fba2a0fc3d0
 	golang.org/x/sys v0.0.0-20210122235752-a8b976e07c7b
 )

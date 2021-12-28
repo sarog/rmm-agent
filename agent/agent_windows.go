@@ -2,33 +2,31 @@
 package agent
 
 import (
-	"bytes"
-	"context"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"math"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-	"unsafe"
+    "bytes"
+    "context"
+    "errors"
+    "fmt"
+    "io/ioutil"
+    "math"
+    "os"
+    "os/exec"
+    "path/filepath"
+    "runtime"
+    "strconv"
+    "strings"
+    "sync"
+    "time"
+    "unsafe"
 
-	ps "github.com/elastic/go-sysinfo"
-	"github.com/go-resty/resty/v2"
-	"github.com/gonutz/w32/v2"
-	nats "github.com/nats-io/nats.go"
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/sirupsen/logrus"
-	wapf "github.com/wh1te909/go-win64api"
-	rmm "github.com/wh1te909/rmmagent/shared"
-	"golang.org/x/sys/windows"
-	"golang.org/x/sys/windows/registry"
+    ps "github.com/elastic/go-sysinfo"
+    nats "github.com/nats-io/nats.go"
+    wapf "github.com/sarog/go-win64api"
+    rmm "github.com/sarog/rmmagent/shared"
+    "github.com/shirou/gopsutil/v3/cpu"
+    "github.com/shirou/gopsutil/v3/disk"
+    "github.com/sirupsen/logrus"
+    "golang.org/x/sys/windows"
+    "golang.org/x/sys/windows/registry"
 )
 
 var (
@@ -874,22 +872,24 @@ func (a *WindowsAgent) GetPython(force bool) {
 	rClient.SetRetryWaitTime(1 * time.Minute)
 	rClient.SetRetryMaxWaitTime(15 * time.Minute)
 
-	useAlternative := false
+	// useAlternative := false
 
-	url := fmt.Sprintf("https://github.com/wh1te909/rmmagent/releases/download/v%s/%s", a.Version, archZip)
-	url2 := fmt.Sprintf("https://files.tacticalrmm.io/%s", archZip)
+	// todo: 2021-12-28: we'll implement a better way of doing this later on
+	url := fmt.Sprintf("https://localhost/%s/%s", a.Version, archZip)
+	// nope
+	// url2 := fmt.Sprintf("https://files.tacticalrmm.io/%s", archZip)
 	a.Logger.Debugln(url)
 	r, err := rClient.R().SetOutput(pyZip).Get(url)
 	if err != nil {
 		a.Logger.Errorln("Unable to download py3.zip from github, using alternative link.", err)
-		useAlternative = true
+		// useAlternative = true
 	}
 	if r.IsError() {
 		a.Logger.Errorln("Unable to download py3.zip from github, using alternative link. Status code", r.StatusCode())
-		useAlternative = true
+		// useAlternative = true
 	}
 
-	if useAlternative {
+	/*if useAlternative {
 		a.Logger.Debugln(url2)
 		r1, err := rClient.R().SetOutput(pyZip).Get(url2)
 		if err != nil {
@@ -900,7 +900,7 @@ func (a *WindowsAgent) GetPython(force bool) {
 			a.Logger.Errorln("Unable to download py3.zip. Status code", r.StatusCode())
 			return
 		}
-	}
+	}*/
 
 	err = Unzip(pyZip, a.ProgramDir)
 	if err != nil {
