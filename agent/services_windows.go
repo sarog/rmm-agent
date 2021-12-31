@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 )
 
-// WinSvcResp for sending service control status back to the rmm
+// WinSvcResp for sending service control status back to the RMM server
 type WinSvcResp struct {
 	Success  bool   `json:"success"`
 	ErrorMsg string `json:"errormsg"`

@@ -20,7 +20,8 @@ var (
 	procReadEventLogW           = modadvapi32.NewProc("ReadEventLogW")
 )
 
-// https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-eventlogrecord
+// EventLogRecord
+// Source: https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-eventlogrecord
 type EVENTLOGRECORD struct {
 	Length              uint32
 	Reserved            uint32

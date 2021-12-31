@@ -18,19 +18,20 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
-// PublicIP returns the agent's public ip
+// PublicIP returns the agent's public IP address
 // Tries 3 times before giving up
 func (a *WindowsAgent) PublicIP() string {
 	a.Logger.Debugln("PublicIP start")
 	client := resty.New()
 	client.SetTimeout(4 * time.Second)
+	// todo: 2021-12-31: allow custom URLs for IP lookups
 	urls := []string{"https://icanhazip.tacticalrmm.io/", "https://icanhazip.com", "https://ifconfig.co/ip"}
 	ip := "error"
 
 	for _, url := range urls {
 		r, err := client.R().Get(url)
 		if err != nil {
-			a.Logger.Debugln("PublicIP err", err)
+			a.Logger.Debugln("PublicIP error", err)
 			continue
 		}
 		ip = StripAll(r.String())
@@ -48,7 +49,7 @@ func (a *WindowsAgent) PublicIP() string {
 			if !IsValidIP(ipv4) {
 				continue
 			}
-			a.Logger.Debugln("Forcing ipv4:", ipv4)
+			a.Logger.Debugln("Forcing IPv4:", ipv4)
 			return ipv4
 		}
 		a.Logger.Debugln("PublicIP return: ", ip)
@@ -57,7 +58,7 @@ func (a *WindowsAgent) PublicIP() string {
 	return ip
 }
 
-// GenerateAgentID creates and returns a unique agent id
+// GenerateAgentID creates and returns a unique Agent ID
 func GenerateAgentID() string {
 	rand.Seed(time.Now().UnixNano())
 	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -70,6 +71,7 @@ func GenerateAgentID() string {
 
 // ShowVersionInfo prints basic debugging info
 func ShowVersionInfo(ver string) {
+	// todo: 2021-12-31: add custom rebranding?
 	fmt.Println("Tactical RMM Agent:", ver)
 	fmt.Println("Arch:", runtime.GOARCH)
 	fmt.Println("Go version:", runtime.Version())
@@ -101,7 +103,7 @@ func (a *WindowsAgent) TotalRAM() float64 {
 	return math.Ceil(float64(mem.Total) / 1073741824.0)
 }
 
-// BootTime returns system boot time as a unix timestamp
+// BootTime returns system boot time as a Unix timestamp
 func (a *WindowsAgent) BootTime() int64 {
 	host, err := ps.Host()
 	if err != nil {
@@ -111,7 +113,7 @@ func (a *WindowsAgent) BootTime() int64 {
 	return info.BootTime.Unix()
 }
 
-// IsValidIP checks for a valid ipv4 or ipv6
+// IsValidIP checks for a valid IPv4 or IPv6 address
 func IsValidIP(ip string) bool {
 	return net.ParseIP(ip) != nil
 }
@@ -146,7 +148,7 @@ func KillProc(pid int32) error {
 	return nil
 }
 
-// DjangoStringResp removes double quotes from django rest api resp
+// DjangoStringResp removes double quotes from a Django REST API response
 func DjangoStringResp(resp string) string {
 	return strings.Trim(resp, `"`)
 }
@@ -160,7 +162,8 @@ func TestTCP(addr string) error {
 	return nil
 }
 
-// https://golangcode.com/unzip-files-in-go/
+// Unzip a source file to a destination
+// Source: https://golangcode.com/unzip-files-in-go/
 func Unzip(src, dest string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {
