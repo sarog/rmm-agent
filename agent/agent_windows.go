@@ -2,31 +2,33 @@
 package agent
 
 import (
-    "bytes"
-    "context"
-    "errors"
-    "fmt"
-    "io/ioutil"
-    "math"
-    "os"
-    "os/exec"
-    "path/filepath"
-    "runtime"
-    "strconv"
-    "strings"
-    "sync"
-    "time"
-    "unsafe"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"math"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+	"unsafe"
 
-    ps "github.com/elastic/go-sysinfo"
-    nats "github.com/nats-io/nats.go"
-    wapf "github.com/sarog/go-win64api"
-    rmm "github.com/sarog/rmmagent/shared"
-    "github.com/shirou/gopsutil/v3/cpu"
-    "github.com/shirou/gopsutil/v3/disk"
-    "github.com/sirupsen/logrus"
-    "golang.org/x/sys/windows"
-    "golang.org/x/sys/windows/registry"
+	ps "github.com/elastic/go-sysinfo"
+	"github.com/go-resty/resty/v2"
+	"github.com/gonutz/w32/v2"
+	nats "github.com/nats-io/nats.go"
+	wapf "github.com/sarog/go-win64api"
+	rmm "github.com/sarog/rmmagent/shared"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 var (
@@ -129,7 +131,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 	}
 
 	restyC := resty.New()
-	restyC.SetHostURL(baseurl)
+	restyC.SetBaseURL(baseurl)
 	restyC.SetCloseConnection(true)
 	restyC.SetHeaders(headers)
 	restyC.SetTimeout(15 * time.Second)
@@ -180,7 +182,7 @@ func ArchInfo(programDir string) (nssm, mesh string) {
 func (a *WindowsAgent) OSInfo() (plat, osFullName string) {
 	host, _ := ps.Host()
 	info := host.Info()
-	os := info.OS
+	osInfo := info.OS
 
 	var arch string
 	switch info.Architecture {
@@ -190,8 +192,8 @@ func (a *WindowsAgent) OSInfo() (plat, osFullName string) {
 		arch = "32 bit"
 	}
 
-	plat = os.Platform
-	osFullName = fmt.Sprintf("%s, %s (build %s)", os.Name, arch, os.Build)
+	plat = osInfo.Platform
+	osFullName = fmt.Sprintf("%s, %s (build %s)", osInfo.Name, arch, osInfo.Build)
 	return
 }
 
@@ -519,7 +521,7 @@ func (a *WindowsAgent) RecoverTacticalAgent() {
 	a.Logger.Debugln("Tacticalagent recovery completed on", a.Hostname)
 }
 
-//RecoverSalt recovers the salt minion
+// RecoverSalt recovers the salt minion
 func (a *WindowsAgent) RecoverSalt() {
 	saltSVC := "salt-minion"
 	a.Logger.Debugln("Attempting salt recovery on", a.Hostname)
@@ -570,7 +572,7 @@ func (a *WindowsAgent) SyncMeshNodeID() {
 	}
 }
 
-//RecoverMesh recovers mesh agent
+// RecoverMesh recovers mesh agent
 func (a *WindowsAgent) RecoverMesh() {
 	a.Logger.Infoln("Attempting mesh recovery")
 	defer CMD("net", []string{"start", a.MeshSVC}, 60, false)
@@ -580,7 +582,7 @@ func (a *WindowsAgent) RecoverMesh() {
 	a.SyncMeshNodeID()
 }
 
-//RecoverRPC recovers nats rpc service
+// RecoverRPC recovers nats rpc service
 func (a *WindowsAgent) RecoverRPC() {
 	a.Logger.Infoln("Attempting rpc recovery")
 	_, _ = CMD("net", []string{"stop", "tacticalrpc"}, 90, false)
@@ -588,7 +590,7 @@ func (a *WindowsAgent) RecoverRPC() {
 	_, _ = CMD("net", []string{"start", "tacticalrpc"}, 90, false)
 }
 
-//RecoverCMD runs a shell recovery command
+// RecoverCMD runs a shell recovery command
 func (a *WindowsAgent) RecoverCMD(command string) {
 	a.Logger.Infoln("Attempting shell recovery with command:", command)
 	// call the command with cmd /C so that the parent process is cmd

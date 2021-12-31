@@ -120,6 +120,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			},
 			Services: a.GetServices(),
 		}
+
 	case "publicip":
 		payload = rmm.CheckInPublicIP{
 			CheckIn: rmm.CheckIn{
@@ -129,6 +130,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			},
 			PublicIP: a.PublicIP(),
 		}
+
 	case "disks":
 		payload = rmm.CheckInDisk{
 			CheckIn: rmm.CheckIn{

@@ -1,16 +1,17 @@
 package agent
 
 import (
-    "fmt"
-    "strings"
-    "syscall"
-    "time"
-    "unicode/utf16"
-    "unsafe"
+	"fmt"
+	"github.com/gonutz/w32/v2"
+	"strings"
+	"syscall"
+	"time"
+	"unicode/utf16"
+	"unsafe"
 
-    rmm "github.com/sarog/rmmagent/shared"
-    "golang.org/x/sys/windows"
-    "golang.org/x/sys/windows/registry"
+	rmm "github.com/sarog/rmmagent/shared"
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 func (a *WindowsAgent) GetEventLog(logName string, searchLastDays int) []rmm.EventLogMsg {
