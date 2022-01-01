@@ -17,6 +17,8 @@
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
 
+.idea/
+
 # File-based project format
 *.iws
 
