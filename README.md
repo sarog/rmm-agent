@@ -1,6 +1,8 @@
 ### Fork of Tactical RMM Agent
 This is a fork of `wh1te909/rmmagent` version `1.5.1` with the build scripts imported from `1.4.14` before the [source repo](https://github.com/wh1te909/rmmagent) [deleted them](https://github.com/wh1te909/rmmagent/commit/3fdb2e8c4833e5310840ca79bf394a53f6dbe990).
 
+This `dev` branch is focusing on making the agent on par with 1.7.2 (or latest) features from upstream.
+
 Server source (fork & review coming): https://github.com/wh1te909/tacticalrmm
 
 ## Project goals
