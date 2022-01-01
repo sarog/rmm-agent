@@ -2,12 +2,13 @@ package agent
 
 import (
 	"fmt"
-	"github.com/gonutz/w32/v2"
 	"strings"
 	"syscall"
 	"time"
 	"unicode/utf16"
 	"unsafe"
+
+	"github.com/gonutz/w32/v2"
 
 	rmm "github.com/sarog/rmmagent/shared"
 	"golang.org/x/sys/windows"

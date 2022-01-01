@@ -37,6 +37,7 @@ type Installer struct {
 }
 
 func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
+	// todo: 2021-12-31: migrate to DPAPI?
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`, registry.ALL_ACCESS)
 	if err != nil {
 		log.Fatalln("Error creating registry key:", err)
@@ -95,7 +96,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 		a.installerMsg("Invalid URL (must contain https or http)", "error", i.Silent)
 	}
 
-	// will match either ipv4 , or ipv4:port
+	// This will match either IPv4 or IPv4:port
 	var ipPort = regexp.MustCompile(`[0-9]+(?:\.[0-9]+){3}(:[0-9]+)?`)
 
 	// if ipv4:port, strip the port to get ip for salt master
@@ -143,10 +144,10 @@ func (a *WindowsAgent) Install(i *Installer) {
 	rClient.SetCloseConnection(true)
 	rClient.SetTimeout(i.Timeout * time.Second)
 	rClient.SetDebug(a.Debug)
-	// set rest knox headers
+	// Set REST knox headers
 	rClient.SetHeaders(i.Headers)
 
-	// set local cert if applicable
+	// Set local cert if applicable
 	if len(i.Cert) > 0 {
 		if !FileExists(i.Cert) {
 			a.installerMsg(fmt.Sprintf("%s does not exist", i.Cert), "error", i.Silent)
@@ -162,17 +163,17 @@ func (a *WindowsAgent) Install(i *Installer) {
 		arch = "32"
 	}
 
-	// download or copy the mesh-agent.exe
+	// Download or copy the mesh-agent.exe
 	mesh := filepath.Join(a.ProgramDir, a.MeshInstaller)
 	if i.LocalMesh == "" {
-		a.Logger.Infoln("Downloading mesh agent...")
+		a.Logger.Infoln("Downloading Mesh Agent...")
 		payload := map[string]string{"arch": arch}
 		r, err := rClient.R().SetBody(payload).SetOutput(mesh).Post(fmt.Sprintf("%s/api/v3/meshexe/", baseURL))
 		if err != nil {
-			a.installerMsg(fmt.Sprintf("Failed to download mesh agent: %s", err.Error()), "error", i.Silent)
+			a.installerMsg(fmt.Sprintf("Failed to download Mesh Agent: %s", err.Error()), "error", i.Silent)
 		}
 		if r.StatusCode() != 200 {
-			a.installerMsg(fmt.Sprintf("Unable to download the mesh agent from the RMM. %s", r.String()), "error", i.Silent)
+			a.installerMsg(fmt.Sprintf("Unable to download the Mesh Agent from the RMM server. %s", r.String()), "error", i.Silent)
 		}
 	} else {
 		err := copyFile(i.LocalMesh, mesh)
@@ -181,8 +182,8 @@ func (a *WindowsAgent) Install(i *Installer) {
 		}
 	}
 
-	a.Logger.Infoln("Installing mesh agent...")
-	a.Logger.Debugln("Mesh agent:", mesh)
+	a.Logger.Infoln("Installing Mesh Agent...")
+	a.Logger.Debugln("Mesh Agent:", mesh)
 	meshOut, meshErr := CMD(mesh, []string{"-fullinstall"}, int(90), false)
 	if meshErr != nil {
 		fmt.Println(meshOut[0])
@@ -191,7 +192,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 	}
 
 	fmt.Println(meshOut)
-	a.Logger.Debugln("Sleeping for 5")
+	a.Logger.Debugln("Sleeping for 5 seconds")
 	time.Sleep(5 * time.Second)
 
 	meshSuccess := false
@@ -210,7 +211,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 			continue
 		}
 		meshNodeID = StripAll(pMesh[0])
-		a.Logger.Debugln("Node id:", meshNodeID)
+		a.Logger.Debugln("Node ID:", meshNodeID)
 		if strings.Contains(strings.ToLower(meshNodeID), "not defined") {
 			a.Logger.Errorln(meshNodeID)
 			time.Sleep(5 * time.Second)
@@ -220,12 +221,13 @@ func (a *WindowsAgent) Install(i *Installer) {
 	}
 
 	a.Logger.Infoln("Adding agent to dashboard")
-	// add agent
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:448
 	type NewAgentResp struct {
 		AgentPK int    `json:"pk"`
 		SaltID  string `json:"saltid"`
 		Token   string `json:"token"`
 	}
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:409
 	agentPayload := map[string]interface{}{
 		"agent_id":        a.AgentID,
 		"hostname":        a.Hostname,
@@ -253,13 +255,13 @@ func (a *WindowsAgent) Install(i *Installer) {
 	a.Logger.Debugln("Salt ID:", saltID)
 
 	createRegKeys(baseURL, a.AgentID, i.SaltMaster, agentToken, strconv.Itoa(agentPK), i.Cert)
-	// refresh our agent with new values
+	// Refresh our agent with new values
 	a = New(a.Logger, a.Version)
 
-	// set new headers, no longer knox auth...use agent auth
+	// Set new headers. No longer knox auth; use agent auth
 	rClient.SetHeaders(a.Headers)
 
-	// send wmi sysinfo
+	// Send wmi sysinfo
 	a.Logger.Debugln("Getting sysinfo with WMI")
 	a.GetWMI()
 
@@ -284,6 +286,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 
 	a.Logger.Infoln("Installing services...")
 
+	// todo: 2021-12-31: custom branding
 	svcCommands := [10][]string{
 		// tacticalrpc
 		{"install", "tacticalrpc", a.EXE, "-m", "rpc"},
@@ -304,7 +307,9 @@ func (a *WindowsAgent) Install(i *Installer) {
 		_, _ = CMD(a.Nssm, s, 25, false)
 	}
 
-	a.Logger.Infoln("Adding windows defender exclusions")
+	// todo: 2021-12-31: make this step optional
+	// if i.WinDefender {}
+	a.Logger.Infoln("Adding Windows Defender exclusions")
 	a.addDefenderExlusions()
 
 	if i.Power {
@@ -322,7 +327,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 		EnableRDP()
 	}
 
-	a.installerMsg("Installation was successfull!\nAllow a few minutes for the agent to properly display in the RMM", "info", i.Silent)
+	a.installerMsg("Installation was successfully!\nAllow a few minutes for the agent to show up in the RMM", "info", i.Silent)
 }
 
 func copyFile(src, dst string) error {

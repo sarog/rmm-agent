@@ -1,4 +1,3 @@
-// Package agent todo change this
 package agent
 
 import (
@@ -35,6 +34,8 @@ var (
 	getDriveType = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetDriveTypeW")
 )
 
+const BrandingFolder = "TacticalAgent"
+
 // WindowsAgent struct
 type WindowsAgent struct {
 	Hostname      string
@@ -60,13 +61,13 @@ type WindowsAgent struct {
 	rClient       *resty.Client
 }
 
-// New __init__
+// New Initializes a new WindowsAgent with logger
 func New(logger *logrus.Logger, version string) *WindowsAgent {
 	host, _ := ps.Host()
 	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), "TacticalAgent")
-	exe := filepath.Join(pd, "tacticalrmm.exe")
-	dbFile := filepath.Join(pd, "agentdb.db")
+	pd := filepath.Join(os.Getenv("ProgramFiles"), BrandingFolder)
+	exe := filepath.Join(pd, "tacticalrmm.exe") // todo: 2021-12-31: branding
+	dbFile := filepath.Join(pd, "agentdb.db")   // deprecated
 	sd := os.Getenv("SystemDrive")
 	nssm, mesh := ArchInfo(pd)
 
@@ -78,6 +79,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 		pybin = filepath.Join(pd, "py38-x32", "python.exe")
 	}
 
+	// Previous Python agent database
 	if FileExists(dbFile) {
 		os.Remove(dbFile)
 	}
@@ -92,6 +94,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 		cert    string
 	)
 
+	// todo: 2021-12-31: migrate to DPAPI?
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`, registry.ALL_ACCESS)
 	if err == nil {
 		baseurl, _, err = k.GetStringValue("BaseURL")
@@ -165,7 +168,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 	}
 }
 
-// ArchInfo returns arch specific filenames and urls
+// ArchInfo returns architecture-specific filenames and URLs
 func ArchInfo(programDir string) (nssm, mesh string) {
 	switch runtime.GOARCH {
 	case "amd64":
@@ -178,7 +181,7 @@ func ArchInfo(programDir string) (nssm, mesh string) {
 	return
 }
 
-// OSInfo returns os names formatted
+// OSInfo returns formatted OS names
 func (a *WindowsAgent) OSInfo() (plat, osFullName string) {
 	host, _ := ps.Host()
 	info := host.Info()
@@ -233,7 +236,7 @@ func (a *WindowsAgent) GetDisks() []rmm.Disk {
 	return ret
 }
 
-// CMDShell mimics python's `subprocess.run(shell=True)`
+// CMDShell mimics Python's `subprocess.run(shell=True)`
 func CMDShell(shell string, cmdArgs []string, command string, timeout int, detached bool) (output [2]string, e error) {
 	var (
 		outb     bytes.Buffer
@@ -325,7 +328,8 @@ func CMD(exe string, args []string, timeout int, detached bool) (output [2]strin
 	return [2]string{outb.String(), errb.String()}, nil
 }
 
-// EnablePing enables ping
+// EnablePing modifies the Windows Firewall ruleset to allow incoming ICMPv4
+// todo: 2021-12-31: this may not always work, especially if enforced by a GPO (is this even needed?)
 func EnablePing() {
 	args := make([]string, 0)
 	cmd := `netsh advfirewall firewall add rule name="ICMP Allow incoming V4 echo request" protocol=icmpv4:8,any dir=in action=allow`
@@ -336,6 +340,7 @@ func EnablePing() {
 }
 
 // EnableRDP enables Remote Desktop
+// todo: 2021-12-31: this may not always work if enforced by a GPO
 func EnableRDP() {
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Terminal Server`, registry.ALL_ACCESS)
 	if err != nil {
@@ -349,6 +354,7 @@ func EnableRDP() {
 	}
 
 	args := make([]string, 0)
+	// todo: 2021-12-31: this may not always work if enforced by a GPO
 	cmd := `netsh advfirewall firewall set rule group="remote desktop" new enable=Yes`
 	_, cerr := CMDShell("cmd", args, cmd, 10, false)
 	if cerr != nil {
@@ -389,6 +395,7 @@ func DisableSleepHibernate() {
 }
 
 // LoggedOnUser returns the first logged on user it finds
+// todo: 2021-12-31: Python dep; replace with PowerShell?
 func (a *WindowsAgent) LoggedOnUser() string {
 	pyCode := `
 import psutil
@@ -403,12 +410,13 @@ except Exception as e:
 	print("None", end='')
 
 `
-	// try with psutil first, if fails, fallback to golang
+	// Attempt #1: try with psutil first
 	user, err := a.RunPythonCode(pyCode, 5, []string{})
 	if err == nil && user != "notascii" {
 		return user
 	}
 
+	// Attempt #2: Go fallback
 	users, err := wapf.ListLoggedInUsers()
 	if err != nil {
 		a.Logger.Debugln("LoggedOnUser error", err)
@@ -420,13 +428,14 @@ except Exception as e:
 	}
 
 	for _, u := range users {
-		// remove the computername or domain
+		// Strip the 'Domain\' (or 'ComputerName\') prefix
 		return strings.Split(u.FullUser(), `\`)[1]
 	}
 	return "None"
 }
 
 func (a *WindowsAgent) GetCPULoadAvg() int {
+	// todo: 2021-12-31: remove Python dep
 	fallback := false
 	pyCode := `
 import psutil
@@ -483,7 +492,7 @@ func (a *WindowsAgent) ForceKillSalt() {
 	}
 }
 
-// ForceKillMesh kills all mesh agent related processes
+// ForceKillMesh kills all MeshAgent-related processes
 func (a *WindowsAgent) ForceKillMesh() {
 	pids := make([]int, 0)
 
@@ -503,22 +512,23 @@ func (a *WindowsAgent) ForceKillMesh() {
 	}
 
 	for _, pid := range pids {
-		a.Logger.Debugln("Killing mesh process with pid %d", pid)
+		a.Logger.Debugln("Killing MeshAgent process with pid %d", pid)
 		if err := KillProc(int32(pid)); err != nil {
 			a.Logger.Debugln(err)
 		}
 	}
 }
 
-// RecoverTacticalAgent should only be called from the rpc service
+// RecoverTacticalAgent should only be called from the RPC service
 func (a *WindowsAgent) RecoverTacticalAgent() {
+	// todo: 2021-12-31: custom branding?
 	svc := "tacticalagent"
-	a.Logger.Debugln("Attempting tacticalagent recovery on", a.Hostname)
+	a.Logger.Debugln("Attempting TacticalAgent recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", svc}, 60, false)
 
 	_, _ = CMD(a.Nssm, []string{"stop", svc}, 120, false)
 	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln("Tacticalagent recovery completed on", a.Hostname)
+	a.Logger.Debugln("TacticalAgent recovery completed on", a.Hostname)
 }
 
 // RecoverSalt recovers the salt minion
@@ -556,7 +566,7 @@ func (a *WindowsAgent) SyncMeshNodeID() {
 	}
 
 	if stdout == "" || strings.Contains(strings.ToLower(StripAll(stdout)), "not defined") {
-		a.Logger.Debugln("Failed getting mesh node id", stdout)
+		a.Logger.Debugln("Failed getting Mesh Node ID", stdout)
 		return
 	}
 
@@ -572,9 +582,9 @@ func (a *WindowsAgent) SyncMeshNodeID() {
 	}
 }
 
-// RecoverMesh recovers mesh agent
+// RecoverMesh Recovers the MeshAgent service
 func (a *WindowsAgent) RecoverMesh() {
-	a.Logger.Infoln("Attempting mesh recovery")
+	a.Logger.Infoln("Attempting MeshAgent service recovery")
 	defer CMD("net", []string{"start", a.MeshSVC}, 60, false)
 
 	_, _ = CMD("net", []string{"stop", a.MeshSVC}, 60, false)
@@ -582,9 +592,9 @@ func (a *WindowsAgent) RecoverMesh() {
 	a.SyncMeshNodeID()
 }
 
-// RecoverRPC recovers nats rpc service
+// RecoverRPC Recovers the NATS RPC service
 func (a *WindowsAgent) RecoverRPC() {
-	a.Logger.Infoln("Attempting rpc recovery")
+	a.Logger.Infoln("Attempting RPC service recovery")
 	_, _ = CMD("net", []string{"stop", "tacticalrpc"}, 90, false)
 	time.Sleep(2 * time.Second)
 	_, _ = CMD("net", []string{"start", "tacticalrpc"}, 90, false)
@@ -593,8 +603,8 @@ func (a *WindowsAgent) RecoverRPC() {
 // RecoverCMD runs a shell recovery command
 func (a *WindowsAgent) RecoverCMD(command string) {
 	a.Logger.Infoln("Attempting shell recovery with command:", command)
-	// call the command with cmd /C so that the parent process is cmd
-	// and not tacticalrmm.exe so that we don't kill ourself
+	// To prevent killing ourselves, prefix the command with 'cmd /C'
+	// so the parent process is now cmd.exe and not tacticalrmm.exe
 	cmd := exec.Command("cmd.exe")
 	cmd.SysProcAttr = &windows.SysProcAttr{
 		CreationFlags: windows.DETACHED_PROCESS | windows.CREATE_NEW_PROCESS_GROUP,
@@ -626,7 +636,7 @@ func (a *WindowsAgent) UninstallCleanup() {
 	CleanupSchedTasks()
 }
 
-// ShowStatus prints windows service status
+// ShowStatus prints the Windows service status
 // If called from an interactive desktop, pops up a message box
 // Otherwise prints to the console
 func ShowStatus(version string) {
@@ -652,6 +662,7 @@ func ShowStatus(version string) {
 		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s\n\nMesh Agent: %s", statusMap["tacticalagent"], statusMap["tacticalrpc"], statusMap["mesh agent"])
 		w32.MessageBox(handle, msg, fmt.Sprintf("Tactical RMM v%s", version), w32.MB_OK|w32.MB_ICONINFORMATION)
 	} else {
+		// todo: 2021-12-31: custom branding
 		fmt.Println("Tactical RMM Version", version)
 		fmt.Println("Agent:", statusMap["tacticalagent"])
 		fmt.Println("RPC Service:", statusMap["tacticalrpc"])
@@ -711,11 +722,12 @@ func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
 
 	dir, err := ioutil.TempDir("", "tacticalrmm")
 	if err != nil {
-		a.Logger.Errorln("Agentupdate create tempdir:", err)
+		a.Logger.Errorln("AgentUpdate create tempdir:", err)
 		CMD("net", []string{"start", "tacticalrpc"}, 10, false)
 		return
 	}
 
+	// todo: 2021-12-31: custom branding
 	innoLogFile := filepath.Join(dir, "tacticalrmm.txt")
 
 	args := []string{"/C", updater, "/VERYSILENT", fmt.Sprintf("/LOG=%s", innoLogFile)}
@@ -843,6 +855,8 @@ func (a *WindowsAgent) RunPythonCode(code string, timeout int, args []string) (s
 
 }
 
+// GetPython download Python
+// todo: 2021-12-31: make Python *optional*
 func (a *WindowsAgent) GetPython(force bool) {
 	if FileExists(a.PyBin) && !force {
 		return
@@ -925,7 +939,7 @@ func (a *WindowsAgent) RemoveSalt() error {
 
 	_, err := CMD(saltUnins, []string{"/S"}, 900, false)
 	if err != nil {
-		a.Logger.Debugln("Error uninstall salt:", err)
+		a.Logger.Debugln("Error uninstalling salt:", err)
 		return errors.New(err.Error())
 	}
 	return nil
@@ -942,6 +956,7 @@ func (a *WindowsAgent) deleteOldTacticalServices() {
 }
 
 func (a *WindowsAgent) addDefenderExlusions() {
+	// todo: 2021-12-31: make this *optional*
 	code := `
 Add-MpPreference -ExclusionPath 'C:\Program Files\TacticalAgent\*'
 Add-MpPreference -ExclusionPath 'C:\Windows\Temp\winagent-v*.exe'
@@ -989,9 +1004,11 @@ func (a *WindowsAgent) CheckForRecovery() {
 }
 
 func (a *WindowsAgent) CreateTRMMTempDir() {
-	// create the temp dir for running scripts
+	// Create the temp dir for running scripts
+	// This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\trmm'
 	dir := filepath.Join(os.TempDir(), "trmm")
 	if !FileExists(dir) {
+		// todo: 2021-12-31: verify permissions
 		err := os.Mkdir(dir, 0775)
 		if err != nil {
 			a.Logger.Errorln(err)

@@ -1,8 +1,9 @@
 package agent
 
 import (
-	"github.com/go-resty/resty/v2"
 	"time"
+
+	"github.com/go-resty/resty/v2"
 
 	rmm "github.com/sarog/rmmagent/shared"
 )
@@ -16,32 +17,32 @@ func (a *WindowsAgent) InstallChoco() {
 	rClient := resty.New()
 	rClient.SetTimeout(30 * time.Second)
 
-	url := "/api/v3/choco/"
+	const ApiUrl = "/api/v3/choco/"
 	r, err := rClient.R().Get("https://chocolatey.org/install.ps1")
 	if err != nil {
 		a.Logger.Debugln(err)
-		a.rClient.R().SetBody(result).Post(url)
+		a.rClient.R().SetBody(result).Post(ApiUrl)
 		return
 	}
 	if r.IsError() {
-		a.rClient.R().SetBody(result).Post(url)
+		a.rClient.R().SetBody(result).Post(ApiUrl)
 		return
 	}
 
 	_, _, exitcode, err := a.RunScript(string(r.Body()), "powershell", []string{}, 900)
 	if err != nil {
 		a.Logger.Debugln(err)
-		a.rClient.R().SetBody(result).Post(url)
+		a.rClient.R().SetBody(result).Post(ApiUrl)
 		return
 	}
 
 	if exitcode != 0 {
-		a.rClient.R().SetBody(result).Post(url)
+		a.rClient.R().SetBody(result).Post(ApiUrl)
 		return
 	}
 
 	result.Installed = true
-	a.rClient.R().SetBody(result).Post(url)
+	a.rClient.R().SetBody(result).Post(ApiUrl)
 }
 
 func (a *WindowsAgent) InstallWithChoco(name string) (string, error) {

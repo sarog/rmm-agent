@@ -20,8 +20,10 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
+const ApiCheckRunner = "/api/v3/checkrunner/"
+
 func (a *WindowsAgent) CheckRunner() {
-	a.Logger.Infoln("Checkrunner service started.")
+	a.Logger.Infoln("CheckRunner service started.")
 	sleepDelay := randRange(14, 22)
 	a.Logger.Debugf("Sleeping for %v seconds", sleepDelay)
 	time.Sleep(time.Duration(sleepDelay) * time.Second)
@@ -30,10 +32,10 @@ func (a *WindowsAgent) CheckRunner() {
 		if err == nil && !a.ChecksRunning() {
 			_, err = CMD(a.EXE, []string{"-m", "checkrunner"}, 600, false)
 			if err != nil {
-				a.Logger.Errorln("Checkrunner RunChecks", err)
+				a.Logger.Errorln("CheckRunner RunChecks", err)
 			}
 		}
-		a.Logger.Debugln("Checkrunner sleeping for", interval)
+		a.Logger.Debugln("CheckRunner sleeping for", interval)
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }
@@ -45,7 +47,7 @@ func (a *WindowsAgent) GetCheckInterval() (int, error) {
 		return 120, err
 	}
 	if r.IsError() {
-		a.Logger.Debugln("Checkinterval response code:", r.StatusCode())
+		a.Logger.Debugln("CheckInterval response code:", r.StatusCode())
 		return 120, fmt.Errorf("checkinterval response code: %v", r.StatusCode())
 	}
 	interval := r.Result().(*rmm.CheckInfo).Interval
@@ -67,7 +69,7 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 	}
 
 	if r.IsError() {
-		a.Logger.Debugln("Checkrunner response code:", r.StatusCode())
+		a.Logger.Debugln("CheckRunner response code:", r.StatusCode())
 		return nil
 	}
 
@@ -148,10 +150,11 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 	return nil
 }
 
+// RunScript runs a script
 func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
-
 	content := []byte(code)
 
+	// todo: 2021-12-31: rename and/or change path
 	dir := filepath.Join(os.TempDir(), "trmm")
 	if !FileExists(dir) {
 		a.CreateTRMMTempDir()
@@ -173,7 +176,7 @@ func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeo
 	case "python":
 		ext = "*.py"
 	case "cmd":
-		ext = "*.bat"
+		ext = "*.bat" // .cmd?
 	}
 
 	tmpfn, err := ioutil.TempFile(dir, ext)
@@ -195,6 +198,7 @@ func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeo
 	switch shell {
 	case "powershell":
 		exe = "Powershell"
+		// todo: 2021-12-31: allow ExecutionPolicy to be chosen by the sysadmin
 		cmdArgs = []string{"-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", tmpfn.Name()}
 	case "python":
 		exe = a.PyBin
@@ -266,7 +270,7 @@ func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeo
 	return stdout, stderr, exitcode, nil
 }
 
-// ScriptCheck runs either bat, powershell or python script
+// ScriptCheck runs either a batch file, PowerShell or Python script
 func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 	start := time.Now()
 	stdout, stderr, retcode, _ := a.RunScript(data.Script.Code, data.Script.Shell, data.ScriptArgs, data.Timeout)
@@ -279,7 +283,7 @@ func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 		"runtime": time.Since(start).Seconds(),
 	}
 
-	resp, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/")
+	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -296,7 +300,7 @@ func (a *WindowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 	if err != nil {
 		a.Logger.Debugln("Disk", data.Disk, err)
 		payload = map[string]interface{}{"id": data.CheckPK, "exists": false}
-		if _, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/"); err != nil {
+		if _, err := r.R().SetBody(payload).Patch(ApiCheckRunner); err != nil {
 			a.Logger.Debugln(err)
 		}
 		return
@@ -310,7 +314,7 @@ func (a *WindowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 		"free":         usage.Free,
 	}
 
-	resp, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/")
+	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -326,7 +330,7 @@ func (a *WindowsAgent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 		"percent": a.GetCPULoadAvg(),
 	}
 
-	resp, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/")
+	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -346,7 +350,7 @@ func (a *WindowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
 		"percent": int(math.Round(percent)),
 	}
 
-	resp, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/")
+	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -357,12 +361,13 @@ func (a *WindowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
 
 func (a *WindowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
 	evtLog := a.GetEventLog(data.LogName, data.SearchLastDays)
+
 	payload := map[string]interface{}{
 		"id":  data.CheckPK,
 		"log": evtLog,
 	}
 
-	resp, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/")
+	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -371,6 +376,7 @@ func (a *WindowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
+// PingCheck pings
 func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 	cmdArgs := []string{data.IP}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(90)*time.Second)
@@ -401,6 +407,7 @@ func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 		output = outb.String()
 	}
 
+	// todo: 2021-12-31: payload structure changed in later versions
 	payload := map[string]interface{}{
 		"id":         data.CheckPK,
 		"has_stdout": hasOut,
@@ -408,7 +415,7 @@ func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 		"output":     output,
 	}
 
-	resp, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/")
+	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -434,7 +441,7 @@ func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 		"status": status,
 	}
 
-	resp, err := r.R().SetBody(payload).Patch("/api/v3/checkrunner/")
+	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
