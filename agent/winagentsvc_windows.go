@@ -8,6 +8,8 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
+const ApiCheckin = "/api/v3/checkin/"
+
 func (a *WindowsAgent) RunAsService() {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -16,7 +18,7 @@ func (a *WindowsAgent) RunAsService() {
 	wg.Wait()
 }
 
-// WinAgentSvc tacticalagent windows nssm service
+// WinAgentSvc tacticalagent Windows nssm service
 func (a *WindowsAgent) WinAgentSvc() {
 	a.Logger.Infoln("Agent service started")
 
@@ -86,12 +88,14 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			Agentid: a.AgentID,
 			Version: a.Version,
 		}
+
 	case "startup":
 		payload = rmm.CheckIn{
 			Func:    "startup",
 			Agentid: a.AgentID,
 			Version: a.Version,
 		}
+
 	case "osinfo":
 		plat, osinfo := a.OSInfo()
 		reboot, err := a.SystemRebootRequired()
@@ -111,6 +115,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			BootTime:     a.BootTime(),
 			RebootNeeded: reboot,
 		}
+
 	case "winservices":
 		payload = rmm.CheckInWinServices{
 			CheckIn: rmm.CheckIn{
@@ -132,6 +137,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		}
 
 	case "disks":
+		// 2021-12-31: api/tacticalrmm/apiv3/views.py:48
 		payload = rmm.CheckInDisk{
 			CheckIn: rmm.CheckIn{
 				Func:    "disks",
@@ -140,7 +146,9 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			},
 			Disks: a.GetDisks(),
 		}
+
 	case "loggedonuser":
+		// 2021-12-31: api/tacticalrmm/apiv3/views.py:61
 		payload = rmm.CheckInLoggedUser{
 			CheckIn: rmm.CheckIn{
 				Func:    "loggedonuser",
@@ -149,7 +157,9 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			},
 			Username: a.LoggedOnUser(),
 		}
+
 	case "software":
+		// 2021-12-31: api/tacticalrmm/apiv3/views.py:67
 		payload = rmm.CheckInSW{
 			CheckIn: rmm.CheckIn{
 				Func:    "software",
@@ -160,14 +170,14 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		}
 	}
 
-	url := "/api/v3/checkin/"
-
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:30
+	// deprecated in 1.7.0
 	if mode == "hello" {
-		_, rerr = a.rClient.R().SetBody(payload).Patch(url)
+		_, rerr = a.rClient.R().SetBody(payload).Patch(ApiCheckin)
 	} else if mode == "startup" {
-		_, rerr = a.rClient.R().SetBody(payload).Post(url)
+		_, rerr = a.rClient.R().SetBody(payload).Post(ApiCheckin)
 	} else {
-		_, rerr = a.rClient.R().SetBody(payload).Put(url)
+		_, rerr = a.rClient.R().SetBody(payload).Put(ApiCheckin)
 	}
 
 	if rerr != nil {

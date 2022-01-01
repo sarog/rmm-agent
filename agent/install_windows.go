@@ -123,6 +123,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 	iClient.SetTimeout(15 * time.Second)
 	iClient.SetDebug(a.Debug)
 	iClient.SetHeaders(i.Headers)
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:475
 	creds, cerr := iClient.R().Get(fmt.Sprintf("%s/api/v3/installer/", baseURL))
 	if cerr != nil {
 		a.installerMsg(cerr.Error(), "error", i.Silent)
@@ -131,7 +132,9 @@ func (a *WindowsAgent) Install(i *Installer) {
 		a.installerMsg("Installer token has expired. Please generate a new one.", "error", i.Silent)
 	}
 
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:474
 	verPayload := map[string]string{"version": a.Version}
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:479
 	iVersion, ierr := iClient.R().SetBody(verPayload).Post(fmt.Sprintf("%s/api/v3/installer/", baseURL))
 	if ierr != nil {
 		a.installerMsg(ierr.Error(), "error", i.Silent)

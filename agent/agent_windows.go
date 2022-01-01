@@ -570,6 +570,7 @@ func (a *WindowsAgent) SyncMeshNodeID() {
 		return
 	}
 
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:94
 	payload := rmm.MeshNodeID{
 		Func:    "syncmesh",
 		Agentid: a.AgentID,
@@ -624,6 +625,8 @@ func (a *WindowsAgent) SendSoftware() {
 	a.Logger.Debugln(sw)
 
 	payload := map[string]interface{}{"agent_id": a.AgentID, "software": sw}
+
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:461
 	_, err := a.rClient.R().SetBody(payload).Post("/api/v3/software/")
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -992,6 +995,7 @@ func (a *WindowsAgent) CheckForRecovery() {
 	command := r.Result().(*rmm.RecoveryAction).ShellCMD
 
 	switch mode {
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:551
 	case "mesh":
 		a.RecoverMesh()
 	case "rpc":

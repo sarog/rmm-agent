@@ -8,6 +8,7 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
+// InstallChoco Installs the Chocolatey PowerShell script
 func (a *WindowsAgent) InstallChoco() {
 
 	var result rmm.ChocoInstalled
@@ -17,6 +18,7 @@ func (a *WindowsAgent) InstallChoco() {
 	rClient := resty.New()
 	rClient.SetTimeout(30 * time.Second)
 
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:84
 	const ApiUrl = "/api/v3/choco/"
 	r, err := rClient.R().Get("https://chocolatey.org/install.ps1")
 	if err != nil {

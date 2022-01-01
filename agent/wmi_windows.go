@@ -7,6 +7,8 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
+const ApiSysInfo = "/api/v3/sysinfo/"
+
 func GetWin32_USBController() ([]interface{}, error) {
 	var dst []rmm.Win32_USBController
 	ret := make([]interface{}, 0)
@@ -586,9 +588,11 @@ func (a *WindowsAgent) GetWMI() {
 	wmiInfo["usb"] = usb
 	wmiInfo["graphics"] = graphics
 
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:358
 	payload := map[string]interface{}{"agent_id": a.AgentID, "sysinfo": wmiInfo}
 
-	_, rerr := a.rClient.R().SetBody(payload).Patch("/api/v3/sysinfo/")
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:362
+	_, rerr := a.rClient.R().SetBody(payload).Patch(ApiSysInfo)
 	if rerr != nil {
 		a.Logger.Debugln(rerr)
 	}

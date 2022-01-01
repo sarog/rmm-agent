@@ -21,7 +21,7 @@ const (
 
 var wuaSession sync.Mutex
 
-// IUpdateSession is a an IUpdateSession.
+// IUpdateSession is an IUpdateSession.
 type IUpdateSession struct {
 	*ole.IDispatch
 }

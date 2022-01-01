@@ -109,6 +109,7 @@ func (a *WindowsAgent) CreateInternalTask(name, args, repeat string, start int) 
 	return false, nil
 }
 
+// 2021-12-31: api/tacticalrmm/agents/views.py:389
 type SchedTask struct {
 	PK                 int                  `json:"pk"`
 	Type               string               `json:"type"`

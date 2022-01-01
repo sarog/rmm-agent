@@ -7,6 +7,8 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
+const ApiWinUpdates = "/api/v3/winupdates/"
+
 func (a *WindowsAgent) GetWinUpdates() {
 	updates, err := WUAUpdates("IsInstalled=1 or IsInstalled=0 and Type='Software' and IsHidden=0")
 	if err != nil {
@@ -23,7 +25,7 @@ func (a *WindowsAgent) GetWinUpdates() {
 	}
 
 	payload := rmm.WinUpdateResult{AgentID: a.AgentID, Updates: updates}
-	_, err = a.rClient.R().SetBody(payload).Post("/api/v3/winupdates/")
+	_, err = a.rClient.R().SetBody(payload).Post(ApiWinUpdates)
 	if err != nil {
 		a.Logger.Debugln(err)
 	}
@@ -48,7 +50,7 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 		if err != nil {
 			a.Logger.Errorln(err)
 			result.Success = false
-			a.rClient.R().SetBody(result).Patch("/api/v3/winupdates/")
+			a.rClient.R().SetBody(result).Patch(ApiWinUpdates)
 			continue
 		}
 		defer updts.Release()
@@ -57,7 +59,7 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 		if err != nil {
 			a.Logger.Errorln(err)
 			result.Success = false
-			a.rClient.R().SetBody(result).Patch("/api/v3/winupdates/")
+			a.rClient.R().SetBody(result).Patch(ApiWinUpdates)
 			continue
 		}
 		a.Logger.Debugln("updtCnt:", updtCnt)
@@ -73,7 +75,7 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 			if err != nil {
 				a.Logger.Errorln(err)
 				result.Success = false
-				a.rClient.R().SetBody(result).Patch("/api/v3/winupdates/")
+				a.rClient.R().SetBody(result).Patch(ApiWinUpdates)
 				continue
 			}
 			a.Logger.Debugln("u:", u)
@@ -81,11 +83,11 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 			if err != nil {
 				a.Logger.Errorln(err)
 				result.Success = false
-				a.rClient.R().SetBody(result).Patch("/api/v3/winupdates/")
+				a.rClient.R().SetBody(result).Patch(ApiWinUpdates)
 				continue
 			}
 			result.Success = true
-			a.rClient.R().SetBody(result).Patch("/api/v3/winupdates/")
+			a.rClient.R().SetBody(result).Patch(ApiWinUpdates)
 			a.Logger.Debugln("Installed windows update with guid", id)
 		}
 	}
@@ -95,8 +97,10 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 	if err != nil {
 		a.Logger.Errorln(err)
 	}
+
+	// 2021-12-31: api/tacticalrmm/apiv3/views.py:122
 	rebootPayload := rmm.AgentNeedsReboot{AgentID: a.AgentID, NeedsReboot: needsReboot}
-	_, err = a.rClient.R().SetBody(rebootPayload).Put("/api/v3/winupdates/")
+	_, err = a.rClient.R().SetBody(rebootPayload).Put(ApiWinUpdates)
 	if err != nil {
 		a.Logger.Debugln("NeedsReboot:", err)
 	}

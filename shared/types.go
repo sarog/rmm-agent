@@ -2,16 +2,19 @@ package shared
 
 import "time"
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:524
 type RecoveryAction struct {
 	Mode     string `json:"mode"`
 	ShellCMD string `json:"shellcmd"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:172
 type WinUpdateResult struct {
 	AgentID string       `json:"agent_id"`
 	Updates []WUAPackage `json:"wua_updates"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:187
 type WUAPackage struct {
 	Title          string   `json:"title"`
 	Description    string   `json:"description"`
@@ -33,22 +36,25 @@ type WinUpdateInstallResult struct {
 	Success  bool   `json:"success"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:216
 type SupersededUpdate struct {
 	AgentID  string `json:"agent_id"`
 	UpdateID string `json:"guid"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:122
 type AgentNeedsReboot struct {
 	AgentID     string `json:"agent_id"`
 	NeedsReboot bool   `json:"needs_reboot"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:111
 type ChocoInstalled struct {
 	AgentID   string `json:"agent_id"`
 	Installed bool   `json:"installed"`
 }
 
-// WindowsService holds windows service info
+// WindowsService holds Windows service info
 type WindowsService struct {
 	Name             string `json:"name"`
 	Status           string `json:"status"`
@@ -62,6 +68,7 @@ type WindowsService struct {
 }
 
 // Disk holds physical disk info
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:48
 type Disk struct {
 	Device  string  `json:"device"`
 	Fstype  string  `json:"fstype"`
@@ -117,6 +124,7 @@ type Check struct {
 	SearchLastDays   int            `json:"search_last_days"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:233
 type AllChecks struct {
 	CheckInfo
 	Checks []Check
@@ -156,6 +164,7 @@ type CheckIn struct {
 	Version string `json:"version"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:67
 type CheckInSW struct {
 	CheckIn
 	InstalledSW []SoftwareList `json:"software"`
@@ -181,11 +190,13 @@ type CheckInPublicIP struct {
 	PublicIP string `json:"public_ip"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:43
 type CheckInDisk struct {
 	CheckIn
 	Disks []Disk `json:"disks"`
 }
 
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:61
 type CheckInLoggedUser struct {
 	CheckIn
 	Username string `json:"logged_in_username"`
