@@ -2,14 +2,14 @@
     "FixedFileInfo": {
         "FileVersion": {
             "Major": 1,
-            "Minor": 5,
-            "Patch": 1,
+            "Minor": 7,
+            "Patch": 2,
             "Build": 1000
         },
         "ProductVersion": {
             "Major": 1,
-            "Minor": 5,
-            "Patch": 1,
+            "Minor": 7,
+            "Patch": 2,
             "Build": 1000
         },
         "FileFlagsMask": "3f",
@@ -22,14 +22,14 @@
         "Comments": "",
         "CompanyName": "ACME",
         "FileDescription": "ACME RMM Agent OSS",
-        "FileVersion": "v1.5.1.0",
+        "FileVersion": "v1.7.2.1000",
         "InternalName": "acmermm.exe",
         "LegalCopyright": "Copyright (c) 2021 ACME",
         "LegalTrademarks": "",
         "OriginalFilename": "tacticalrmm.exe",
         "PrivateBuild": "",
         "ProductName": "ACME RMM Agent",
-        "ProductVersion": "v1.5.1.0",
+        "ProductVersion": "v1.7.2.1000",
         "SpecialBuild": ""
     },
     "VarFileInfo": {
