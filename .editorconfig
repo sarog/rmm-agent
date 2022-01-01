@@ -16,6 +16,9 @@ ij_smart_tabs = false
 ij_visual_guides = none
 ij_wrap_on_typing = false
 
+[*.go]
+indent_style = tab
+
 [*.iss]
 end_of_line = crlf
 
