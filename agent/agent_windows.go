@@ -401,24 +401,40 @@ func DisableSleepHibernate() {
 // LoggedOnUser returns the first logged on user it finds
 // todo: 2021-12-31: Python dep; replace with PowerShell?
 func (a *Agent) LoggedOnUser() string {
-	pyCode := `
-import psutil
 
-try:
-	u = psutil.users()[0].name
-	if u.isascii():
-		print(u, end='')
-	else:
-		print('notascii', end='')
-except Exception as e:
-	print("None", end='')
+	// Works in PowerShell 5.x and Core
+	// (Get-CimInstance -ClassName Win32_ComputerSystem).Username
+	// ((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\')[1]
 
-`
-	// Attempt #1: try with psutil first
-	user, err := a.RunPythonCode(pyCode, 5, []string{})
-	if err == nil && user != "notascii" {
-		return user
+	// todo: 2022-01-01: test
+	user, err := CMDShell("powershell", make([]string, 0), "((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\\')[1]", 5, false)
+	if err != nil {
+		a.Logger.Debugln("LoggedOnUser error", err)
+		return "None"
 	}
+
+	if err == nil {
+		return user[1]
+	}
+
+	/*pyCode := `
+	import psutil
+
+	try:
+		u = psutil.users()[0].name
+		if u.isascii():
+			print(u, end='')
+		else:
+			print('notascii', end='')
+	except Exception as e:
+		print("None", end='')
+
+	`
+		// Attempt #1: try with psutil first
+		user, err := a.RunPythonCode(pyCode, 5, []string{})
+		if err == nil && user != "notascii" {
+			return user
+		}*/
 
 	// Attempt #2: Go fallback
 	users, err := wapf.ListLoggedInUsers()
@@ -441,33 +457,43 @@ except Exception as e:
 // GetCPULoadAvg Retrieve CPU load average
 // todo: 2021-12-31: remove Python dep
 func (a *Agent) GetCPULoadAvg() int {
-	fallback := false
-	pyCode := `
-import psutil
-try:
-	print(int(round(psutil.cpu_percent(interval=10))), end='')
-except:
-	print("pyerror", end='')
-`
-	pypercent, err := a.RunPythonCode(pyCode, 13, []string{})
-	if err != nil || pypercent == "pyerror" {
-		fallback = true
-	}
 
-	i, err := strconv.Atoi(pypercent)
-	if err != nil {
-		fallback = true
-	}
+	// PowerShell 5.x only
+	// Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average | Select Average
+	// Get-WmiObject Win32_Processor | Select LoadPercentage | Format-List
 
-	if fallback {
-		percent, err := cpu.Percent(10*time.Second, false)
-		if err != nil {
-			a.Logger.Debugln("Go CPU Check:", err)
-			return 0
+	// cpu, err := GetWin32_Processor()
+	// if err != nil {
+	// 	a.Logger.Debugln(err)
+	// }
+
+	/*fallback := false
+		pyCode := `
+	import psutil
+	try:
+		print(int(round(psutil.cpu_percent(interval=10))), end='')
+	except:
+		print("pyerror", end='')
+	`
+		pypercent, err := a.RunPythonCode(pyCode, 13, []string{})
+		if err != nil || pypercent == "pyerror" {
+			fallback = true
 		}
-		return int(math.Round(percent[0]))
+
+		i, err := strconv.Atoi(pypercent)
+		if err != nil {
+			fallback = true
+		}*/
+
+	// if fallback {
+	percent, err := cpu.Percent(10*time.Second, false)
+	if err != nil {
+		a.Logger.Debugln("Go CPU Check:", err)
+		return 0
 	}
-	return i
+	return int(math.Round(percent[0]))
+	// }
+	// return i
 }
 
 // ForceKillSalt kills all salt related processes
