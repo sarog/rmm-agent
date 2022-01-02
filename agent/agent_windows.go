@@ -40,6 +40,7 @@ const (
 	API_URL_SOFTWARE = "/api/v3/software/"
 	API_URL_SYNCMESH = "/api/v3/syncmesh/"
 	AGENT_TEMP_DIR   = "trmm"
+	AGENT_FILENAME   = "tacticalrmm.exe"
 )
 
 // Agent struct
@@ -73,8 +74,8 @@ func New(logger *logrus.Logger, version string) *Agent {
 	host, _ := ps.Host()
 	info := host.Info()
 	pd := filepath.Join(os.Getenv("ProgramFiles"), BRANDING_FOLDER)
-	exe := filepath.Join(pd, "tacticalrmm.exe") // todo: 2021-12-31: branding
-	dbFile := filepath.Join(pd, "agentdb.db")   // deprecated
+	exe := filepath.Join(pd, AGENT_FILENAME)
+	dbFile := filepath.Join(pd, "agentdb.db") // Deprecated
 	sd := os.Getenv("SystemDrive")
 	nssm, mesh := ArchInfo(pd)
 
@@ -408,11 +409,6 @@ func (a *Agent) LoggedOnUser() string {
 
 	// todo: 2022-01-01: test
 	user, err := CMDShell("powershell", make([]string, 0), "((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\\')[1]", 5, false)
-	if err != nil {
-		a.Logger.Debugln("LoggedOnUser error", err)
-		return "None"
-	}
-
 	if err == nil {
 		return user[1]
 	}
