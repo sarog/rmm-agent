@@ -31,14 +31,16 @@ type Installer struct {
 	WinDefender bool // 2022-01-01: new
 	Token       string
 	LocalMesh   string
+	MeshDir     string // todo: 2022-01-02: backported
+	NoMesh      bool   // todo: 2022-01-02: backported
 	Cert        string
 	Timeout     time.Duration
-	SaltMaster  string
+	SaltMaster  string // Deprecated?
 	Silent      bool
 }
 
 // todo: 2021-12-31: custom branding
-// todo: 2022-01-01: perhaps consolidate these elsewhere?
+// todo: 2022-01-01: consolidate these elsewhere
 const (
 	SERVICE_NAME_RPC        = "tacticalrpc"
 	SERVICE_NAME_AGENT      = "tacticalagent"
@@ -47,6 +49,8 @@ const (
 	SERVICE_DESC_RPC        = "Tactical RMM RPC Service"
 	SERVICE_DESC_AGENT      = "Tactical RMM Agent"
 
+	// Registry strings
+	REG_RMM_PATH    = `SOFTWARE\TacticalRMM`
 	REG_RMM_BASEURL = "BaseURL"
 	REG_RMM_AGENTID = "AgentID"
 	REG_RMM_APIURL  = "ApiURL"
@@ -57,39 +61,39 @@ const (
 
 func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 	// todo: 2021-12-31: migrate to DPAPI?
-	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`, registry.ALL_ACCESS)
+	key, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err != nil {
 		log.Fatalln("Error creating registry key:", err)
 	}
-	defer k.Close()
+	defer key.Close()
 
-	err = k.SetStringValue(REG_RMM_BASEURL, baseurl)
+	err = key.SetStringValue(REG_RMM_BASEURL, baseurl)
 	if err != nil {
 		log.Fatalln("Error creating BaseURL registry key:", err)
 	}
 
-	err = k.SetStringValue(REG_RMM_AGENTID, agentid)
+	err = key.SetStringValue(REG_RMM_AGENTID, agentid)
 	if err != nil {
 		log.Fatalln("Error creating AgentID registry key:", err)
 	}
 
-	err = k.SetStringValue(REG_RMM_APIURL, apiurl)
+	err = key.SetStringValue(REG_RMM_APIURL, apiurl)
 	if err != nil {
 		log.Fatalln("Error creating ApiURL registry key:", err)
 	}
 
-	err = k.SetStringValue(REG_RMM_TOKEN, token)
+	err = key.SetStringValue(REG_RMM_TOKEN, token)
 	if err != nil {
 		log.Fatalln("Error creating Token registry key:", err)
 	}
 
-	err = k.SetStringValue(REG_RMM_AGENTPK, agentpk)
+	err = key.SetStringValue(REG_RMM_AGENTPK, agentpk)
 	if err != nil {
 		log.Fatalln("Error creating AgentPK registry key:", err)
 	}
 
 	if len(cert) > 0 {
-		err = k.SetStringValue(REG_RMM_CERT, cert)
+		err = key.SetStringValue(REG_RMM_CERT, cert)
 		if err != nil {
 			log.Fatalln("Error creating Cert registry key:", err)
 		}
@@ -112,7 +116,7 @@ func (a *Agent) Install(i *Installer) {
 	}
 
 	if u.Scheme != "https" && u.Scheme != "http" {
-		a.installerMsg("Invalid URL (must contain https or http)", "error", i.Silent)
+		a.installerMsg("Invalid URL: must begin with https or http", "error", i.Silent)
 	}
 
 	// This will match either IPv4 or IPv4:port
@@ -131,7 +135,7 @@ func (a *Agent) Install(i *Installer) {
 
 	terr := TestTCP(fmt.Sprintf("%s:4222", i.SaltMaster))
 	if terr != nil {
-		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
+		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM server, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
 	}
 
 	baseURL := u.Scheme + "://" + u.Host
@@ -153,6 +157,7 @@ func (a *Agent) Install(i *Installer) {
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:474
 	verPayload := map[string]string{"version": a.Version}
+
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:479
 	iVersion, ierr := iClient.R().SetBody(verPayload).Post(fmt.Sprintf("%s/api/v3/installer/", baseURL))
 	if ierr != nil {
@@ -169,7 +174,7 @@ func (a *Agent) Install(i *Installer) {
 	// Set REST knox headers
 	rClient.SetHeaders(i.Headers)
 
-	// Set local cert if applicable
+	// Set local certificate if applicable
 	if len(i.Cert) > 0 {
 		if !FileExists(i.Cert) {
 			a.installerMsg(fmt.Sprintf("%s does not exist", i.Cert), "error", i.Silent)
@@ -299,6 +304,7 @@ func (a *Agent) Install(i *Installer) {
 	if err != nil {
 		a.Logger.Errorln(err)
 	} else {
+		// todo: 2022-01-02: might have to replace this with the NATS calls
 		startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OSINFO, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
 		for _, mode := range startup {
 			a.CheckIn(mode)
@@ -353,7 +359,7 @@ func (a *Agent) Install(i *Installer) {
 		EnableRDP()
 	}
 
-	a.installerMsg("Installation was successfully!\nAllow a few minutes for the agent to show up in the RMM", "info", i.Silent)
+	a.installerMsg("Installation was successful!\nPlease allow a few minutes for the agent to show up in the RMM server", "info", i.Silent)
 }
 
 func copyFile(src, dst string) error {
@@ -378,7 +384,7 @@ func copyFile(src, dst string) error {
 
 func (a *Agent) checkExistingAndRemove(silent bool) {
 	hasReg := false
-	_, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`, registry.ALL_ACCESS)
+	_, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err == nil {
 		hasReg = true
 	}
@@ -393,7 +399,7 @@ func (a *Agent) checkExistingAndRemove(silent bool) {
 		if !silent && window != 0 {
 			var handle w32.HWND
 			msg := "Existing installation found\nClick OK to remove, then re-run the installer.\nClick Cancel to abort."
-			action := w32.MessageBox(handle, msg, "Tactical RMM", w32.MB_OKCANCEL|w32.MB_ICONWARNING)
+			action := w32.MessageBox(handle, msg, AGENT_NAME_LONG, w32.MB_OKCANCEL|w32.MB_ICONWARNING)
 			if action == w32.IDOK {
 				a.AgentUninstall()
 			}
