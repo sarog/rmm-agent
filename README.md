@@ -18,7 +18,7 @@ Server source (fork & review coming): https://github.com/wh1te909/tacticalrmm
 ### Building the Windows agent with custom branding
 
 Pre-requisites:
-- Golang 1.16+
+- Golang 1.17+
 - [Inno Setup](https://jrsoftware.org/isdl.php) (optional) for distribution
 
 Clone the repository & download the dependencies:

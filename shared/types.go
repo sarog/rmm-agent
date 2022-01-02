@@ -4,7 +4,7 @@ import "time"
 
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:524
 type RecoveryAction struct {
-	Mode     string `json:"mode"`
+	Mode     string `json:"mode"` // command, rpc
 	ShellCMD string `json:"shellcmd"`
 }
 
@@ -30,6 +30,7 @@ type WUAPackage struct {
 	Downloaded     bool     `json:"downloaded"`
 }
 
+// 2022-01-01: api/tacticalrmm/apiv3/views.py:149
 type WinUpdateInstallResult struct {
 	AgentID  string `json:"agent_id"`
 	UpdateID string `json:"guid"`
@@ -69,6 +70,7 @@ type WindowsService struct {
 
 // Disk holds physical disk info
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:48
+// 2022-01-01: 'agent-disks' ? natsapi/svc.go:97
 type Disk struct {
 	Device  string  `json:"device"`
 	Fstype  string  `json:"fstype"`
@@ -170,6 +172,7 @@ type CheckInSW struct {
 	InstalledSW []SoftwareList `json:"software"`
 }
 
+// 2022-01-01:
 type CheckInOS struct {
 	CheckIn
 	Hostname     string  `json:"hostname"`
@@ -178,19 +181,23 @@ type CheckInOS struct {
 	TotalRAM     float64 `json:"total_ram"`
 	BootTime     int64   `json:"boot_time"`
 	RebootNeeded bool    `json:"needs_reboot"`
+	// todo: 2022-01-01: add: 'logged_in_username' ? natsapi/svc.go:77
 }
 
+// 2022-01-01: 'agent-winsvc' ? natsapi/svc.go:117
 type CheckInWinServices struct {
 	CheckIn
 	Services []WindowsService `json:"services"`
 }
 
+// 2022-01-01: 'agent-publicip' ? natsapi/svc.go:56
 type CheckInPublicIP struct {
 	CheckIn
 	PublicIP string `json:"public_ip"`
 }
 
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:43
+// 2021-12-31: api/tacticalrmm/apiv3/views.py:48
 type CheckInDisk struct {
 	CheckIn
 	Disks []Disk `json:"disks"`

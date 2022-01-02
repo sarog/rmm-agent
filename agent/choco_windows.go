@@ -8,6 +8,8 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
+const API_URL_CHOCO = "/api/v3/choco/"
+
 // InstallChoco Installs the Chocolatey PowerShell script
 func (a *WindowsAgent) InstallChoco() {
 
@@ -19,32 +21,31 @@ func (a *WindowsAgent) InstallChoco() {
 	rClient.SetTimeout(30 * time.Second)
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:84
-	const ApiUrl = "/api/v3/choco/"
 	r, err := rClient.R().Get("https://chocolatey.org/install.ps1")
 	if err != nil {
 		a.Logger.Debugln(err)
-		a.rClient.R().SetBody(result).Post(ApiUrl)
+		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 	if r.IsError() {
-		a.rClient.R().SetBody(result).Post(ApiUrl)
+		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 
 	_, _, exitcode, err := a.RunScript(string(r.Body()), "powershell", []string{}, 900)
 	if err != nil {
 		a.Logger.Debugln(err)
-		a.rClient.R().SetBody(result).Post(ApiUrl)
+		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 
 	if exitcode != 0 {
-		a.rClient.R().SetBody(result).Post(ApiUrl)
+		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 
 	result.Installed = true
-	a.rClient.R().SetBody(result).Post(ApiUrl)
+	a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
 }
 
 func (a *WindowsAgent) InstallWithChoco(name string) (string, error) {

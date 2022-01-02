@@ -34,9 +34,10 @@ var (
 	getDriveType = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetDriveTypeW")
 )
 
-const BrandingFolder = "TacticalAgent"
+const BRANDING_FOLDER = "TacticalAgent"
 
 // WindowsAgent struct
+// 2022-01-01: renamed to 'Agent'
 type WindowsAgent struct {
 	Hostname      string
 	Arch          string
@@ -65,7 +66,7 @@ type WindowsAgent struct {
 func New(logger *logrus.Logger, version string) *WindowsAgent {
 	host, _ := ps.Host()
 	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), BrandingFolder)
+	pd := filepath.Join(os.Getenv("ProgramFiles"), BRANDING_FOLDER)
 	exe := filepath.Join(pd, "tacticalrmm.exe") // todo: 2021-12-31: branding
 	dbFile := filepath.Join(pd, "agentdb.db")   // deprecated
 	sd := os.Getenv("SystemDrive")
@@ -978,6 +979,8 @@ func (a *WindowsAgent) RunMigrations() {
 	CMD("schtasks.exe", []string{"/delete", "/TN", "TacticalRMM_fixmesh", "/f"}, 10, false)
 }
 
+// CheckForRecovery Check for agent recovery
+// 2022-01-01: api/tacticalrmm/apiv3/urls.py:22
 func (a *WindowsAgent) CheckForRecovery() {
 	url := fmt.Sprintf("/api/v3/%s/recovery/", a.AgentID)
 	r, err := a.rClient.R().SetResult(&rmm.RecoveryAction{}).Get(url)
@@ -997,10 +1000,14 @@ func (a *WindowsAgent) CheckForRecovery() {
 	switch mode {
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:551
 	case "mesh":
+		// 2022-01-01:
+		// 	api/tacticalrmm/agents/views.py:236
+		// 	api/tacticalrmm/agents/views.py:569
 		a.RecoverMesh()
 	case "rpc":
 		a.RecoverRPC()
 	case "command":
+		// 2022-01-01: api/tacticalrmm/apiv3/views.py:552
 		a.RecoverCMD(command)
 	default:
 		return

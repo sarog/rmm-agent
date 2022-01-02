@@ -109,12 +109,14 @@ func (a *WindowsAgent) CreateInternalTask(name, args, repeat string, start int) 
 	return false, nil
 }
 
-// 2021-12-31: api/tacticalrmm/agents/views.py:389
+// SchedTask Scheduled Task
+// 2021-12-31: used in:
+// 		api/tacticalrmm/agents/views.py:389
 type SchedTask struct {
 	PK                 int                  `json:"pk"`
-	Type               string               `json:"type"`
+	Type               string               `json:"type"` // rmm, custom
 	Name               string               `json:"name"`
-	Trigger            string               `json:"trigger"`
+	Trigger            string               `json:"trigger"` // re: "task_type": manual, checkfailure, runonce, daily, weekly, monthly, monthlydow
 	Enabled            bool                 `json:"enabled"`
 	DeleteAfter        bool                 `json:"deleteafter"`
 	WeekDays           taskmaster.DayOfWeek `json:"weekdays"`
@@ -128,6 +130,11 @@ type SchedTask struct {
 	Args               string               `json:"args"`
 	Parallel           bool                 `json:"parallel"`
 	RunASAPAfterMissed bool                 `json:"run_asap_after_missed"`
+	// todo: 1.7.3+: OverwriteTask bool `json:"overwrite_task"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:357
+	// todo: 1.7.3+: MultipleInstances int `json:"multiple_instances"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:
+	// todo: 1.7.3+: DeletedExpiredAfter bool `json:"delete_expired_task_after"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:
+	// todo: 1.7.3+: StartWhenAvailable bool `json:"start_when_available"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:
+
 }
 
 func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
@@ -179,6 +186,8 @@ func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 				StartBoundary: time.Date(1975, 1, 1, 1, 0, 0, 0, now.Location()),
 			},
 		}
+		// todo: from 1.7.3+:
+		//  case "checkfailure":
 	}
 
 	def.AddTrigger(trigger)
@@ -189,6 +198,7 @@ func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 		workdir = a.ProgramDir
 		args = fmt.Sprintf("-m taskrunner -p %d", st.PK)
 	case "schedreboot":
+		// 2022-01-01: via nats_cmd: api/tacticalrmm/agents/views.py:390
 		path = "shutdown.exe"
 		workdir = filepath.Join(os.Getenv("SYSTEMROOT"), "System32")
 		args = "/r /t 5 /f"
@@ -236,6 +246,7 @@ func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 	return success, nil
 }
 
+// DeleteSchedTask Deletes a Scheduled Task
 func DeleteSchedTask(name string) error {
 	conn, err := taskmaster.Connect()
 	if err != nil {
@@ -250,6 +261,7 @@ func DeleteSchedTask(name string) error {
 	return nil
 }
 
+// EnableSchedTask Enables a Scheduled Task
 func EnableSchedTask(st SchedTask) error {
 	conn, err := taskmaster.Connect()
 	if err != nil {
@@ -271,7 +283,7 @@ func EnableSchedTask(st SchedTask) error {
 	return nil
 }
 
-// CleanupSchedTasks removes all tacticalrmm sched tasks during uninstall
+// CleanupSchedTasks removes all tacticalrmm scheduled tasks during uninstall
 func CleanupSchedTasks() {
 	conn, err := taskmaster.Connect()
 	if err != nil {
