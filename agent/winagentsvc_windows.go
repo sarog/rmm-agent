@@ -12,21 +12,21 @@ const (
 	API_URL_CHECKIN = "/api/v3/checkin/"
 
 	// CheckIn
-	CHECKIN_MODE_HELLO        = "hello"
-	CHECKIN_MODE_OSINFO       = "osinfo"
-	CHECKIN_MODE_WINSERVICES  = "winservices"
 	CHECKIN_MODE_DISKS        = "disks"
+	CHECKIN_MODE_HELLO        = "hello"
+	CHECKIN_MODE_LOGGEDONUSER = "loggedonuser"
+	CHECKIN_MODE_OSINFO       = "osinfo"
 	CHECKIN_MODE_PUBLICIP     = "publicip"
 	CHECKIN_MODE_SOFTWARE     = "software"
-	CHECKIN_MODE_LOGGEDONUSER = "loggedonuser"
 	CHECKIN_MODE_STARTUP      = "startup"
+	CHECKIN_MODE_WINSERVICES  = "winservices"
 
 	// nats service: natsapi/svc.go:16
+	NATS_MODE_DISKS       = "agent-disks"
 	NATS_MODE_HELLO       = "agent-hello"
 	NATS_MODE_OSINFO      = "agent-agentinfo"
-	NATS_MODE_WINSERVICES = "agent-winsvc"
-	NATS_MODE_DISKS       = "agent-disks"
 	NATS_MODE_PUBLICIP    = "agent-publicip"
+	NATS_MODE_WINSERVICES = "agent-winsvc"
 	NATS_MODE_WMI         = "agent-wmi"
 )
 
@@ -38,7 +38,7 @@ func (a *Agent) RunAsService() {
 	wg.Wait()
 }
 
-// WinAgentSvc tacticalagent Windows nssm service
+// WinAgentSvc Windows nssm service
 func (a *Agent) WinAgentSvc() {
 	a.Logger.Infoln("Agent service started")
 
@@ -126,6 +126,7 @@ func (a *Agent) CheckIn(mode string) {
 		}
 
 	case CHECKIN_MODE_OSINFO:
+		// todo: 2022-01-01: 'agent-agentinfo' ? natsapi/svc.go:70
 		plat, osinfo := a.OSInfo()
 		reboot, err := a.SystemRebootRequired()
 		if err != nil {
@@ -133,7 +134,7 @@ func (a *Agent) CheckIn(mode string) {
 		}
 		payload = rmm.CheckInOS{
 			CheckIn: rmm.CheckIn{
-				Func:    "osinfo", // todo: 2022-01-01: 'agent-agentinfo' ? natsapi/svc.go:70
+				Func:    "osinfo",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
@@ -146,9 +147,10 @@ func (a *Agent) CheckIn(mode string) {
 		}
 
 	case CHECKIN_MODE_WINSERVICES:
+		// todo: 2022-01-01: 'agent-winsvc' ? natsapi/svc.go:117
 		payload = rmm.CheckInWinServices{
 			CheckIn: rmm.CheckIn{
-				Func:    "winservices", // todo: 2022-01-01: 'agent-winsvc' ? natsapi/svc.go:117
+				Func:    "winservices",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
@@ -156,9 +158,10 @@ func (a *Agent) CheckIn(mode string) {
 		}
 
 	case CHECKIN_MODE_PUBLICIP:
+		// todo: 2022-01-01: 'agent-publicip' ? natsapi/svc.go:56
 		payload = rmm.CheckInPublicIP{
 			CheckIn: rmm.CheckIn{
-				Func:    "publicip", // todo: 2022-01-01: 'agent-publicip' ? natsapi/svc.go:56
+				Func:    "publicip",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
@@ -166,9 +169,10 @@ func (a *Agent) CheckIn(mode string) {
 		}
 
 	case CHECKIN_MODE_DISKS:
+		// todo: 2022-01-01: 'agent-disks' ? natsapi/svc.go:97
 		payload = rmm.CheckInDisk{
 			CheckIn: rmm.CheckIn{
-				Func:    "disks", // todo: 2022-01-01: 'agent-disks' ? natsapi/svc.go:97
+				Func:    "disks",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
@@ -176,9 +180,10 @@ func (a *Agent) CheckIn(mode string) {
 		}
 
 	case CHECKIN_MODE_LOGGEDONUSER:
+		// 2022-01-01: api/tacticalrmm/apiv3/views.py:61
 		payload = rmm.CheckInLoggedUser{
 			CheckIn: rmm.CheckIn{
-				Func:    "loggedonuser", // 2022-01-01: api/tacticalrmm/apiv3/views.py:61
+				Func:    "loggedonuser",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
@@ -186,9 +191,10 @@ func (a *Agent) CheckIn(mode string) {
 		}
 
 	case CHECKIN_MODE_SOFTWARE:
+		// 2022-01-01: api/tacticalrmm/apiv3/views.py:67
 		payload = rmm.CheckInSW{
 			CheckIn: rmm.CheckIn{
-				Func:    "software", // 2022-01-01: api/tacticalrmm/apiv3/views.py:67
+				Func:    "software",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},

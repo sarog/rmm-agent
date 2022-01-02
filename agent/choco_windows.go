@@ -48,6 +48,7 @@ func (a *Agent) InstallChoco() {
 	a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
 }
 
+// InstallWithChoco Install an application with Chocolatey
 func (a *Agent) InstallWithChoco(name string) (string, error) {
 	out, err := CMD("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
 	if err != nil {
