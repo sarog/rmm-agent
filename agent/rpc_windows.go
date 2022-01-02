@@ -103,8 +103,9 @@ func (a *Agent) RunRPC() {
 			}(payload)
 
 		case "enableschedtask":
-			// 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:543
-			// 2022-01-01: 1.7.3+: replaced with 'func: schedtask': api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
+			// 2022-01-01: via nats:
+			// 	api/tacticalrmm/autotasks/models.py:543
+			//  1.7.3+: replaced with 'func: schedtask': api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -183,6 +184,7 @@ func (a *Agent) RunRPC() {
 			}(payload)
 
 		case "winservices":
+			// 2022-01-01: api/tacticalrmm/services/views.py:24
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -193,6 +195,7 @@ func (a *Agent) RunRPC() {
 			}()
 
 		case "winsvcdetail":
+			// 2022-01-01: api/tacticalrmm/services/views.py:40
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -203,6 +206,7 @@ func (a *Agent) RunRPC() {
 			}(payload)
 
 		case "winsvcaction":
+			// 2022-01-01: api/tacticalrmm/services/views.py:52
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -213,6 +217,7 @@ func (a *Agent) RunRPC() {
 			}(payload)
 
 		case "editwinsvc":
+			// 2022-01-01: api/tacticalrmm/services/views.py:92
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -315,7 +320,7 @@ func (a *Agent) RunRPC() {
 				_, _ = CMD("shutdown.exe", []string{"/r", "/t", "5", "/f"}, 15, false)
 			}()
 
-		case "needsreboot":
+		case "needsreboot": // 2022-01-01: removed or merged
 			go func() {
 				a.Logger.Debugln("Checking if a reboot is needed")
 				var resp []byte
@@ -332,14 +337,15 @@ func (a *Agent) RunRPC() {
 			}()
 
 		case "sysinfo":
+			// 2022-01-01: api/tacticalrmm/apiv3/views.py:358
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
 				a.Logger.Debugln("Getting system info with WMI")
 
-				modes := []string{"osinfo", "publicip", "disks"}
-				for _, m := range modes {
-					a.CheckIn(m)
+				modes := []string{CHECKIN_MODE_OSINFO, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_DISKS}
+				for _, mode := range modes {
+					a.CheckIn(mode)
 					time.Sleep(200 * time.Millisecond)
 				}
 				a.GetWMI()

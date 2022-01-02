@@ -11,7 +11,7 @@ import (
 const (
 	API_URL_CHECKIN           = "/api/v3/checkin/"
 	CHECKIN_MODE_HELLO        = "hello"
-	CHECKIN_MODE_OS           = "osinfo"
+	CHECKIN_MODE_OSINFO       = "osinfo"
 	CHECKIN_MODE_WINSERVICES  = "winservices"
 	CHECKIN_MODE_DISKS        = "disks"
 	CHECKIN_MODE_PUBLICIP     = "publicip"
@@ -41,7 +41,7 @@ func (a *Agent) WinAgentSvc() {
 	time.Sleep(time.Duration(sleepDelay) * time.Second)
 
 	a.RunMigrations()
-	startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OS, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
+	startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OSINFO, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
 	for _, s := range startup {
 		a.CheckIn(s)
 		time.Sleep(time.Duration(randRange(300, 900)) * time.Millisecond)
@@ -66,19 +66,15 @@ func (a *Agent) WinAgentSvc() {
 	for {
 		select {
 		case <-checkInTicker.C:
-			// 2022-01-01: 'agent-hello' ? natsapi/svc.go:36
 			a.CheckIn(CHECKIN_MODE_HELLO)
 		case <-checkInOSTicker.C:
-			a.CheckIn(CHECKIN_MODE_OS)
+			a.CheckIn(CHECKIN_MODE_OSINFO)
 		case <-checkInWinSvcTicker.C:
-			// 2022-01-01: 'agent-winsvc' ?
 			a.CheckIn(CHECKIN_MODE_WINSERVICES)
 		case <-checkInPubIPTicker.C:
-			// 2022-01-01: 'agent-publicip' ? natsapi/svc.go:56
 			a.CheckIn(CHECKIN_MODE_PUBLICIP)
 		case <-checkInDisksTicker.C:
 			a.CheckIn(CHECKIN_MODE_DISKS)
-			// 2022-01-01: 'agent-disks' ?
 		case <-checkInLoggedUserTicker.C:
 			a.CheckIn(CHECKIN_MODE_LOGGEDONUSER)
 		case <-checkInSWTicker.C:
@@ -109,16 +105,16 @@ func (a *Agent) CheckIn(mode string) {
 	case CHECKIN_MODE_STARTUP:
 		payload = rmm.CheckIn{
 			// 2022-01-01: relies on 'post' endpoint
-			// api/tacticalrmm/apiv3/views.py:84
-			// server will then request 2 calls via nats: 'installchoco' and 'getwinupdates'
-			// api/tacticalrmm/apiv3/views.py:87
-			// api/tacticalrmm/apiv3/views.py:90
+			// 	api/tacticalrmm/apiv3/views.py:84
+			// 	server will then request 2 calls via nats: 'installchoco' and 'getwinupdates'
+			// 	api/tacticalrmm/apiv3/views.py:87
+			// 	api/tacticalrmm/apiv3/views.py:90
 			Func:    "startup",
 			Agentid: a.AgentID,
 			Version: a.Version,
 		}
 
-	case CHECKIN_MODE_OS:
+	case CHECKIN_MODE_OSINFO:
 		plat, osinfo := a.OSInfo()
 		reboot, err := a.SystemRebootRequired()
 		if err != nil {

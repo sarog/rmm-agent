@@ -1,4 +1,5 @@
 #### AgentUpdate
+
 ```python
 # api/tacticalrmm/agents/tasks.py:57
 nats_data = {
@@ -11,7 +12,22 @@ nats_data = {
 }
 ```
 
+#### GetEventLog
+
+```python
+# api/tacticalrmm/agents/views.py:309
+data = {
+    "func": "eventlog",
+    "timeout": timeout,
+    "payload": {
+        "logname": logtype,
+        "days": str(days),
+    },
+}
+```
+
 #### RunScript, RunScriptFull
+
 ```python
 # api/tacticalrmm/agents/models.py:338
 data = {
@@ -22,5 +38,19 @@ data = {
         "code": script.code,
         "shell": script.shell
     }
+}
+```
+
+#### SendRawCMD
+
+```python
+# api/tacticalrmm/agents/views.py:329
+data = {
+    "func": "rawcmd",
+    "timeout": timeout,
+    "payload": {
+        "command": request.data["cmd"],
+        "shell": request.data["shell"],
+    },
 }
 ```

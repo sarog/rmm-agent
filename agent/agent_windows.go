@@ -98,34 +98,34 @@ func New(logger *logrus.Logger, version string) *Agent {
 	// todo: 2021-12-31: migrate to DPAPI?
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`, registry.ALL_ACCESS)
 	if err == nil {
-		baseurl, _, err = k.GetStringValue("BaseURL")
+		baseurl, _, err = k.GetStringValue(REG_RMM_BASEURL)
 		if err != nil {
 			logger.Fatalln("Unable to get BaseURL:", err)
 		}
 
-		agentid, _, err = k.GetStringValue("AgentID")
+		agentid, _, err = k.GetStringValue(REG_RMM_AGENTID)
 		if err != nil {
 			logger.Fatalln("Unable to get AgentID:", err)
 		}
 
-		apiurl, _, err = k.GetStringValue("ApiURL")
+		apiurl, _, err = k.GetStringValue(REG_RMM_APIURL)
 		if err != nil {
 			logger.Fatalln("Unable to get ApiURL:", err)
 		}
 
-		token, _, err = k.GetStringValue("Token")
+		token, _, err = k.GetStringValue(REG_RMM_TOKEN)
 		if err != nil {
 			logger.Fatalln("Unable to get Token:", err)
 		}
 
-		agentpk, _, err = k.GetStringValue("AgentPK")
+		agentpk, _, err = k.GetStringValue(REG_RMM_AGENTPK)
 		if err != nil {
 			logger.Fatalln("Unable to get AgentPK:", err)
 		}
 
 		pk, _ = strconv.Atoi(agentpk)
 
-		cert, _, _ = k.GetStringValue("Cert")
+		cert, _, _ = k.GetStringValue(REG_RMM_CERT)
 	}
 
 	headers := make(map[string]string)
@@ -356,7 +356,7 @@ func EnableRDP() {
 
 	args := make([]string, 0)
 	// todo: 2021-12-31: this may not always work if enforced by a GPO
-	cmd := `netsh advfirewall firewall set rule group="remote desktop" new enable=Yes`
+	cmd := `netsh advfirewall firewall set rule group="Remote Desktop" new enable=Yes`
 	_, cerr := CMDShell("cmd", args, cmd, 10, false)
 	if cerr != nil {
 		fmt.Println(cerr)
@@ -533,6 +533,7 @@ func (a *Agent) RecoverTacticalAgent() {
 }
 
 // RecoverSalt recovers the salt minion
+// todo: 2022-01-01: is this still needed?
 func (a *Agent) RecoverSalt() {
 	saltSVC := "salt-minion"
 	a.Logger.Debugln("Attempting salt recovery on", a.Hostname)
@@ -597,9 +598,9 @@ func (a *Agent) RecoverMesh() {
 // RecoverRPC Recovers the NATS RPC service
 func (a *Agent) RecoverRPC() {
 	a.Logger.Infoln("Attempting RPC service recovery")
-	_, _ = CMD("net", []string{"stop", "tacticalrpc"}, 90, false)
+	_, _ = CMD("net", []string{"stop", SERVICE_NAME_RPC}, 90, false)
 	time.Sleep(2 * time.Second)
-	_, _ = CMD("net", []string{"start", "tacticalrpc"}, 90, false)
+	_, _ = CMD("net", []string{"start", SERVICE_NAME_RPC}, 90, false)
 }
 
 // RecoverCMD runs a shell recovery command

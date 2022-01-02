@@ -28,6 +28,7 @@ type Installer struct {
 	Power       bool
 	RDP         bool
 	Ping        bool
+	WinDefender bool // 2022-01-01
 	Token       string
 	LocalMesh   string
 	Cert        string
@@ -35,6 +36,22 @@ type Installer struct {
 	SaltMaster  string
 	Silent      bool
 }
+
+// todo: 2021-12-31: custom branding
+// todo: 2022-01-01: perhaps consolidate these elsewhere?
+const (
+	SERVICE_NAME_RPC   = "tacticalrpc"
+	SERVICE_NAME_AGENT = "tacticalagent"
+	SERVICE_DESC_RPC   = "Tactical RMM RPC Service"
+	SERVICE_DESC_AGENT = "Tactical RMM Agent"
+
+	REG_RMM_BASEURL = "BaseURL"
+	REG_RMM_AGENTID = "AgentID"
+	REG_RMM_APIURL  = "ApiURL"
+	REG_RMM_TOKEN   = "Token"
+	REG_RMM_AGENTPK = "AgentPK"
+	REG_RMM_CERT    = "Cert"
+)
 
 func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 	// todo: 2021-12-31: migrate to DPAPI?
@@ -44,33 +61,33 @@ func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 	}
 	defer k.Close()
 
-	err = k.SetStringValue("BaseURL", baseurl)
+	err = k.SetStringValue(REG_RMM_BASEURL, baseurl)
 	if err != nil {
 		log.Fatalln("Error creating BaseURL registry key:", err)
 	}
 
-	err = k.SetStringValue("AgentID", agentid)
+	err = k.SetStringValue(REG_RMM_AGENTID, agentid)
 	if err != nil {
 		log.Fatalln("Error creating AgentID registry key:", err)
 	}
 
-	err = k.SetStringValue("ApiURL", apiurl)
+	err = k.SetStringValue(REG_RMM_APIURL, apiurl)
 	if err != nil {
 		log.Fatalln("Error creating ApiURL registry key:", err)
 	}
 
-	err = k.SetStringValue("Token", token)
+	err = k.SetStringValue(REG_RMM_TOKEN, token)
 	if err != nil {
 		log.Fatalln("Error creating Token registry key:", err)
 	}
 
-	err = k.SetStringValue("AgentPK", agentpk)
+	err = k.SetStringValue(REG_RMM_AGENTPK, agentpk)
 	if err != nil {
 		log.Fatalln("Error creating AgentPK registry key:", err)
 	}
 
 	if len(cert) > 0 {
-		err = k.SetStringValue("Cert", cert)
+		err = k.SetStringValue(REG_RMM_CERT, cert)
 		if err != nil {
 			log.Fatalln("Error creating Cert registry key:", err)
 		}
@@ -171,6 +188,7 @@ func (a *Agent) Install(i *Installer) {
 	if i.LocalMesh == "" {
 		a.Logger.Infoln("Downloading Mesh Agent...")
 		payload := map[string]string{"arch": arch}
+		// 2022-01-01: api/tacticalrmm/apiv3/views.py:373
 		r, err := rClient.R().SetBody(payload).SetOutput(mesh).Post(fmt.Sprintf("%s/api/v3/meshexe/", baseURL))
 		if err != nil {
 			a.installerMsg(fmt.Sprintf("Failed to download Mesh Agent: %s", err.Error()), "error", i.Silent)
@@ -201,7 +219,7 @@ func (a *Agent) Install(i *Installer) {
 	meshSuccess := false
 	var meshNodeID string
 	for !meshSuccess {
-		a.Logger.Debugln("Getting mesh node id")
+		a.Logger.Debugln("Getting Mesh Node ID")
 		pMesh, pErr := CMD(a.MeshSystemEXE, []string{"-nodeid"}, int(30), false)
 		if pErr != nil {
 			a.Logger.Errorln(pErr)
@@ -223,13 +241,15 @@ func (a *Agent) Install(i *Installer) {
 		meshSuccess = true
 	}
 
-	a.Logger.Infoln("Adding agent to dashboard")
+	a.Logger.Infoln("Adding agent to the dashboard")
+
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:448
 	type NewAgentResp struct {
 		AgentPK int    `json:"pk"`
 		SaltID  string `json:"saltid"`
 		Token   string `json:"token"`
 	}
+
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:409
 	agentPayload := map[string]interface{}{
 		"agent_id":        a.AgentID,
@@ -241,6 +261,7 @@ func (a *Agent) Install(i *Installer) {
 		"monitoring_type": i.AgentType,
 	}
 
+	// 2022-01-01: api/tacticalrmm/apiv3/views.py:398
 	r, err := rClient.R().SetBody(agentPayload).SetResult(&NewAgentResp{}).Post(fmt.Sprintf("%s/api/v3/newagent/", baseURL))
 	if err != nil {
 		a.installerMsg(err.Error(), "error", i.Silent)
@@ -253,7 +274,7 @@ func (a *Agent) Install(i *Installer) {
 	saltID := r.Result().(*NewAgentResp).SaltID
 	agentToken := r.Result().(*NewAgentResp).Token
 
-	a.Logger.Debugln("Agent token:", agentToken)
+	a.Logger.Debugln("Agent Token:", agentToken)
 	a.Logger.Debugln("Agent PK:", agentPK)
 	a.Logger.Debugln("Salt ID:", saltID)
 
@@ -264,11 +285,11 @@ func (a *Agent) Install(i *Installer) {
 	// Set new headers. No longer knox auth; use agent auth
 	rClient.SetHeaders(a.Headers)
 
-	// Send wmi sysinfo
-	a.Logger.Debugln("Getting sysinfo with WMI")
+	// Send WMI system information
+	a.Logger.Debugln("Getting system information with WMI")
 	a.GetWMI()
 
-	// check in once
+	// Check in once
 	opts := a.setupNatsOptions()
 	server := fmt.Sprintf("tls://%s:4222", a.ApiURL)
 
@@ -276,33 +297,32 @@ func (a *Agent) Install(i *Installer) {
 	if err != nil {
 		a.Logger.Errorln(err)
 	} else {
-		startup := []string{"hello", "osinfo", "winservices", "disks", "publicip", "software", "loggedonuser"}
-		for _, s := range startup {
-			a.CheckIn(s)
+		startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OSINFO, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
+		for _, mode := range startup {
+			a.CheckIn(mode)
 			time.Sleep(200 * time.Millisecond)
 		}
 		nc.Close()
 	}
 
-	a.Logger.Debugln("Creating temp dir")
+	a.Logger.Debugln("Creating temporary directory")
 	a.CreateTRMMTempDir()
 
 	a.Logger.Infoln("Installing services...")
 
-	// todo: 2021-12-31: custom branding
 	svcCommands := [10][]string{
 		// tacticalrpc
-		{"install", "tacticalrpc", a.EXE, "-m", "rpc"},
-		{"set", "tacticalrpc", "DisplayName", "Tactical RMM RPC Service"},
-		{"set", "tacticalrpc", "Description", "Tactical RMM RPC Service"},
-		{"set", "tacticalrpc", "AppRestartDelay", "5000"},
-		{"start", "tacticalrpc"},
+		{"install", SERVICE_NAME_RPC, a.EXE, "-m", "rpc"},
+		{"set", SERVICE_NAME_RPC, "DisplayName", SERVICE_DESC_RPC},
+		{"set", SERVICE_NAME_RPC, "Description", SERVICE_DESC_RPC},
+		{"set", SERVICE_NAME_RPC, "AppRestartDelay", "5000"},
+		{"start", SERVICE_NAME_RPC},
 		// winagentsvc
-		{"install", "tacticalagent", a.EXE, "-m", "winagentsvc"},
-		{"set", "tacticalagent", "DisplayName", "Tactical RMM Agent"},
-		{"set", "tacticalagent", "Description", "Tactical RMM Agent"},
-		{"set", "tacticalagent", "AppRestartDelay", "5000"},
-		{"start", "tacticalagent"},
+		{"install", SERVICE_NAME_AGENT, a.EXE, "-m", "winagentsvc"},
+		{"set", SERVICE_NAME_AGENT, "DisplayName", SERVICE_DESC_AGENT},
+		{"set", SERVICE_NAME_AGENT, "Description", SERVICE_DESC_AGENT},
+		{"set", SERVICE_NAME_AGENT, "AppRestartDelay", "5000"},
+		{"start", SERVICE_NAME_AGENT},
 	}
 
 	for _, s := range svcCommands {
@@ -310,10 +330,11 @@ func (a *Agent) Install(i *Installer) {
 		_, _ = CMD(a.Nssm, s, 25, false)
 	}
 
-	// todo: 2021-12-31: make this step optional
-	// if i.WinDefender {}
-	a.Logger.Infoln("Adding Windows Defender exclusions")
-	a.addDefenderExlusions()
+	// 2022-01-01: optional
+	if i.WinDefender {
+		a.Logger.Infoln("Adding Windows Defender exclusions")
+		a.addDefenderExlusions()
+	}
 
 	if i.Power {
 		a.Logger.Infoln("Disabling sleep/hibernate...")

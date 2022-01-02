@@ -131,9 +131,11 @@ type SchedTask struct {
 	Parallel           bool                 `json:"parallel"`
 	RunASAPAfterMissed bool                 `json:"run_asap_after_missed"`
 	// todo: 1.7.3+: OverwriteTask bool `json:"overwrite_task"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:357
-	// todo: 1.7.3+: MultipleInstances int `json:"multiple_instances"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:
-	// todo: 1.7.3+: DeletedExpiredAfter bool `json:"delete_expired_task_after"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:
-	// todo: 1.7.3+: StartWhenAvailable bool `json:"start_when_available"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:
+	// todo: 1.7.3+: MultipleInstances int `json:"multiple_instances"`
+	// todo: 1.7.3+: DeletedExpiredAfter bool `json:"delete_expired_task_after"`
+	// todo: 1.7.3+: StartWhenAvailable bool `json:"start_when_available"`
+	// run_on_last_day_of_month, random_delay, repetition_interval, repetition_duration,
+	// days_of_week, days_of_month, weeks_of_month, months_of_year
 
 }
 
