@@ -14,7 +14,10 @@ import (
 
 func (a *Agent) RunTask(id int) error {
 	data := rmm.AutomatedTask{}
+	// 2022-01-01: api/tacticalrmm/apiv3/views.py:306
 	url := fmt.Sprintf("/api/v3/%d/%s/taskrunner/", id, a.AgentID)
+
+	// 2022-01-01: api/tacticalrmm/apiv3/views.py:310
 	r1, gerr := a.rClient.R().Get(url)
 	if gerr != nil {
 		a.Logger.Debugln(gerr)
@@ -41,8 +44,14 @@ func (a *Agent) RunTask(id int) error {
 		ExecTime float64 `json:"execution_time"`
 	}
 
-	payload := TaskResult{Stdout: stdout, Stderr: stderr, RetCode: retcode, ExecTime: time.Since(start).Seconds()}
+	payload := TaskResult{
+		Stdout:   stdout,
+		Stderr:   stderr,
+		RetCode:  retcode,
+		ExecTime: time.Since(start).Seconds(),
+	}
 
+	// 2022-01-01: api/tacticalrmm/apiv3/views.py:315
 	_, perr := a.rClient.R().SetBody(payload).Patch(url)
 	if perr != nil {
 		a.Logger.Debugln(perr)
@@ -130,6 +139,7 @@ type SchedTask struct {
 	Args               string               `json:"args"`
 	Parallel           bool                 `json:"parallel"`
 	RunASAPAfterMissed bool                 `json:"run_asap_after_missed"`
+
 	// todo: 1.7.3+: OverwriteTask bool `json:"overwrite_task"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:357
 	// todo: 1.7.3+: MultipleInstances int `json:"multiple_instances"`
 	// todo: 1.7.3+: DeletedExpiredAfter bool `json:"delete_expired_task_after"`
@@ -139,6 +149,7 @@ type SchedTask struct {
 
 }
 
+// CreateSchedTask Create a Scheduled Task
 func (a *Agent) CreateSchedTask(st SchedTask) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
@@ -150,7 +161,7 @@ func (a *Agent) CreateSchedTask(st SchedTask) (bool, error) {
 	var trigger taskmaster.Trigger
 	var action taskmaster.ExecAction
 	var path, workdir, args string
-	def := conn.NewTaskDefinition()
+	taskDef := conn.NewTaskDefinition()
 
 	now := time.Now()
 	switch st.Trigger {
@@ -192,7 +203,7 @@ func (a *Agent) CreateSchedTask(st SchedTask) (bool, error) {
 		//  case "checkfailure":
 	}
 
-	def.AddTrigger(trigger)
+	taskDef.AddTrigger(trigger)
 
 	switch st.Type {
 	case "rmm":
@@ -215,31 +226,31 @@ func (a *Agent) CreateSchedTask(st SchedTask) (bool, error) {
 		WorkingDir: workdir,
 		Args:       args,
 	}
-	def.AddAction(action)
+	taskDef.AddAction(action)
 
-	def.Principal.RunLevel = taskmaster.TASK_RUNLEVEL_HIGHEST
-	def.Principal.LogonType = taskmaster.TASK_LOGON_SERVICE_ACCOUNT
-	def.Principal.UserID = "SYSTEM"
-	def.Settings.AllowDemandStart = true
-	def.Settings.AllowHardTerminate = true
-	def.Settings.DontStartOnBatteries = false
-	def.Settings.Enabled = true
-	def.Settings.StopIfGoingOnBatteries = false
-	def.Settings.WakeToRun = true
+	taskDef.Principal.RunLevel = taskmaster.TASK_RUNLEVEL_HIGHEST
+	taskDef.Principal.LogonType = taskmaster.TASK_LOGON_SERVICE_ACCOUNT
+	taskDef.Principal.UserID = "SYSTEM"
+	taskDef.Settings.AllowDemandStart = true
+	taskDef.Settings.AllowHardTerminate = true
+	taskDef.Settings.DontStartOnBatteries = false
+	taskDef.Settings.Enabled = true
+	taskDef.Settings.StopIfGoingOnBatteries = false
+	taskDef.Settings.WakeToRun = true
 	if st.DeleteAfter {
-		def.Settings.DeleteExpiredTaskAfter = "PT15M"
+		taskDef.Settings.DeleteExpiredTaskAfter = "PT15M"
 	}
 	if st.Parallel {
-		def.Settings.MultipleInstances = taskmaster.TASK_INSTANCES_PARALLEL
+		taskDef.Settings.MultipleInstances = taskmaster.TASK_INSTANCES_PARALLEL
 	} else {
-		def.Settings.MultipleInstances = taskmaster.TASK_INSTANCES_IGNORE_NEW
+		taskDef.Settings.MultipleInstances = taskmaster.TASK_INSTANCES_IGNORE_NEW
 	}
 
 	if st.RunASAPAfterMissed {
-		def.Settings.StartWhenAvailable = true
+		taskDef.Settings.StartWhenAvailable = true
 	}
 
-	_, success, err := conn.CreateTask(fmt.Sprintf("\\%s", st.Name), def, true)
+	_, success, err := conn.CreateTask(fmt.Sprintf("\\%s", st.Name), taskDef, true)
 	if err != nil {
 		a.Logger.Errorln(err)
 		return false, err

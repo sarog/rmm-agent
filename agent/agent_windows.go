@@ -34,7 +34,13 @@ var (
 	getDriveType = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetDriveTypeW")
 )
 
-const BRANDING_FOLDER = "TacticalAgent"
+const (
+	// todo: 2022-01-01: consolidate these elsewhere
+	BRANDING_FOLDER  = "TacticalAgent"
+	API_URL_SOFTWARE = "/api/v3/software/"
+	API_URL_SYNCMESH = "/api/v3/syncmesh/"
+	AGENT_TEMP_DIR   = "trmm"
+)
 
 // Agent struct
 // 2022-01-01: renamed to 'Agent'
@@ -283,9 +289,7 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 	pid := int32(cmd.Process.Pid)
 
 	go func(p int32) {
-
 		<-ctx.Done()
-
 		_ = KillProc(p)
 		timedOut = true
 	}(pid)
@@ -355,7 +359,6 @@ func EnableRDP() {
 	}
 
 	args := make([]string, 0)
-	// todo: 2021-12-31: this may not always work if enforced by a GPO
 	cmd := `netsh advfirewall firewall set rule group="Remote Desktop" new enable=Yes`
 	_, cerr := CMDShell("cmd", args, cmd, 10, false)
 	if cerr != nil {
@@ -435,8 +438,9 @@ except Exception as e:
 	return "None"
 }
 
+// GetCPULoadAvg Retrieve CPU load average
+// todo: 2021-12-31: remove Python dep
 func (a *Agent) GetCPULoadAvg() int {
-	// todo: 2021-12-31: remove Python dep
 	fallback := false
 	pyCode := `
 import psutil
@@ -522,12 +526,9 @@ func (a *Agent) ForceKillMesh() {
 
 // RecoverTacticalAgent should only be called from the RPC service
 func (a *Agent) RecoverTacticalAgent() {
-	// todo: 2021-12-31: custom branding?
-	svc := "tacticalagent"
 	a.Logger.Debugln("Attempting TacticalAgent recovery on", a.Hostname)
-	defer CMD(a.Nssm, []string{"start", svc}, 60, false)
-
-	_, _ = CMD(a.Nssm, []string{"stop", svc}, 120, false)
+	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
+	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
 	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
 	a.Logger.Debugln("TacticalAgent recovery completed on", a.Hostname)
 }
@@ -535,11 +536,10 @@ func (a *Agent) RecoverTacticalAgent() {
 // RecoverSalt recovers the salt minion
 // todo: 2022-01-01: is this still needed?
 func (a *Agent) RecoverSalt() {
-	saltSVC := "salt-minion"
 	a.Logger.Debugln("Attempting salt recovery on", a.Hostname)
-	defer CMD(a.Nssm, []string{"start", saltSVC}, 60, false)
+	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_SALTMINION}, 60, false)
 
-	_, _ = CMD(a.Nssm, []string{"stop", saltSVC}, 120, false)
+	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_SALTMINION}, 120, false)
 	a.ForceKillSalt()
 	time.Sleep(2 * time.Second)
 	cacheDir := filepath.Join(a.SystemDrive, "\\salt", "var", "cache", "salt", "minion")
@@ -579,7 +579,7 @@ func (a *Agent) SyncMeshNodeID() {
 		NodeID:  StripAll(stdout),
 	}
 
-	_, err = a.rClient.R().SetBody(payload).Post("/api/v3/syncmesh/")
+	_, err = a.rClient.R().SetBody(payload).Post(API_URL_SYNCMESH)
 	if err != nil {
 		a.Logger.Debugln("SyncMesh:", err)
 	}
@@ -629,7 +629,7 @@ func (a *Agent) SendSoftware() {
 	payload := map[string]interface{}{"agent_id": a.AgentID, "software": sw}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:461
-	_, err := a.rClient.R().SetBody(payload).Post("/api/v3/software/")
+	_, err := a.rClient.R().SetBody(payload).Post(API_URL_SOFTWARE)
 	if err != nil {
 		a.Logger.Debugln(err)
 	}
@@ -646,7 +646,7 @@ func (a *Agent) UninstallCleanup() {
 // Otherwise prints to the console
 func ShowStatus(version string) {
 	statusMap := make(map[string]string)
-	svcs := []string{"tacticalagent", "tacticalrpc", "mesh agent"}
+	svcs := []string{SERVICE_NAME_AGENT, SERVICE_NAME_RPC, SERVICE_NAME_MESHAGENT}
 
 	for _, service := range svcs {
 		status, err := GetServiceStatus(service)
@@ -664,14 +664,13 @@ func ShowStatus(version string) {
 			w32.ShowWindow(window, w32.SW_HIDE)
 		}
 		var handle w32.HWND
-		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s\n\nMesh Agent: %s", statusMap["tacticalagent"], statusMap["tacticalrpc"], statusMap["mesh agent"])
+		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s\n\nMesh Agent: %s", statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC], statusMap[SERVICE_NAME_MESHAGENT])
 		w32.MessageBox(handle, msg, fmt.Sprintf("Tactical RMM v%s", version), w32.MB_OK|w32.MB_ICONINFORMATION)
 	} else {
-		// todo: 2021-12-31: custom branding
-		fmt.Println("Tactical RMM Version", version)
-		fmt.Println("Agent:", statusMap["tacticalagent"])
-		fmt.Println("RPC Service:", statusMap["tacticalrpc"])
-		fmt.Println("Mesh Agent:", statusMap["mesh agent"])
+		fmt.Println("RMM Version", version)
+		fmt.Println("Agent Service:", statusMap[SERVICE_NAME_AGENT])
+		fmt.Println("RPC Service:", statusMap[SERVICE_NAME_RPC])
+		fmt.Println("Mesh Agent:", statusMap[SERVICE_NAME_MESHAGENT])
 	}
 }
 
@@ -692,6 +691,7 @@ func (a *Agent) installerMsg(msg, alert string, silent bool) {
 			flags = w32.MB_OK | w32.MB_ICONINFORMATION
 		}
 
+		// todo: 2022-01-01: branding
 		w32.MessageBox(handle, msg, "Tactical RMM", flags)
 	} else {
 		fmt.Println(msg)
@@ -716,19 +716,20 @@ func (a *Agent) AgentUpdate(url, inno, version string) {
 	r, err := rClient.R().SetOutput(updater).Get(url)
 	if err != nil {
 		a.Logger.Errorln(err)
-		CMD("net", []string{"start", "tacticalrpc"}, 10, false)
+		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
 		return
 	}
 	if r.IsError() {
 		a.Logger.Errorln("Download failed with status code", r.StatusCode())
-		CMD("net", []string{"start", "tacticalrpc"}, 10, false)
+		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
 		return
 	}
 
+	// todo: 2022-01-01: replace with const
 	dir, err := ioutil.TempDir("", "tacticalrmm")
 	if err != nil {
 		a.Logger.Errorln("AgentUpdate create tempdir:", err)
-		CMD("net", []string{"start", "tacticalrpc"}, 10, false)
+		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
 		return
 	}
 
@@ -807,6 +808,7 @@ func (a *Agent) CleanupAgentUpdates() {
 	}
 }
 
+// todo: 2022-01-01: make Python *optional*
 func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, error) {
 	content := []byte(code)
 	dir, err := ioutil.TempDir("", "tacticalpy")
@@ -857,7 +859,6 @@ func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, 
 	}
 
 	return outb.String(), nil
-
 }
 
 // GetPython download Python
@@ -960,8 +961,7 @@ func (a *Agent) deleteOldTacticalServices() {
 	}
 }
 
-func (a *Agent) addDefenderExlusions() {
-	// todo: 2021-12-31: make this *optional*
+func (a *Agent) addDefenderExclusions() {
 	code := `
 Add-MpPreference -ExclusionPath 'C:\Program Files\TacticalAgent\*'
 Add-MpPreference -ExclusionPath 'C:\Windows\Temp\winagent-v*.exe'
@@ -1015,10 +1015,10 @@ func (a *Agent) CheckForRecovery() {
 	}
 }
 
-func (a *Agent) CreateTRMMTempDir() {
+func (a *Agent) CreateAgentTempDir() {
 	// Create the temp dir for running scripts
 	// This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\trmm'
-	dir := filepath.Join(os.TempDir(), "trmm")
+	dir := filepath.Join(os.TempDir(), AGENT_TEMP_DIR)
 	if !FileExists(dir) {
 		// todo: 2021-12-31: verify permissions
 		err := os.Mkdir(dir, 0775)

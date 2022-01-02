@@ -9,7 +9,9 @@ import (
 )
 
 const (
-	API_URL_CHECKIN           = "/api/v3/checkin/"
+	API_URL_CHECKIN = "/api/v3/checkin/"
+
+	// CheckIn
 	CHECKIN_MODE_HELLO        = "hello"
 	CHECKIN_MODE_OSINFO       = "osinfo"
 	CHECKIN_MODE_WINSERVICES  = "winservices"
@@ -18,6 +20,14 @@ const (
 	CHECKIN_MODE_SOFTWARE     = "software"
 	CHECKIN_MODE_LOGGEDONUSER = "loggedonuser"
 	CHECKIN_MODE_STARTUP      = "startup"
+
+	// nats service: natsapi/svc.go:16
+	NATS_MODE_HELLO       = "agent-hello"
+	NATS_MODE_OSINFO      = "agent-agentinfo"
+	NATS_MODE_WINSERVICES = "agent-winsvc"
+	NATS_MODE_DISKS       = "agent-disks"
+	NATS_MODE_PUBLICIP    = "agent-publicip"
+	NATS_MODE_WMI         = "agent-wmi"
 )
 
 func (a *Agent) RunAsService() {
@@ -34,7 +44,7 @@ func (a *Agent) WinAgentSvc() {
 
 	go a.GetPython(false)
 
-	a.CreateTRMMTempDir()
+	a.CreateAgentTempDir()
 
 	sleepDelay := randRange(14, 22)
 	a.Logger.Debugf("Sleeping for %v seconds", sleepDelay)
@@ -96,8 +106,9 @@ func (a *Agent) CheckIn(mode string) {
 	// Outgoing payload to server
 	switch mode {
 	case CHECKIN_MODE_HELLO:
+		// todo: 2022-01-01: replace with 'agent-hello' through natsapi/svc.go:36
 		payload = rmm.CheckIn{
-			Func:    "hello", // todo: 2022-01-01: replace with 'agent-hello' ? natsapi/svc.go:36
+			Func:    "hello",
 			Agentid: a.AgentID,
 			Version: a.Version,
 		}

@@ -70,7 +70,7 @@ func (a *Agent) RunRPC() {
 		case "schedtask":
 			// 2021-12-31: via nats:
 			//	"reboot later": api/tacticalrmm/agents/views.py:388
-			//  from 1.7.3+: api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
+			//  1.7.3+: api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))

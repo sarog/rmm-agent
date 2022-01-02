@@ -26,6 +26,17 @@ data = {
 }
 ```
 
+#### GetSoftware, InstallWithChoco
+
+```python
+# api/tacticalrmm/software/views.py:56
+nats_data = {
+    "func": "installwithchoco",
+    "choco_prog_name": name,
+    "pending_action_pk": action.pk,
+}
+```
+
 #### RunScript, RunScriptFull
 
 ```python

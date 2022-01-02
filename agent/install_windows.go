@@ -40,10 +40,12 @@ type Installer struct {
 // todo: 2021-12-31: custom branding
 // todo: 2022-01-01: perhaps consolidate these elsewhere?
 const (
-	SERVICE_NAME_RPC   = "tacticalrpc"
-	SERVICE_NAME_AGENT = "tacticalagent"
-	SERVICE_DESC_RPC   = "Tactical RMM RPC Service"
-	SERVICE_DESC_AGENT = "Tactical RMM Agent"
+	SERVICE_NAME_RPC        = "tacticalrpc"
+	SERVICE_NAME_AGENT      = "tacticalagent"
+	SERVICE_NAME_MESHAGENT  = "mesh agent"
+	SERVICE_NAME_SALTMINION = "salt-minion"
+	SERVICE_DESC_RPC        = "Tactical RMM RPC Service"
+	SERVICE_DESC_AGENT      = "Tactical RMM Agent"
 
 	REG_RMM_BASEURL = "BaseURL"
 	REG_RMM_AGENTID = "AgentID"
@@ -289,7 +291,7 @@ func (a *Agent) Install(i *Installer) {
 	a.Logger.Debugln("Getting system information with WMI")
 	a.GetWMI()
 
-	// Check in once
+	// Check in once via nats
 	opts := a.setupNatsOptions()
 	server := fmt.Sprintf("tls://%s:4222", a.ApiURL)
 
@@ -306,7 +308,7 @@ func (a *Agent) Install(i *Installer) {
 	}
 
 	a.Logger.Debugln("Creating temporary directory")
-	a.CreateTRMMTempDir()
+	a.CreateAgentTempDir()
 
 	a.Logger.Infoln("Installing services...")
 
@@ -333,7 +335,7 @@ func (a *Agent) Install(i *Installer) {
 	// 2022-01-01: optional
 	if i.WinDefender {
 		a.Logger.Infoln("Adding Windows Defender exclusions")
-		a.addDefenderExlusions()
+		a.addDefenderExclusions()
 	}
 
 	if i.Power {

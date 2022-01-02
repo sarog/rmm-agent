@@ -162,14 +162,13 @@ func (a *Agent) RunChecks(force bool) error {
 	return nil
 }
 
-// RunScript runs a script
+// RunScript Runs a script
 func (a *Agent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
 	content := []byte(code)
 
-	// todo: 2021-12-31: rename and/or change path
-	dir := filepath.Join(os.TempDir(), "trmm")
+	dir := filepath.Join(os.TempDir(), AGENT_TEMP_DIR)
 	if !FileExists(dir) {
-		a.CreateTRMMTempDir()
+		a.CreateAgentTempDir()
 	}
 
 	const defaultExitCode = 1
@@ -188,7 +187,7 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 	case "python":
 		ext = "*.py"
 	case "cmd":
-		ext = "*.bat" // .cmd?
+		ext = "*.bat" // todo: .cmd?
 	}
 
 	tmpfn, err := ioutil.TempFile(dir, ext)
@@ -241,9 +240,7 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 	// otherwise it will hang forever
 	// the normal exec.CommandContext() doesn't work since it only kills the parent process
 	go func(p int32) {
-
 		<-ctx.Done()
-
 		_ = KillProc(p)
 		timedOut = true
 	}(pid)
@@ -315,7 +312,10 @@ func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
 	if err != nil {
 		a.Logger.Debugln("Disk", data.Disk, err)
 
-		payload = map[string]interface{}{"id": data.CheckPK, "exists": false}
+		payload = map[string]interface{}{
+			"id":     data.CheckPK,
+			"exists": false,
+		}
 
 		if _, err := r.R().SetBody(payload).Patch(ApiCheckRunner); err != nil {
 			a.Logger.Debugln(err)
@@ -342,7 +342,6 @@ func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
 }
 
 // CPULoadCheck checks average processor load
-// 2021-12-31:
 func (a *Agent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 	payload := map[string]interface{}{
 		"id":      data.CheckPK,
@@ -456,6 +455,7 @@ func (a *Agent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 		a.Logger.Debugln("Service", data.ServiceName, err)
 	}
 
+	// 2022-01-01: api/tacticalrmm/checks/models.py:417
 	payload := map[string]interface{}{
 		"id":     data.CheckPK,
 		"exists": exists,
