@@ -20,7 +20,22 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
-const ApiCheckRunner = "/api/v3/checkrunner/"
+const (
+	// todo: 2022-01-02: consolidate these elsewhere
+	API_URL_CHECKRUNNER = "/api/v3/checkrunner/"
+
+	// Check Types
+	CHECK_TYPE_DISKSPACE = "diskspace"
+	CHECK_TYPE_CPULOAD   = "cpuload"
+	CHECK_TYPE_MEMORY    = "memory"
+	CHECK_TYPE_PING      = "ping"
+	CHECK_TYPE_SCRIPT    = "script"
+	CHECK_TYPE_WINSVC    = "winsvc"
+	CHECK_TYPE_EVENTLOG  = "eventlog"
+
+	// Agent Modes
+	AGENT_MODE_CHECKRUNNER = "checkrunner"
+)
 
 func (a *Agent) CheckRunner() {
 	a.Logger.Infoln("CheckRunner service started.")
@@ -30,7 +45,7 @@ func (a *Agent) CheckRunner() {
 	for {
 		interval, err := a.GetCheckInterval()
 		if err == nil && !a.ChecksRunning() {
-			_, err = CMD(a.EXE, []string{"-m", "checkrunner"}, 600, false)
+			_, err = CMD(a.EXE, []string{"-m", AGENT_MODE_CHECKRUNNER}, 600, false)
 			if err != nil {
 				a.Logger.Errorln("CheckRunner RunChecks", err)
 			}
@@ -65,6 +80,7 @@ func (a *Agent) RunChecks(force bool) error {
 		// 2021-12-31: api/tacticalrmm/apiv3/views.py:244
 		url = fmt.Sprintf("/api/v3/%s/checkrunner/", a.AgentID)
 	}
+
 	// 2021-12-31:
 	// 	api.tacticalrmm.apiv3.views.RunChecks.get
 	// 	api.tacticalrmm.apiv3.views.CheckRunner.get
@@ -90,7 +106,7 @@ func (a *Agent) RunChecks(force bool) error {
 
 	for _, check := range data.Checks {
 		switch check.CheckType {
-		case "diskspace":
+		case CHECK_TYPE_DISKSPACE:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:340
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
@@ -98,21 +114,21 @@ func (a *Agent) RunChecks(force bool) error {
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.DiskCheck(c, r)
 			}(check, &wg, a.rClient)
-		case "cpuload":
+		case CHECK_TYPE_CPULOAD:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:315
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
 				a.CPULoadCheck(c, r)
 			}(check, &wg, a.rClient)
-		case "memory":
+		case CHECK_TYPE_MEMORY:
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.MemCheck(c, r)
 			}(check, &wg, a.rClient)
-		case "ping":
+		case CHECK_TYPE_PING:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:407
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
@@ -120,7 +136,7 @@ func (a *Agent) RunChecks(force bool) error {
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.PingCheck(c, r)
 			}(check, &wg, a.rClient)
-		case "script":
+		case CHECK_TYPE_SCRIPT:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:368
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
@@ -128,10 +144,10 @@ func (a *Agent) RunChecks(force bool) error {
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.ScriptCheck(c, r)
 			}(check, &wg, a.rClient)
-		case "winsvc":
+		case CHECK_TYPE_WINSVC:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:417
 			winServiceChecks = append(winServiceChecks, check)
-		case "eventlog":
+		case CHECK_TYPE_EVENTLOG:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:426
 			eventLogChecks = append(eventLogChecks, check)
 		default:
@@ -267,7 +283,6 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 			} else {
 				exitcode = defaultExitCode
 			}
-
 		} else {
 			if ws, ok := cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
 				exitcode = ws.ExitStatus()
@@ -279,7 +294,8 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 	return stdout, stderr, exitcode, nil
 }
 
-// ScriptCheck runs either a batch file, PowerShell or Python script
+// ScriptCheck Runs either a batch file, PowerShell or Python script,
+// and sends the results back to the server
 func (a *Agent) ScriptCheck(data rmm.Check, r *resty.Client) {
 	start := time.Now()
 	stdout, stderr, retcode, _ := a.RunScript(data.Script.Code, data.Script.Shell, data.ScriptArgs, data.Timeout)
@@ -294,7 +310,7 @@ func (a *Agent) ScriptCheck(data rmm.Check, r *resty.Client) {
 	}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:280
-	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
+	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -317,7 +333,7 @@ func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
 			"exists": false,
 		}
 
-		if _, err := r.R().SetBody(payload).Patch(ApiCheckRunner); err != nil {
+		if _, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER); err != nil {
 			a.Logger.Debugln(err)
 		}
 		return
@@ -329,10 +345,10 @@ func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
 		"percent_used": usage.UsedPercent,
 		"total":        usage.Total,
 		"free":         usage.Free,
-		// todo: 2021-12-31: "more_info":
+		// todo: 2021-12-31: "more_info" ? api/tacticalrmm/checks/models.py:356
 	}
 
-	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
+	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -341,14 +357,14 @@ func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-// CPULoadCheck checks average processor load
+// CPULoadCheck Checks the average processor load
 func (a *Agent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 	payload := map[string]interface{}{
 		"id":      data.CheckPK,
 		"percent": a.GetCPULoadAvg(),
 	}
 
-	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
+	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -357,7 +373,7 @@ func (a *Agent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-// MemCheck checks mem percentage
+// MemCheck Checks memory usage percentage
 func (a *Agent) MemCheck(data rmm.Check, r *resty.Client) {
 	host, _ := ps.Host()
 	mem, _ := host.Memory()
@@ -368,7 +384,7 @@ func (a *Agent) MemCheck(data rmm.Check, r *resty.Client) {
 		"percent": int(math.Round(percent)),
 	}
 
-	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
+	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -377,6 +393,7 @@ func (a *Agent) MemCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
+// EventLogCheck Retrieve the Windows Event Logs
 func (a *Agent) EventLogCheck(data rmm.Check, r *resty.Client) {
 	evtLog := a.GetEventLog(data.LogName, data.SearchLastDays)
 
@@ -385,7 +402,7 @@ func (a *Agent) EventLogCheck(data rmm.Check, r *resty.Client) {
 		"log": evtLog,
 	}
 
-	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
+	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -394,7 +411,7 @@ func (a *Agent) EventLogCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-// PingCheck pings
+// PingCheck Plays ping pong
 func (a *Agent) PingCheck(data rmm.Check, r *resty.Client) {
 	cmdArgs := []string{data.IP}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(90)*time.Second)
@@ -435,7 +452,7 @@ func (a *Agent) PingCheck(data rmm.Check, r *resty.Client) {
 		// todo: 2021-12-31: "status":
 	}
 
-	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
+	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return
@@ -444,6 +461,7 @@ func (a *Agent) PingCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
+// WinSvcCheck Checks a Windows Service
 func (a *Agent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 	var status string
 	exists := true
@@ -462,7 +480,7 @@ func (a *Agent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 		"status": status,
 	}
 
-	resp, err := r.R().SetBody(payload).Patch(ApiCheckRunner)
+	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return

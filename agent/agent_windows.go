@@ -36,11 +36,16 @@ var (
 
 const (
 	// todo: 2022-01-01: consolidate these elsewhere
-	BRANDING_FOLDER  = "TacticalAgent"
-	API_URL_SOFTWARE = "/api/v3/software/"
-	API_URL_SYNCMESH = "/api/v3/syncmesh/"
-	AGENT_TEMP_DIR   = "trmm"
-	AGENT_FILENAME   = "tacticalrmm.exe"
+	BRANDING_FOLDER     = "TacticalAgent"
+	API_URL_SOFTWARE    = "/api/v3/software/"
+	API_URL_SYNCMESH    = "/api/v3/syncmesh/"
+	AGENT_NAME_LONG     = "Tactical RMM"
+	AGENT_TEMP_DIR      = "trmm"
+	AGENT_FILENAME      = "tacticalrmm.exe"
+	INNO_SETUP_DIR      = "tacticalrmm"
+	INNO_SETUP_LOGFILE  = "tacticalrmm.txt"
+	NATS_RMM_IDENTIFIER = "TacticalRMM" // for server compat
+	PYTHON_TEMP_DIR     = "tacticalpy"
 )
 
 // Agent struct
@@ -103,7 +108,7 @@ func New(logger *logrus.Logger, version string) *Agent {
 	)
 
 	// todo: 2021-12-31: migrate to DPAPI?
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`, registry.ALL_ACCESS)
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err == nil {
 		baseurl, _, err = k.GetStringValue(REG_RMM_BASEURL)
 		if err != nil {
@@ -658,7 +663,7 @@ func (a *Agent) SendSoftware() {
 }
 
 func (a *Agent) UninstallCleanup() {
-	registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`)
+	registry.DeleteKey(registry.LOCAL_MACHINE, REG_RMM_PATH)
 	a.CleanupAgentUpdates()
 	CleanupSchedTasks()
 }
@@ -687,7 +692,7 @@ func ShowStatus(version string) {
 		}
 		var handle w32.HWND
 		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s\n\nMesh Agent: %s", statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC], statusMap[SERVICE_NAME_MESHAGENT])
-		w32.MessageBox(handle, msg, fmt.Sprintf("Tactical RMM v%s", version), w32.MB_OK|w32.MB_ICONINFORMATION)
+		w32.MessageBox(handle, msg, fmt.Sprintf("RMM Agent v%s", version), w32.MB_OK|w32.MB_ICONINFORMATION)
 	} else {
 		fmt.Println("RMM Version", version)
 		fmt.Println("Agent Service:", statusMap[SERVICE_NAME_AGENT])
@@ -713,8 +718,7 @@ func (a *Agent) installerMsg(msg, alert string, silent bool) {
 			flags = w32.MB_OK | w32.MB_ICONINFORMATION
 		}
 
-		// todo: 2022-01-01: branding
-		w32.MessageBox(handle, msg, "Tactical RMM", flags)
+		w32.MessageBox(handle, msg, AGENT_NAME_LONG, flags)
 	} else {
 		fmt.Println(msg)
 	}
@@ -747,16 +751,14 @@ func (a *Agent) AgentUpdate(url, inno, version string) {
 		return
 	}
 
-	// todo: 2022-01-01: replace with const
-	dir, err := ioutil.TempDir("", "tacticalrmm")
+	dir, err := ioutil.TempDir("", INNO_SETUP_DIR)
 	if err != nil {
-		a.Logger.Errorln("AgentUpdate create tempdir:", err)
+		a.Logger.Errorln("AgentUpdate unable to create temporary directory:", err)
 		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
 		return
 	}
 
-	// todo: 2021-12-31: custom branding
-	innoLogFile := filepath.Join(dir, "tacticalrmm.txt")
+	innoLogFile := filepath.Join(dir, INNO_SETUP_LOGFILE)
 
 	args := []string{"/C", updater, "/VERYSILENT", fmt.Sprintf("/LOG=%s", innoLogFile)}
 	cmd := exec.Command("cmd.exe", args...)
@@ -769,7 +771,7 @@ func (a *Agent) AgentUpdate(url, inno, version string) {
 
 func (a *Agent) setupNatsOptions() []nats.Option {
 	opts := make([]nats.Option, 0)
-	opts = append(opts, nats.Name("TacticalRMM"))
+	opts = append(opts, nats.Name(NATS_RMM_IDENTIFIER))
 	opts = append(opts, nats.UserInfo(a.AgentID, a.Token))
 	opts = append(opts, nats.ReconnectWait(time.Second*5))
 	opts = append(opts, nats.RetryOnFailedConnect(true))
@@ -833,7 +835,7 @@ func (a *Agent) CleanupAgentUpdates() {
 // todo: 2022-01-01: make Python *optional*
 func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, error) {
 	content := []byte(code)
-	dir, err := ioutil.TempDir("", "tacticalpy")
+	dir, err := ioutil.TempDir("", PYTHON_TEMP_DIR)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return "", err
@@ -952,6 +954,7 @@ func (a *Agent) GetPython(force bool) {
 	}
 }
 
+// Deprecated
 func (a *Agent) RemoveSalt() error {
 	saltFiles := []string{"saltcustom", "salt-minion-setup.exe", "salt-minion-setup-x86.exe"}
 	for _, sf := range saltFiles {
@@ -973,6 +976,7 @@ func (a *Agent) RemoveSalt() error {
 	return nil
 }
 
+// Deprecated
 func (a *Agent) deleteOldTacticalServices() {
 	services := []string{"checkrunner"}
 	for _, svc := range services {
@@ -1037,9 +1041,9 @@ func (a *Agent) CheckForRecovery() {
 	}
 }
 
+// CreateAgentTempDir Create the temp directory for running scripts
+// This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\trmm' depending on context
 func (a *Agent) CreateAgentTempDir() {
-	// Create the temp dir for running scripts
-	// This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\trmm'
 	dir := filepath.Join(os.TempDir(), AGENT_TEMP_DIR)
 	if !FileExists(dir) {
 		// todo: 2021-12-31: verify permissions
