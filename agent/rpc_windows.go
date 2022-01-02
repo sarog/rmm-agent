@@ -32,6 +32,42 @@ var (
 	installWinUpdateLocker uint32
 )
 
+const (
+	NATS_CMD_AGENT_UNINSTALL    = "uninstall"
+	NATS_CMD_AGENT_UPDATE       = "agentupdate"
+	NATS_CMD_CHOCO_INSTALL      = "installwithchoco"
+	NATS_CMD_CPULOADAVG         = "cpuloadavg"
+	NATS_CMD_EVENTLOG           = "eventlog"
+	NATS_CMD_GETWINUPDATES      = "getwinupdates"
+	NATS_CMD_INSTALL_CHOCO      = "installchoco"
+	NATS_CMD_INSTALL_PYTHON     = "installpython"
+	NATS_CMD_INSTALL_WINUPDATES = "installwinupdates"
+	NATS_CMD_PING               = "ping"
+	NATS_CMD_PROCS_KILL         = "killproc"
+	NATS_CMD_PROCS_LIST         = "procs"
+	NATS_CMD_PUBLICIP           = "publicip"
+	NATS_CMD_RAWCMD             = "rawcmd"
+	NATS_CMD_REBOOT_NEEDED      = "needsreboot"
+	NATS_CMD_REBOOT_NOW         = "rebootnow"
+	NATS_CMD_RECOVER            = "recover"
+	NATS_CMD_RUNCHECKS          = "runchecks"
+	NATS_CMD_SCRIPT_RUN         = "runscript"
+	NATS_CMD_SCRIPT_RUN_FULL    = "runscriptfull"
+	NATS_CMD_SOFTWARE_LIST      = "softwarelist"
+	NATS_CMD_SYNC               = "sync"
+	NATS_CMD_SYSINFO            = "sysinfo"
+	NATS_CMD_TASK_ADD           = "schedtask"
+	NATS_CMD_TASK_DEL           = "delschedtask"
+	NATS_CMD_TASK_ENABLE        = "enableschedtask"
+	NATS_CMD_TASK_LIST          = "listschedtasks"
+	NATS_CMD_TASK_RUN           = "runtask"
+	NATS_CMD_WINSERVICES        = "winservices"
+	NATS_CMD_WINSVC_ACTION      = "winsvcaction"
+	NATS_CMD_WINSVC_DETAIL      = "winsvcdetail"
+	NATS_CMD_WINSVC_EDIT        = "editwinsvc"
+	NATS_CMD_WMI                = "wmi"
+)
+
 func (a *Agent) RunRPC() {
 	a.Logger.Infoln("RPC service started")
 	opts := a.setupNatsOptions()
@@ -55,7 +91,7 @@ func (a *Agent) RunRPC() {
 		}
 
 		switch payload.Func {
-		case "ping":
+		case NATS_CMD_PING:
 			// 2021-12-31:
 			//   api/tacticalrmm/agents/models.py:353
 			//   api/tacticalrmm/agents/views.py:279
@@ -67,7 +103,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "schedtask":
+		case NATS_CMD_TASK_ADD:
 			// 2021-12-31: via nats:
 			//	"reboot later": api/tacticalrmm/agents/views.py:388
 			//  1.7.3+: api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
@@ -86,7 +122,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "delschedtask":
+		case NATS_CMD_TASK_DEL:
 			// 2022-01-01: via nats:
 			//	api/tacticalrmm/autotasks/tasks.py:87 (remove_orphaned_win_tasks)
 			go func(p *NatsMsg) {
@@ -102,7 +138,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "enableschedtask":
+		case NATS_CMD_TASK_ENABLE:
 			// 2022-01-01: via nats:
 			// 	api/tacticalrmm/autotasks/models.py:543
 			//  1.7.3+: replaced with 'func: schedtask': api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
@@ -119,7 +155,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "listschedtasks":
+		case NATS_CMD_TASK_LIST:
 			// 2022-01-01: via nats:
 			// 	api/tacticalrmm/autotasks/tasks.py:60 (remove_orphaned_win_tasks)
 			go func() {
@@ -131,7 +167,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "eventlog":
+		case NATS_CMD_EVENTLOG:
 			// 2021-12-31: api/tacticalrmm/agents/views.py:300
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -143,7 +179,8 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "procs":
+		case NATS_CMD_PROCS_LIST:
+			// 2022-01-02: api/tacticalrmm/agents/views.py:176
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -153,7 +190,8 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "killproc":
+		case NATS_CMD_PROCS_KILL:
+			// 2022-01-02: api/tacticalrmm/agents/views.py:185
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -167,7 +205,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "rawcmd":
+		case NATS_CMD_RAWCMD:
 			// 2021-12-31: api/tacticalrmm/agents/views.py:326
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -183,7 +221,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "winservices":
+		case NATS_CMD_WINSERVICES:
 			// 2022-01-01: api/tacticalrmm/services/views.py:24
 			go func() {
 				var resp []byte
@@ -194,7 +232,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "winsvcdetail":
+		case NATS_CMD_WINSVC_DETAIL:
 			// 2022-01-01: api/tacticalrmm/services/views.py:40
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -205,7 +243,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "winsvcaction":
+		case NATS_CMD_WINSVC_ACTION:
 			// 2022-01-01: api/tacticalrmm/services/views.py:52
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -216,7 +254,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "editwinsvc":
+		case NATS_CMD_WINSVC_EDIT:
 			// 2022-01-01: api/tacticalrmm/services/views.py:92
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -227,7 +265,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "runscript":
+		case NATS_CMD_SCRIPT_RUN:
 			// 2022-01-01: api/tacticalrmm/agents/models.py:339 (run_script)
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -245,7 +283,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "runscriptfull":
+		case NATS_CMD_SCRIPT_RUN_FULL:
 			// 2022-01-01: api/tacticalrmm/agents/models.py:339 (run_script)
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -263,7 +301,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}(payload)
 
-		case "recover":
+		case NATS_CMD_RECOVER:
 			// 2022-01-01:
 			// 	api/tacticalrmm/agents/views.py:236
 			// 	api/tacticalrmm/agents/views.py:570
@@ -279,7 +317,7 @@ func (a *Agent) RunRPC() {
 					a.Logger.Debugln("Recovering salt")
 					a.RecoverSalt()
 				case "tacagent":
-					a.Logger.Debugln("Recovering tactical agent")
+					a.Logger.Debugln("Recovering agent")
 					a.RecoverTacticalAgent()
 				}
 
@@ -296,7 +334,7 @@ func (a *Agent) RunRPC() {
 				a.RecoverCMD(p.RecoveryCommand)
 			}(payload)
 
-		case "softwarelist":
+		case NATS_CMD_SOFTWARE_LIST:
 			// 2022-01-01: api/tacticalrmm/software/views.py:75
 			go func() {
 				var resp []byte
@@ -307,7 +345,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "rebootnow":
+		case NATS_CMD_REBOOT_NOW:
 			// 2021-12-31: triggered from (via nats_cmd):
 			// 	 api/tacticalrmm/apiv3/views.py:138
 			// 	 api/tacticalrmm/agents/views.py:363
@@ -320,7 +358,7 @@ func (a *Agent) RunRPC() {
 				_, _ = CMD("shutdown.exe", []string{"/r", "/t", "5", "/f"}, 15, false)
 			}()
 
-		case "needsreboot": // 2022-01-01: removed or merged
+		case NATS_CMD_REBOOT_NEEDED: // 2022-01-01: removed or merged
 			go func() {
 				a.Logger.Debugln("Checking if a reboot is needed")
 				var resp []byte
@@ -336,7 +374,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "sysinfo":
+		case NATS_CMD_SYSINFO:
 			// 2022-01-01: api/tacticalrmm/apiv3/views.py:358
 			go func() {
 				var resp []byte
@@ -353,19 +391,19 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "sync":
+		case NATS_CMD_SYNC:
 			go func() {
 				a.Logger.Debugln("Sending system info and software")
 				a.Sync()
 			}()
 
-		case "wmi":
+		case NATS_CMD_WMI:
 			go func() {
 				a.Logger.Debugln("Sending WMI")
 				a.GetWMI()
 			}()
 
-		case "cpuloadavg":
+		case NATS_CMD_CPULOADAVG:
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -376,7 +414,7 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "runchecks":
+		case NATS_CMD_RUNCHECKS:
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -395,13 +433,13 @@ func (a *Agent) RunRPC() {
 				}
 			}()
 
-		case "runtask":
+		case NATS_CMD_TASK_RUN:
 			go func(p *NatsMsg) {
 				a.Logger.Debugln("Running task")
 				a.RunTask(p.TaskPK)
 			}(payload)
 
-		case "publicip":
+		case NATS_CMD_PUBLICIP:
 			// 2022-01-01: removed? or renamed to 'agent-publicip'?
 			go func() {
 				var resp []byte
@@ -410,11 +448,11 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "installpython":
+		case NATS_CMD_INSTALL_PYTHON:
 			go a.GetPython(true)
 
 		case "removesalt":
-			// 2022-01-01: no longer necessary?
+			// 2022-01-01: deprecated
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -427,11 +465,11 @@ func (a *Agent) RunRPC() {
 				msg.Respond(resp)
 			}()
 
-		case "installchoco":
+		case NATS_CMD_INSTALL_CHOCO:
 			// 2021-12-31: called by: api/tacticalrmm/apiv3/views.py:87
 			go a.InstallChoco()
 
-		case "installwithchoco":
+		case NATS_CMD_CHOCO_INSTALL:
 			// 2021-12-31: api/tacticalrmm/apiv3/views.py:492
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -444,7 +482,7 @@ func (a *Agent) RunRPC() {
 				a.rClient.R().SetBody(results).Patch(url)
 			}(payload)
 
-		case "getwinupdates":
+		case NATS_CMD_GETWINUPDATES:
 			// 2022-01-01:
 			//  api/tacticalrmm/winupdate/views.py:36 (ScanWindowsUpdates->post)
 			// 	api/tacticalrmm/winupdate/tasks.py:37 (auto_approve_updates_task)
@@ -460,7 +498,7 @@ func (a *Agent) RunRPC() {
 				}
 			}()
 
-		case "installwinupdates":
+		case NATS_CMD_INSTALL_WINUPDATES:
 			// 2022-01-01: via nats:
 			//  api/tacticalrmm/winupdate/views.py:49 (InstallWindowsUpdates->post)
 			//  api/tacticalrmm/winupdate/tasks.py:126 (check_agent_update_schedule_task)
@@ -475,7 +513,7 @@ func (a *Agent) RunRPC() {
 				}
 			}(payload)
 
-		case "agentupdate":
+		case NATS_CMD_AGENT_UPDATE:
 			// 2022-01-01: api/tacticalrmm/agents/tasks.py:58 (agent_update)
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -495,7 +533,7 @@ func (a *Agent) RunRPC() {
 				}
 			}(payload)
 
-		case "uninstall":
+		case NATS_CMD_AGENT_UNINSTALL:
 			// 2022-01-01: api/tacticalrmm/agents/views.py:158 (GetUpdateDeleteAgent->delete)
 			go func() {
 				var resp []byte

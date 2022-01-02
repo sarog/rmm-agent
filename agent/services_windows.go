@@ -4,6 +4,7 @@ import (
 	"time"
 
 	rmm "github.com/sarog/rmmagent/shared"
+	"github.com/wh1te909/trmm-shared"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )
@@ -169,7 +170,61 @@ func (a *Agent) GetServiceDetail(name string) rmm.WindowsService {
 	return ret
 }
 
+// GetServicesNATS returns a list of windows services
+func (a *Agent) GetServicesNATS() []trmm.WindowsService {
+	ret := make([]trmm.WindowsService, 0)
+
+	conn, err := mgr.Connect()
+	if err != nil {
+		a.Logger.Debugln(err)
+		return ret
+	}
+	defer conn.Disconnect()
+
+	svcs, err := conn.ListServices()
+
+	if err != nil {
+		a.Logger.Debugln(err)
+		return ret
+	}
+
+	for _, s := range svcs {
+		srv, err := conn.OpenService(s)
+		if err != nil {
+			a.Logger.Debugln(err)
+			continue
+		}
+		defer srv.Close()
+
+		q, err := srv.Query()
+		if err != nil {
+			a.Logger.Debugln(err)
+			continue
+		}
+
+		conf, err := srv.Config()
+		if err != nil {
+			a.Logger.Debugln(err)
+			continue
+		}
+
+		ret = append(ret, trmm.WindowsService{
+			Name:             s,
+			Status:           serviceStatusText(uint32(q.State)),
+			DisplayName:      conf.DisplayName,
+			BinPath:          conf.BinaryPathName,
+			Description:      conf.Description,
+			Username:         conf.ServiceStartName,
+			PID:              q.ProcessId,
+			StartType:        serviceStartType(uint32(conf.StartType)),
+			DelayedAutoStart: conf.DelayedAutoStart,
+		})
+	}
+	return ret
+}
+
 // GetServices returns a list of windows services
+// Deprecated
 func (a *Agent) GetServices() []rmm.WindowsService {
 	ret := make([]rmm.WindowsService, 0)
 

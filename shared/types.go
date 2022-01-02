@@ -70,7 +70,8 @@ type WindowsService struct {
 
 // Disk holds physical disk info
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:48
-// 2022-01-01: 'agent-disks' ? natsapi/svc.go:97
+// 2022-01-01: 'agent-disks' @ natsapi/svc.go:97
+// Deprecated
 type Disk struct {
 	Device  string  `json:"device"`
 	Fstype  string  `json:"fstype"`
@@ -160,6 +161,7 @@ type SoftwareList struct {
 	Uninstall   string `json:"uninstall"`
 }
 
+// Deprecated
 type CheckIn struct {
 	Func    string `json:"func"`
 	Agentid string `json:"agent_id"`
@@ -172,7 +174,7 @@ type CheckInSW struct {
 	InstalledSW []SoftwareList `json:"software"`
 }
 
-// 2022-01-01:
+// Deprecated
 type CheckInOS struct {
 	CheckIn
 	Hostname     string  `json:"hostname"`
@@ -184,18 +186,22 @@ type CheckInOS struct {
 	// todo: 2022-01-01: add: 'logged_in_username' ? natsapi/svc.go:77
 }
 
-// 2022-01-01: 'agent-winsvc' ? natsapi/svc.go:117
+// Deprecated
+// 2022-01-01: 'agent-winsvc' @ natsapi/svc.go:117
 type CheckInWinServices struct {
 	CheckIn
 	Services []WindowsService `json:"services"`
 }
 
-// 2022-01-01: 'agent-publicip' ? natsapi/svc.go:56
+// CheckInPublicIP
+// Deprecated
+// 2022-01-01: 'agent-publicip' @ natsapi/svc.go:56
 type CheckInPublicIP struct {
 	CheckIn
 	PublicIP string `json:"public_ip"`
 }
 
+// Deprecated
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:43
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:48
 type CheckInDisk struct {
@@ -203,6 +209,7 @@ type CheckInDisk struct {
 	Disks []Disk `json:"disks"`
 }
 
+// Deprecated
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:61
 type CheckInLoggedUser struct {
 	CheckIn

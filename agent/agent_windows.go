@@ -26,6 +26,7 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/sirupsen/logrus"
+	"github.com/wh1te909/trmm-shared"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
@@ -227,7 +228,44 @@ func (a *Agent) OSInfo() (plat, osFullName string) {
 	return
 }
 
+// GetDisksNATS returns a list of fixed disks
+func (a *Agent) GetDisksNATS() []trmm.Disk {
+	ret := make([]trmm.Disk, 0)
+	partitions, err := disk.Partitions(false)
+	if err != nil {
+		a.Logger.Debugln(err)
+		return ret
+	}
+
+	for _, p := range partitions {
+		typepath, _ := windows.UTF16PtrFromString(p.Device)
+		typeval, _, _ := getDriveType.Call(uintptr(unsafe.Pointer(typepath)))
+		// https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdrivetypea
+		if typeval != 3 {
+			continue
+		}
+
+		usage, err := disk.Usage(p.Mountpoint)
+		if err != nil {
+			a.Logger.Debugln(err)
+			continue
+		}
+
+		d := trmm.Disk{
+			Device:  p.Device,
+			Fstype:  p.Fstype,
+			Total:   string(usage.Total),
+			Used:    string(usage.Used),
+			Free:    string(usage.Free),
+			Percent: int(usage.UsedPercent),
+		}
+		ret = append(ret, d)
+	}
+	return ret
+}
+
 // GetDisks returns a list of fixed disks
+// Deprecated
 func (a *Agent) GetDisks() []rmm.Disk {
 	ret := make([]rmm.Disk, 0)
 	partitions, err := disk.Partitions(false)
@@ -555,7 +593,7 @@ func (a *Agent) RecoverTacticalAgent() {
 }
 
 // RecoverSalt recovers the salt minion
-// todo: 2022-01-01: is this still needed?
+// Deprecated
 func (a *Agent) RecoverSalt() {
 	a.Logger.Debugln("Attempting salt recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_SALTMINION}, 60, false)

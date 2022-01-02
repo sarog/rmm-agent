@@ -36,6 +36,7 @@ require (
 	github.com/scjalliance/comshim v0.0.0-20190308082608-cf06d2532c4e // indirect
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
+	github.com/wh1te909/trmm-shared v0.0.0-20211112185254-e9c45faf2b83 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
