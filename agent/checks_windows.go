@@ -228,7 +228,7 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 		// todo: 2021-12-31: allow ExecutionPolicy to be chosen by the sysadmin
 		cmdArgs = []string{"-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", tmpfn.Name()}
 	case "python":
-		exe = a.PyBin
+		exe = a.PythonBinary
 		cmdArgs = []string{tmpfn.Name()}
 	case "cmd":
 		exe = tmpfn.Name()
