@@ -19,25 +19,29 @@ var (
 
 func main() {
 	hostname, _ := os.Hostname()
-	ver := flag.Bool("version", false, "Prints version")
-	mode := flag.String("m", "", "The mode to run")
+
+	// CLI
+	ver := flag.Bool("version", false, "Prints version and exits")
+	mode := flag.String("m", "", "The mode to run: install, update, rpc, winagentsvc, runchecks, checkrunner, sysinfo, software, sync, wmi, pk, publicip, getpython, runigrations, taskrunner, cleanup")
 	taskPK := flag.Int("p", 0, "Task PK")
-	logLevel := flag.String("log", "INFO", "The log level")
-	logTo := flag.String("logto", "file", "Where to log to")
+	logLevel := flag.String("log", "INFO", "Log level: INFO*, WARN, ERROR, DEBUG")
+	logTo := flag.String("logto", "file", "Log destination: file, stdout")
 	api := flag.String("api", "", "API URL")
 	clientID := flag.Int("client-id", 0, "Client ID")
 	siteID := flag.Int("site-id", 0, "Site ID")
-	timeout := flag.Duration("timeout", 900, "Installer timeout (seconds)")
-	desc := flag.String("desc", hostname, "Agent's description")
-	atype := flag.String("agent-type", "server", "Server or Workstation")
-	token := flag.String("auth", "", "Token")
-	power := flag.Bool("power", false, "Disable sleep/hibernate")
+	timeout := flag.Duration("timeout", 1000, "Installer timeout in seconds")
+	aDesc := flag.String("desc", hostname, "Agent's description to display on the RMM server")
+	aType := flag.String("agent-type", "server", "Agent type: server or workstation")
+	token := flag.String("auth", "", "Agent's authorization token")
+	power := flag.Bool("power", false, "Disable sleep and hibernate when set to True")
 	rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
 	ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
 	windef := flag.Bool("windef", false, "Add Windows Defender exclusions")
 	localMesh := flag.String("local-mesh", "", "Path to the Mesh executable")
-	cert := flag.String("cert", "", "Path to Domain CA .pem")
-	updateurl := flag.String("updateurl", "", "URL to retrieve the update executable")
+	meshDir := flag.String("meshdir", "", "Path to the custom Mesh Central directory")
+	noMesh := flag.Bool("nomesh", false, "Do not install the Mesh Agent")
+	cert := flag.String("cert", "", "Path to the Domain's Certificate Authority's .pem")
+	updateurl := flag.String("updateurl", "", "Source URL to retrieve the update executable")
 	inno := flag.String("inno", "", "Inno setup filename")
 	updatever := flag.String("updatever", "", "Update version")
 	silent := flag.Bool("silent", false, "Do not popup any message boxes during installation")
@@ -64,7 +68,7 @@ func main() {
 		a.RunRPC()
 	case "pk":
 		fmt.Println(a.AgentPK)
-	case "winagentsvc":
+	case "winagentsvc", "agentsvc":
 		a.RunAsService()
 	case "runchecks":
 		a.RunChecks(true)
@@ -111,14 +115,16 @@ func main() {
 			RMM:         *api,
 			ClientID:    *clientID,
 			SiteID:      *siteID,
-			Description: *desc,
-			AgentType:   *atype,
+			Description: *aDesc,
+			AgentType:   *aType,
 			Power:       *power,
 			RDP:         *rdp,
 			Ping:        *ping,
 			WinDefender: *windef,
 			Token:       *token,
 			LocalMesh:   *localMesh,
+			MeshDir:     *meshDir,
+			NoMesh:      *noMesh,
 			Cert:        *cert,
 			Timeout:     *timeout,
 			Silent:      *silent,
@@ -140,7 +146,7 @@ func setupLogging(level, to *string) {
 	} else {
 		switch runtime.GOOS {
 		case "windows":
-			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), "TacticalAgent", "agent.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.BRANDING_FOLDER, "agent.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		case "linux":
 			// todo
 		}
@@ -151,14 +157,16 @@ func setupLogging(level, to *string) {
 func installUsage() {
 	switch runtime.GOOS {
 	case "windows":
-		u := `Usage: tacticalrmm.exe -m install -api <https://api.example.com> -client-id X -site-id X -auth <TOKEN>`
-		fmt.Println(u)
+		u := `Usage: %s -m install -api <https://api.example.com> -client-id X -site-id X -auth <TOKEN>`
+		fmt.Printf(u, agent.AGENT_FILENAME)
 	case "linux":
 		// todo
+	case "freebsd":
+		// todo :)
 	}
 }
 
 func updateUsage() {
-	u := `Usage: tacticalrmm.exe -m update -updateurl https://example.com/winagent-vX.X.X.exe -inno winagent-vX.X.X.exe -updatever 1.1.1`
-	fmt.Println(u)
+	u := `Usage: %s -m update -updateurl https://example.com/winagent-vX.X.X.exe -inno winagent-vX.X.X.exe -updatever 1.1.1`
+	fmt.Printf(u, agent.AGENT_FILENAME)
 }
