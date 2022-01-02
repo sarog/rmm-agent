@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	version = "1.7.2-alpha"
+	version = "1.7.2"
 	log     = logrus.New()
 	logFile *os.File
 )
@@ -28,18 +28,20 @@ func main() {
 	clientID := flag.Int("client-id", 0, "Client ID")
 	siteID := flag.Int("site-id", 0, "Site ID")
 	timeout := flag.Duration("timeout", 900, "Installer timeout (seconds)")
-	desc := flag.String("desc", hostname, "Agent's Description")
-	atype := flag.String("agent-type", "server", "server or workstation")
+	desc := flag.String("desc", hostname, "Agent's description")
+	atype := flag.String("agent-type", "server", "Server or Workstation")
 	token := flag.String("auth", "", "Token")
 	power := flag.Bool("power", false, "Disable sleep/hibernate")
-	rdp := flag.Bool("rdp", false, "Enable RDP")
-	ping := flag.Bool("ping", false, "Enable ping")
-	localMesh := flag.String("local-mesh", "", "Path to mesh executable")
-	cert := flag.String("cert", "", "Path to domain CA .pem")
-	updateurl := flag.String("updateurl", "", "Download link to updater")
-	inno := flag.String("inno", "", "Inno setup file")
+	rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
+	ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
+	windef := flag.Bool("windef", false, "Add Windows Defender exclusions")
+	localMesh := flag.String("local-mesh", "", "Path to the Mesh executable")
+	cert := flag.String("cert", "", "Path to Domain CA .pem")
+	updateurl := flag.String("updateurl", "", "URL to retrieve the update executable")
+	inno := flag.String("inno", "", "Inno setup filename")
 	updatever := flag.String("updatever", "", "Update version")
 	silent := flag.Bool("silent", false, "Do not popup any message boxes during installation")
+
 	flag.Parse()
 
 	if *ver {
@@ -114,6 +116,7 @@ func main() {
 			Power:       *power,
 			RDP:         *rdp,
 			Ping:        *ping,
+			WinDefender: *windef,
 			Token:       *token,
 			LocalMesh:   *localMesh,
 			Cert:        *cert,

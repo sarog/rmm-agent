@@ -20,7 +20,7 @@ import (
 
 type Installer struct {
 	Headers     map[string]string
-	RMM         string
+	RMM         string // API URL
 	ClientID    int
 	SiteID      int
 	Description string
@@ -28,7 +28,7 @@ type Installer struct {
 	Power       bool
 	RDP         bool
 	Ping        bool
-	WinDefender bool // 2022-01-01
+	WinDefender bool // 2022-01-01: new
 	Token       string
 	LocalMesh   string
 	Cert        string
