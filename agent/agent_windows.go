@@ -36,9 +36,9 @@ var (
 
 const BRANDING_FOLDER = "TacticalAgent"
 
-// WindowsAgent struct
+// Agent struct
 // 2022-01-01: renamed to 'Agent'
-type WindowsAgent struct {
+type Agent struct {
 	Hostname      string
 	Arch          string
 	AgentID       string
@@ -62,8 +62,8 @@ type WindowsAgent struct {
 	rClient       *resty.Client
 }
 
-// New Initializes a new WindowsAgent with logger
-func New(logger *logrus.Logger, version string) *WindowsAgent {
+// New Initializes a new Agent with logger
+func New(logger *logrus.Logger, version string) *Agent {
 	host, _ := ps.Host()
 	info := host.Info()
 	pd := filepath.Join(os.Getenv("ProgramFiles"), BRANDING_FOLDER)
@@ -144,7 +144,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 		restyC.SetRootCertificate(cert)
 	}
 
-	return &WindowsAgent{
+	return &Agent{
 		Hostname:      info.Hostname,
 		Arch:          info.Architecture,
 		BaseURL:       baseurl,
@@ -183,7 +183,7 @@ func ArchInfo(programDir string) (nssm, mesh string) {
 }
 
 // OSInfo returns formatted OS names
-func (a *WindowsAgent) OSInfo() (plat, osFullName string) {
+func (a *Agent) OSInfo() (plat, osFullName string) {
 	host, _ := ps.Host()
 	info := host.Info()
 	osInfo := info.OS
@@ -202,7 +202,7 @@ func (a *WindowsAgent) OSInfo() (plat, osFullName string) {
 }
 
 // GetDisks returns a list of fixed disks
-func (a *WindowsAgent) GetDisks() []rmm.Disk {
+func (a *Agent) GetDisks() []rmm.Disk {
 	ret := make([]rmm.Disk, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
@@ -397,7 +397,7 @@ func DisableSleepHibernate() {
 
 // LoggedOnUser returns the first logged on user it finds
 // todo: 2021-12-31: Python dep; replace with PowerShell?
-func (a *WindowsAgent) LoggedOnUser() string {
+func (a *Agent) LoggedOnUser() string {
 	pyCode := `
 import psutil
 
@@ -435,7 +435,7 @@ except Exception as e:
 	return "None"
 }
 
-func (a *WindowsAgent) GetCPULoadAvg() int {
+func (a *Agent) GetCPULoadAvg() int {
 	// todo: 2021-12-31: remove Python dep
 	fallback := false
 	pyCode := `
@@ -467,7 +467,7 @@ except:
 }
 
 // ForceKillSalt kills all salt related processes
-func (a *WindowsAgent) ForceKillSalt() {
+func (a *Agent) ForceKillSalt() {
 	pids := make([]int, 0)
 
 	procs, err := ps.Processes()
@@ -494,7 +494,7 @@ func (a *WindowsAgent) ForceKillSalt() {
 }
 
 // ForceKillMesh kills all MeshAgent-related processes
-func (a *WindowsAgent) ForceKillMesh() {
+func (a *Agent) ForceKillMesh() {
 	pids := make([]int, 0)
 
 	procs, err := ps.Processes()
@@ -521,7 +521,7 @@ func (a *WindowsAgent) ForceKillMesh() {
 }
 
 // RecoverTacticalAgent should only be called from the RPC service
-func (a *WindowsAgent) RecoverTacticalAgent() {
+func (a *Agent) RecoverTacticalAgent() {
 	// todo: 2021-12-31: custom branding?
 	svc := "tacticalagent"
 	a.Logger.Debugln("Attempting TacticalAgent recovery on", a.Hostname)
@@ -533,7 +533,7 @@ func (a *WindowsAgent) RecoverTacticalAgent() {
 }
 
 // RecoverSalt recovers the salt minion
-func (a *WindowsAgent) RecoverSalt() {
+func (a *Agent) RecoverSalt() {
 	saltSVC := "salt-minion"
 	a.Logger.Debugln("Attempting salt recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", saltSVC}, 60, false)
@@ -551,7 +551,7 @@ func (a *WindowsAgent) RecoverSalt() {
 	a.Logger.Debugln("Salt recovery completed on", a.Hostname)
 }
 
-func (a *WindowsAgent) SyncMeshNodeID() {
+func (a *Agent) SyncMeshNodeID() {
 	out, err := CMD(a.MeshSystemEXE, []string{"-nodeid"}, 10, false)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -585,7 +585,7 @@ func (a *WindowsAgent) SyncMeshNodeID() {
 }
 
 // RecoverMesh Recovers the MeshAgent service
-func (a *WindowsAgent) RecoverMesh() {
+func (a *Agent) RecoverMesh() {
 	a.Logger.Infoln("Attempting MeshAgent service recovery")
 	defer CMD("net", []string{"start", a.MeshSVC}, 60, false)
 
@@ -595,7 +595,7 @@ func (a *WindowsAgent) RecoverMesh() {
 }
 
 // RecoverRPC Recovers the NATS RPC service
-func (a *WindowsAgent) RecoverRPC() {
+func (a *Agent) RecoverRPC() {
 	a.Logger.Infoln("Attempting RPC service recovery")
 	_, _ = CMD("net", []string{"stop", "tacticalrpc"}, 90, false)
 	time.Sleep(2 * time.Second)
@@ -603,7 +603,7 @@ func (a *WindowsAgent) RecoverRPC() {
 }
 
 // RecoverCMD runs a shell recovery command
-func (a *WindowsAgent) RecoverCMD(command string) {
+func (a *Agent) RecoverCMD(command string) {
 	a.Logger.Infoln("Attempting shell recovery with command:", command)
 	// To prevent killing ourselves, prefix the command with 'cmd /C'
 	// so the parent process is now cmd.exe and not tacticalrmm.exe
@@ -615,13 +615,13 @@ func (a *WindowsAgent) RecoverCMD(command string) {
 	cmd.Start()
 }
 
-func (a *WindowsAgent) Sync() {
+func (a *Agent) Sync() {
 	a.GetWMI()
 	time.Sleep(1 * time.Second)
 	a.SendSoftware()
 }
 
-func (a *WindowsAgent) SendSoftware() {
+func (a *Agent) SendSoftware() {
 	sw := a.GetInstalledSoftware()
 	a.Logger.Debugln(sw)
 
@@ -634,7 +634,7 @@ func (a *WindowsAgent) SendSoftware() {
 	}
 }
 
-func (a *WindowsAgent) UninstallCleanup() {
+func (a *Agent) UninstallCleanup() {
 	registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`)
 	a.CleanupAgentUpdates()
 	CleanupSchedTasks()
@@ -674,7 +674,7 @@ func ShowStatus(version string) {
 	}
 }
 
-func (a *WindowsAgent) installerMsg(msg, alert string, silent bool) {
+func (a *Agent) installerMsg(msg, alert string, silent bool) {
 	window := w32.GetForegroundWindow()
 	if !silent && window != 0 {
 		var (
@@ -701,7 +701,7 @@ func (a *WindowsAgent) installerMsg(msg, alert string, silent bool) {
 	}
 }
 
-func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
+func (a *Agent) AgentUpdate(url, inno, version string) {
 	time.Sleep(time.Duration(randRange(1, 15)) * time.Second)
 	a.CleanupAgentUpdates()
 	updater := filepath.Join(a.ProgramDir, inno)
@@ -743,7 +743,7 @@ func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
 	time.Sleep(1 * time.Second)
 }
 
-func (a *WindowsAgent) setupNatsOptions() []nats.Option {
+func (a *Agent) setupNatsOptions() []nats.Option {
 	opts := make([]nats.Option, 0)
 	opts = append(opts, nats.Name("TacticalRMM"))
 	opts = append(opts, nats.UserInfo(a.AgentID, a.Token))
@@ -754,7 +754,7 @@ func (a *WindowsAgent) setupNatsOptions() []nats.Option {
 	return opts
 }
 
-func (a *WindowsAgent) GetUninstallExe() string {
+func (a *Agent) GetUninstallExe() string {
 	cderr := os.Chdir(a.ProgramDir)
 	if cderr == nil {
 		files, err := filepath.Glob("unins*.exe")
@@ -769,7 +769,7 @@ func (a *WindowsAgent) GetUninstallExe() string {
 	return "unins000.exe"
 }
 
-func (a *WindowsAgent) AgentUninstall() {
+func (a *Agent) AgentUninstall() {
 	tacUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
 	args := []string{"/C", tacUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 	cmd := exec.Command("cmd.exe", args...)
@@ -779,7 +779,7 @@ func (a *WindowsAgent) AgentUninstall() {
 	cmd.Start()
 }
 
-func (a *WindowsAgent) CleanupAgentUpdates() {
+func (a *Agent) CleanupAgentUpdates() {
 	cderr := os.Chdir(a.ProgramDir)
 	if cderr != nil {
 		a.Logger.Errorln(cderr)
@@ -806,7 +806,7 @@ func (a *WindowsAgent) CleanupAgentUpdates() {
 	}
 }
 
-func (a *WindowsAgent) RunPythonCode(code string, timeout int, args []string) (string, error) {
+func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, error) {
 	content := []byte(code)
 	dir, err := ioutil.TempDir("", "tacticalpy")
 	if err != nil {
@@ -861,7 +861,7 @@ func (a *WindowsAgent) RunPythonCode(code string, timeout int, args []string) (s
 
 // GetPython download Python
 // todo: 2021-12-31: make Python *optional*
-func (a *WindowsAgent) GetPython(force bool) {
+func (a *Agent) GetPython(force bool) {
 	if FileExists(a.PyBin) && !force {
 		return
 	}
@@ -928,7 +928,7 @@ func (a *WindowsAgent) GetPython(force bool) {
 	}
 }
 
-func (a *WindowsAgent) RemoveSalt() error {
+func (a *Agent) RemoveSalt() error {
 	saltFiles := []string{"saltcustom", "salt-minion-setup.exe", "salt-minion-setup-x86.exe"}
 	for _, sf := range saltFiles {
 		if FileExists(filepath.Join(a.ProgramDir, sf)) {
@@ -949,7 +949,7 @@ func (a *WindowsAgent) RemoveSalt() error {
 	return nil
 }
 
-func (a *WindowsAgent) deleteOldTacticalServices() {
+func (a *Agent) deleteOldTacticalServices() {
 	services := []string{"checkrunner"}
 	for _, svc := range services {
 		if serviceExists(svc) {
@@ -959,7 +959,7 @@ func (a *WindowsAgent) deleteOldTacticalServices() {
 	}
 }
 
-func (a *WindowsAgent) addDefenderExlusions() {
+func (a *Agent) addDefenderExlusions() {
 	// todo: 2021-12-31: make this *optional*
 	code := `
 Add-MpPreference -ExclusionPath 'C:\Program Files\TacticalAgent\*'
@@ -974,14 +974,14 @@ Add-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
 }
 
 // RunMigrations cleans up unused stuff from older agents
-func (a *WindowsAgent) RunMigrations() {
+func (a *Agent) RunMigrations() {
 	a.deleteOldTacticalServices()
 	CMD("schtasks.exe", []string{"/delete", "/TN", "TacticalRMM_fixmesh", "/f"}, 10, false)
 }
 
 // CheckForRecovery Check for agent recovery
 // 2022-01-01: api/tacticalrmm/apiv3/urls.py:22
-func (a *WindowsAgent) CheckForRecovery() {
+func (a *Agent) CheckForRecovery() {
 	url := fmt.Sprintf("/api/v3/%s/recovery/", a.AgentID)
 	r, err := a.rClient.R().SetResult(&rmm.RecoveryAction{}).Get(url)
 
@@ -1014,7 +1014,7 @@ func (a *WindowsAgent) CheckForRecovery() {
 	}
 }
 
-func (a *WindowsAgent) CreateTRMMTempDir() {
+func (a *Agent) CreateTRMMTempDir() {
 	// Create the temp dir for running scripts
 	// This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\trmm'
 	dir := filepath.Join(os.TempDir(), "trmm")

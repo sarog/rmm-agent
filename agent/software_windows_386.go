@@ -17,7 +17,7 @@ func installedSoftwareList() ([]so.Software, error) {
 	return sw32, nil
 }
 
-func (a *WindowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
+func (a *Agent) GetInstalledSoftware() []rmm.SoftwareList {
 	ret := make([]rmm.SoftwareList, 0)
 
 	sw, err := installedSoftwareList()

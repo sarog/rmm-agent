@@ -12,7 +12,7 @@ const (
 	API_URL_SUPERSEDED = "/api/v3/superseded/"
 )
 
-func (a *WindowsAgent) GetWinUpdates() {
+func (a *Agent) GetWinUpdates() {
 	updates, err := WUAUpdates("IsInstalled=1 or IsInstalled=0 and Type='Software' and IsHidden=0")
 	if err != nil {
 		a.Logger.Errorln(err)
@@ -35,7 +35,7 @@ func (a *WindowsAgent) GetWinUpdates() {
 	}
 }
 
-func (a *WindowsAgent) InstallUpdates(guids []string) {
+func (a *Agent) InstallUpdates(guids []string) {
 	session, err := NewUpdateSession()
 	if err != nil {
 		a.Logger.Errorln(err)

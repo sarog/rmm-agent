@@ -77,7 +77,7 @@ func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 	}
 }
 
-func (a *WindowsAgent) Install(i *Installer) {
+func (a *Agent) Install(i *Installer) {
 	a.checkExistingAndRemove(i.Silent)
 
 	i.Headers = map[string]string{
@@ -353,7 +353,7 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-func (a *WindowsAgent) checkExistingAndRemove(silent bool) {
+func (a *Agent) checkExistingAndRemove(silent bool) {
 	hasReg := false
 	_, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\TacticalRMM`, registry.ALL_ACCESS)
 	if err == nil {

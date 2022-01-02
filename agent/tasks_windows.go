@@ -12,7 +12,7 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
-func (a *WindowsAgent) RunTask(id int) error {
+func (a *Agent) RunTask(id int) error {
 	data := rmm.AutomatedTask{}
 	url := fmt.Sprintf("/api/v3/%d/%s/taskrunner/", id, a.AgentID)
 	r1, gerr := a.rClient.R().Get(url)
@@ -52,7 +52,7 @@ func (a *WindowsAgent) RunTask(id int) error {
 }
 
 // CreateInternalTask creates predefined tacticalrmm internal tasks
-func (a *WindowsAgent) CreateInternalTask(name, args, repeat string, start int) (bool, error) {
+func (a *Agent) CreateInternalTask(name, args, repeat string, start int) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
 		return false, err
@@ -137,7 +137,7 @@ type SchedTask struct {
 
 }
 
-func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
+func (a *Agent) CreateSchedTask(st SchedTask) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
 		a.Logger.Errorln(err)

@@ -20,7 +20,7 @@ const (
 	CHECKIN_MODE_STARTUP      = "startup"
 )
 
-func (a *WindowsAgent) RunAsService() {
+func (a *Agent) RunAsService() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go a.WinAgentSvc()
@@ -29,7 +29,7 @@ func (a *WindowsAgent) RunAsService() {
 }
 
 // WinAgentSvc tacticalagent Windows nssm service
-func (a *WindowsAgent) WinAgentSvc() {
+func (a *Agent) WinAgentSvc() {
 	a.Logger.Infoln("Agent service started")
 
 	go a.GetPython(false)
@@ -93,7 +93,7 @@ func (a *WindowsAgent) WinAgentSvc() {
 
 // CheckIn Check in with server
 // 2022-01-01: api.tacticalrmm.apiv3.views.CheckIn
-func (a *WindowsAgent) CheckIn(mode string) {
+func (a *Agent) CheckIn(mode string) {
 	var rerr error
 	var payload interface{}
 

@@ -456,7 +456,7 @@ func (s *IUpdateSession) GetWUAUpdateCollection(query string) (*IUpdateCollectio
 }
 
 // SystemRebootRequired checks whether a system reboot is required.
-func (a *WindowsAgent) SystemRebootRequired() (bool, error) {
+func (a *Agent) SystemRebootRequired() (bool, error) {
 	regKeys := []string{
 		`SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired`,
 	}

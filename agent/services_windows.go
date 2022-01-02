@@ -35,7 +35,7 @@ func GetServiceStatus(name string) (string, error) {
 	return serviceStatusText(uint32(q.State)), nil
 }
 
-func (a *WindowsAgent) ControlService(name, action string) WinSvcResp {
+func (a *Agent) ControlService(name, action string) WinSvcResp {
 	conn, err := mgr.Connect()
 	if err != nil {
 		return WinSvcResp{Success: false, ErrorMsg: err.Error()}
@@ -80,7 +80,7 @@ func (a *WindowsAgent) ControlService(name, action string) WinSvcResp {
 	return WinSvcResp{Success: false, ErrorMsg: "Something went wrong"}
 }
 
-func (a *WindowsAgent) EditService(name, startupType string) WinSvcResp {
+func (a *Agent) EditService(name, startupType string) WinSvcResp {
 	conn, err := mgr.Connect()
 	if err != nil {
 		return WinSvcResp{Success: false, ErrorMsg: err.Error()}
@@ -126,7 +126,7 @@ func (a *WindowsAgent) EditService(name, startupType string) WinSvcResp {
 	return WinSvcResp{Success: true, ErrorMsg: ""}
 }
 
-func (a *WindowsAgent) GetServiceDetail(name string) rmm.WindowsService {
+func (a *Agent) GetServiceDetail(name string) rmm.WindowsService {
 	ret := rmm.WindowsService{}
 
 	conn, err := mgr.Connect()
@@ -168,7 +168,7 @@ func (a *WindowsAgent) GetServiceDetail(name string) rmm.WindowsService {
 }
 
 // GetServices returns a list of windows services
-func (a *WindowsAgent) GetServices() []rmm.WindowsService {
+func (a *Agent) GetServices() []rmm.WindowsService {
 	ret := make([]rmm.WindowsService, 0)
 
 	conn, err := mgr.Connect()

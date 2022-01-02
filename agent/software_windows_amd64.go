@@ -7,7 +7,7 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
-func (a *WindowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
+func (a *Agent) GetInstalledSoftware() []rmm.SoftwareList {
 	ret := make([]rmm.SoftwareList, 0)
 
 	sw, err := wapi.InstalledSoftwareList()

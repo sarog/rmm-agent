@@ -22,7 +22,7 @@ import (
 
 const ApiCheckRunner = "/api/v3/checkrunner/"
 
-func (a *WindowsAgent) CheckRunner() {
+func (a *Agent) CheckRunner() {
 	a.Logger.Infoln("CheckRunner service started.")
 	sleepDelay := randRange(14, 22)
 	a.Logger.Debugf("Sleeping for %v seconds", sleepDelay)
@@ -40,7 +40,7 @@ func (a *WindowsAgent) CheckRunner() {
 	}
 }
 
-func (a *WindowsAgent) GetCheckInterval() (int, error) {
+func (a *Agent) GetCheckInterval() (int, error) {
 	r, err := a.rClient.R().SetResult(&rmm.CheckInfo{}).Get(fmt.Sprintf("/api/v3/%s/checkinterval/", a.AgentID))
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -55,7 +55,7 @@ func (a *WindowsAgent) GetCheckInterval() (int, error) {
 }
 
 // RunChecks Run Checks
-func (a *WindowsAgent) RunChecks(force bool) error {
+func (a *Agent) RunChecks(force bool) error {
 	data := rmm.AllChecks{}
 	var url string
 	if force {
@@ -163,7 +163,7 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 }
 
 // RunScript runs a script
-func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
+func (a *Agent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
 	content := []byte(code)
 
 	// todo: 2021-12-31: rename and/or change path
@@ -283,7 +283,7 @@ func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeo
 }
 
 // ScriptCheck runs either a batch file, PowerShell or Python script
-func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
+func (a *Agent) ScriptCheck(data rmm.Check, r *resty.Client) {
 	start := time.Now()
 	stdout, stderr, retcode, _ := a.RunScript(data.Script.Code, data.Script.Shell, data.ScriptArgs, data.Timeout)
 
@@ -308,7 +308,7 @@ func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 
 // DiskCheck checks disk usage
 // 2021-12-31: api/tacticalrmm/checks/models.py:340
-func (a *WindowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
+func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
 	var payload map[string]interface{}
 
 	usage, err := disk.Usage(data.Disk)
@@ -343,7 +343,7 @@ func (a *WindowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 
 // CPULoadCheck checks average processor load
 // 2021-12-31:
-func (a *WindowsAgent) CPULoadCheck(data rmm.Check, r *resty.Client) {
+func (a *Agent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 	payload := map[string]interface{}{
 		"id":      data.CheckPK,
 		"percent": a.GetCPULoadAvg(),
@@ -359,7 +359,7 @@ func (a *WindowsAgent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 }
 
 // MemCheck checks mem percentage
-func (a *WindowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
+func (a *Agent) MemCheck(data rmm.Check, r *resty.Client) {
 	host, _ := ps.Host()
 	mem, _ := host.Memory()
 	percent := (float64(mem.Used) / float64(mem.Total)) * 100
@@ -378,7 +378,7 @@ func (a *WindowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-func (a *WindowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
+func (a *Agent) EventLogCheck(data rmm.Check, r *resty.Client) {
 	evtLog := a.GetEventLog(data.LogName, data.SearchLastDays)
 
 	payload := map[string]interface{}{
@@ -396,7 +396,7 @@ func (a *WindowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
 }
 
 // PingCheck pings
-func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
+func (a *Agent) PingCheck(data rmm.Check, r *resty.Client) {
 	cmdArgs := []string{data.IP}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(90)*time.Second)
 	defer cancel()
@@ -445,7 +445,7 @@ func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
+func (a *Agent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 	var status string
 	exists := true
 
@@ -471,7 +471,7 @@ func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-func (a *WindowsAgent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
+func (a *Agent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
 	if len(tasks) > 0 && DjangoStringResp(status) == "failing" {
 		var wg sync.WaitGroup
 		for _, t := range tasks {

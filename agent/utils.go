@@ -20,7 +20,7 @@ import (
 
 // PublicIP returns the agent's public IP address
 // Tries 3 times before giving up
-func (a *WindowsAgent) PublicIP() string {
+func (a *Agent) PublicIP() string {
 	a.Logger.Debugln("PublicIP start")
 	client := resty.New()
 	client.SetTimeout(4 * time.Second)
@@ -91,7 +91,7 @@ func FileExists(path string) bool {
 }
 
 // TotalRAM returns total RAM in GB
-func (a *WindowsAgent) TotalRAM() float64 {
+func (a *Agent) TotalRAM() float64 {
 	host, err := ps.Host()
 	if err != nil {
 		return 8.0
@@ -104,7 +104,7 @@ func (a *WindowsAgent) TotalRAM() float64 {
 }
 
 // BootTime returns system boot time as a Unix timestamp
-func (a *WindowsAgent) BootTime() int64 {
+func (a *Agent) BootTime() int64 {
 	host, err := ps.Host()
 	if err != nil {
 		return 1000

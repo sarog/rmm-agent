@@ -32,7 +32,7 @@ var (
 	installWinUpdateLocker uint32
 )
 
-func (a *WindowsAgent) RunRPC() {
+func (a *Agent) RunRPC() {
 	a.Logger.Infoln("RPC service started")
 	opts := a.setupNatsOptions()
 	server := fmt.Sprintf("tls://%s:4222", a.ApiURL)

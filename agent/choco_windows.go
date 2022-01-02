@@ -11,7 +11,7 @@ import (
 const API_URL_CHOCO = "/api/v3/choco/"
 
 // InstallChoco Installs the Chocolatey PowerShell script
-func (a *WindowsAgent) InstallChoco() {
+func (a *Agent) InstallChoco() {
 
 	var result rmm.ChocoInstalled
 	result.AgentID = a.AgentID
@@ -48,7 +48,7 @@ func (a *WindowsAgent) InstallChoco() {
 	a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
 }
 
-func (a *WindowsAgent) InstallWithChoco(name string) (string, error) {
+func (a *Agent) InstallWithChoco(name string) (string, error) {
 	out, err := CMD("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
 	if err != nil {
 		a.Logger.Errorln(err)
