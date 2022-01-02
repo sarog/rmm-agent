@@ -1,14 +1,18 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/nats-io/nats.go"
 	rmm "github.com/sarog/rmmagent/shared"
+	"github.com/ugorji/go/codec"
 )
 
 const (
+	// Deprecated since 1.7.0, replaced with NATS
 	API_URL_CHECKIN = "/api/v3/checkin/"
 
 	// CheckIn
@@ -38,7 +42,7 @@ func (a *Agent) RunAsService() {
 	wg.Wait()
 }
 
-// WinAgentSvc Windows nssm service
+// WinAgentSvc Windows nssm service startup
 func (a *Agent) WinAgentSvc() {
 	a.Logger.Infoln("Agent service started")
 
@@ -106,20 +110,20 @@ func (a *Agent) CheckIn(mode string) {
 	// Outgoing payload to server
 	switch mode {
 	case CHECKIN_MODE_HELLO:
-		// todo: 2022-01-01: replace with 'agent-hello' through natsapi/svc.go:36
+		// 2022-01-01: replaced with 'agent-hello' through natsapi/svc.go:36
 		payload = rmm.CheckIn{
-			Func:    "hello",
+			Func:    "agent-hello",
 			Agentid: a.AgentID,
 			Version: a.Version,
 		}
 
 	case CHECKIN_MODE_STARTUP:
+		// 2022-01-01: relies on 'post' endpoint
+		// 	api/tacticalrmm/apiv3/views.py:84
+		// 	server will then request 2 calls via nats: 'installchoco' and 'getwinupdates'
+		// 	api/tacticalrmm/apiv3/views.py:87
+		// 	api/tacticalrmm/apiv3/views.py:90
 		payload = rmm.CheckIn{
-			// 2022-01-01: relies on 'post' endpoint
-			// 	api/tacticalrmm/apiv3/views.py:84
-			// 	server will then request 2 calls via nats: 'installchoco' and 'getwinupdates'
-			// 	api/tacticalrmm/apiv3/views.py:87
-			// 	api/tacticalrmm/apiv3/views.py:90
 			Func:    "startup",
 			Agentid: a.AgentID,
 			Version: a.Version,
@@ -203,8 +207,29 @@ func (a *Agent) CheckIn(mode string) {
 	}
 
 	if mode == CHECKIN_MODE_HELLO {
-		// 2022-01-01: 'patch' was removed
-		_, rerr = a.rClient.R().SetBody(payload).Patch(API_URL_CHECKIN)
+		// 2022-01-01: 'patch' was removed, endpoint deprecated
+		// _, rerr = a.rClient.R().SetBody(payload).Patch(API_URL_CHECKIN)
+		// a.CheckIn(CHECKIN_MODE_HELLO)
+		// time.Sleep(200 * time.Millisecond)
+
+		opts := a.setupNatsOptions()
+		server := fmt.Sprintf("tls://%s:4222", a.ApiURL)
+		nc, err := nats.Connect(server, opts...)
+		if err != nil {
+			a.Logger.Errorln(err)
+		} else {
+			var cPayload []byte
+			codec.NewEncoderBytes(&cPayload, new(codec.MsgpackHandle)).Encode(payload)
+			nc.Publish(a.AgentID, cPayload)
+		}
+		// mh.RawToString = true
+		// dec := codec.NewDecoderBytes(msg.Data, &mh)
+		// if err := dec.Decode(&payload); err != nil {
+		// 	a.Logger.Errorln(err)
+		// 	return
+		// }
+		nc.Flush()
+		nc.Close()
 	} else if mode == CHECKIN_MODE_STARTUP {
 		// 2022-01-01: api/tacticalrmm/apiv3/views.py:84
 		_, rerr = a.rClient.R().SetBody(payload).Post(API_URL_CHECKIN)

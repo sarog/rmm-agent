@@ -19,24 +19,25 @@ import (
 )
 
 type Installer struct {
-	Headers     map[string]string
-	RMM         string // API URL
-	ClientID    int
-	SiteID      int
-	Description string
-	AgentType   string
-	Power       bool
-	RDP         bool
-	Ping        bool
-	WinDefender bool // 2022-01-01: new
-	Token       string
-	LocalMesh   string
-	MeshDir     string // todo: 2022-01-02: backported
-	NoMesh      bool   // todo: 2022-01-02: backported
-	Cert        string
-	Timeout     time.Duration
-	SaltMaster  string // Deprecated?
-	Silent      bool
+	Headers       map[string]string
+	RMM           string // API URL
+	ClientID      int
+	SiteID        int
+	Description   string
+	AgentType     string
+	Power         bool
+	RDP           bool
+	Ping          bool
+	WinDefender   bool // 2022-01-01: new
+	PythonEnabled bool // 2022-01-01: new
+	Token         string
+	LocalMesh     string
+	MeshDir       string // todo: 2022-01-02: backported
+	NoMesh        bool   // todo: 2022-01-02: backported
+	Cert          string
+	Timeout       time.Duration
+	SaltMaster    string // Deprecated?
+	Silent        bool
 }
 
 // todo: 2021-12-31: custom branding
@@ -50,16 +51,17 @@ const (
 	SERVICE_DESC_AGENT      = "Tactical RMM Agent"
 
 	// Registry strings
-	REG_RMM_PATH    = `SOFTWARE\TacticalRMM`
-	REG_RMM_BASEURL = "BaseURL"
-	REG_RMM_AGENTID = "AgentID"
-	REG_RMM_APIURL  = "ApiURL"
-	REG_RMM_TOKEN   = "Token"
-	REG_RMM_AGENTPK = "AgentPK"
-	REG_RMM_CERT    = "Cert"
+	REG_RMM_PATH      = `SOFTWARE\TacticalRMM`
+	REG_RMM_BASEURL   = "BaseURL"
+	REG_RMM_AGENTID   = "AgentID"
+	REG_RMM_APIURL    = "ApiURL"
+	REG_RMM_TOKEN     = "Token"
+	REG_RMM_AGENTPK   = "AgentPK"
+	REG_RMM_CERT      = "Cert"
+	REG_RMM_PYENABLED = "PythonEnabled"
 )
 
-func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
+func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string, pyEnabled bool) {
 	// todo: 2021-12-31: migrate to DPAPI?
 	key, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err != nil {
@@ -97,6 +99,11 @@ func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 		if err != nil {
 			log.Fatalln("Error creating Cert registry key:", err)
 		}
+	}
+
+	err = key.SetStringValue(REG_RMM_PYENABLED, strconv.FormatBool(pyEnabled))
+	if err != nil {
+		log.Fatalln("Error creating PythonEnabled registry key:", err)
 	}
 }
 
@@ -285,7 +292,7 @@ func (a *Agent) Install(i *Installer) {
 	a.Logger.Debugln("Agent PK:", agentPK)
 	a.Logger.Debugln("Salt ID:", saltID)
 
-	createRegKeys(baseURL, a.AgentID, i.SaltMaster, agentToken, strconv.Itoa(agentPK), i.Cert)
+	createRegKeys(baseURL, a.AgentID, i.SaltMaster, agentToken, strconv.Itoa(agentPK), i.Cert, a.PythonEnabled)
 	// Refresh our agent with new values
 	a = New(a.Logger, a.Version)
 
@@ -388,7 +395,7 @@ func (a *Agent) checkExistingAndRemove(silent bool) {
 	if err == nil {
 		hasReg = true
 	}
-	installedMesh := filepath.Join(a.ProgramDir, "Mesh Agent", "MeshAgent.exe")
+	installedMesh := filepath.Join(a.ProgramDir, MESH_AGENT_FOLDER, MESH_AGENT_FILENAME)
 	installedSalt := filepath.Join(a.SystemDrive, "\\salt", "uninst.exe")
 	agentDB := filepath.Join(a.ProgramDir, "agentdb.db")
 	if hasReg || FileExists(installedMesh) || FileExists(installedSalt) || FileExists(agentDB) {

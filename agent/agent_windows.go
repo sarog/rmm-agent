@@ -46,6 +46,8 @@ const (
 	INNO_SETUP_LOGFILE  = "tacticalrmm.txt"
 	NATS_RMM_IDENTIFIER = "TacticalRMM" // for server compat
 	PYTHON_TEMP_DIR     = "tacticalpy"
+	MESH_AGENT_FOLDER   = "Mesh Agent"
+	MESH_AGENT_FILENAME = "MeshAgent.exe"
 )
 
 // Agent struct
@@ -66,7 +68,8 @@ type Agent struct {
 	MeshInstaller string
 	MeshSystemEXE string
 	MeshSVC       string
-	PyBin         string
+	PythonEnabled bool
+	PythonBinary  string
 	Headers       map[string]string
 	Logger        *logrus.Logger
 	Version       string
@@ -84,12 +87,12 @@ func New(logger *logrus.Logger, version string) *Agent {
 	sd := os.Getenv("SystemDrive")
 	nssm, mesh := ArchInfo(pd)
 
-	var pybin string
+	var pyBin string
 	switch runtime.GOARCH {
 	case "amd64":
-		pybin = filepath.Join(pd, "py38-x64", "python.exe")
+		pyBin = filepath.Join(pd, "py38-x64", "python.exe")
 	case "386":
-		pybin = filepath.Join(pd, "py38-x32", "python.exe")
+		pyBin = filepath.Join(pd, "py38-x32", "python.exe")
 	}
 
 	// Previous Python agent database
@@ -98,46 +101,56 @@ func New(logger *logrus.Logger, version string) *Agent {
 	}
 
 	var (
-		baseurl string
-		agentid string
-		apiurl  string
-		token   string
-		agentpk string
-		pk      int
-		cert    string
+		baseurl   string
+		agentid   string
+		apiurl    string
+		token     string
+		agentpk   string
+		pk        int
+		cert      string
+		pyStr     string
+		pyEnabled bool
 	)
 
 	// todo: 2021-12-31: migrate to DPAPI?
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
+	key, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err == nil {
-		baseurl, _, err = k.GetStringValue(REG_RMM_BASEURL)
+		baseurl, _, err = key.GetStringValue(REG_RMM_BASEURL)
 		if err != nil {
 			logger.Fatalln("Unable to get BaseURL:", err)
 		}
 
-		agentid, _, err = k.GetStringValue(REG_RMM_AGENTID)
+		agentid, _, err = key.GetStringValue(REG_RMM_AGENTID)
 		if err != nil {
 			logger.Fatalln("Unable to get AgentID:", err)
 		}
 
-		apiurl, _, err = k.GetStringValue(REG_RMM_APIURL)
+		apiurl, _, err = key.GetStringValue(REG_RMM_APIURL)
 		if err != nil {
 			logger.Fatalln("Unable to get ApiURL:", err)
 		}
 
-		token, _, err = k.GetStringValue(REG_RMM_TOKEN)
+		token, _, err = key.GetStringValue(REG_RMM_TOKEN)
 		if err != nil {
 			logger.Fatalln("Unable to get Token:", err)
 		}
 
-		agentpk, _, err = k.GetStringValue(REG_RMM_AGENTPK)
+		agentpk, _, err = key.GetStringValue(REG_RMM_AGENTPK)
 		if err != nil {
 			logger.Fatalln("Unable to get AgentPK:", err)
 		}
 
 		pk, _ = strconv.Atoi(agentpk)
 
-		cert, _, _ = k.GetStringValue(REG_RMM_CERT)
+		cert, _, _ = key.GetStringValue(REG_RMM_CERT)
+
+		pyStr = "false"
+		pyStr, _, err = key.GetStringValue(REG_RMM_PYENABLED)
+		if err != nil {
+			logger.Warnln("Unable to get PythonEnabled:", err)
+			key.SetStringValue(REG_RMM_PYENABLED, "false")
+		}
+		pyEnabled, _ = strconv.ParseBool(pyStr)
 	}
 
 	headers := make(map[string]string)
@@ -170,9 +183,10 @@ func New(logger *logrus.Logger, version string) *Agent {
 		SystemDrive:   sd,
 		Nssm:          nssm,
 		MeshInstaller: mesh,
-		MeshSystemEXE: filepath.Join(os.Getenv("ProgramFiles"), "Mesh Agent", "MeshAgent.exe"),
-		MeshSVC:       "mesh agent",
-		PyBin:         pybin,
+		MeshSystemEXE: filepath.Join(os.Getenv("ProgramFiles"), MESH_AGENT_FOLDER, MESH_AGENT_FILENAME),
+		MeshSVC:       SERVICE_NAME_MESHAGENT,
+		PythonBinary:  pyBin,
+		PythonEnabled: pyEnabled,
 		Headers:       headers,
 		Logger:        logger,
 		Version:       version,
@@ -249,7 +263,7 @@ func (a *Agent) GetDisks() []rmm.Disk {
 	return ret
 }
 
-// CMDShell mimics Python's `subprocess.run(shell=True)`
+// CMDShell Mimics Python's `subprocess.run(shell=True)`
 func CMDShell(shell string, cmdArgs []string, command string, timeout int, detached bool) (output [2]string, e error) {
 	var (
 		outb     bytes.Buffer
@@ -405,37 +419,17 @@ func DisableSleepHibernate() {
 }
 
 // LoggedOnUser returns the first logged on user it finds
-// todo: 2021-12-31: Python dep; replace with PowerShell?
 func (a *Agent) LoggedOnUser() string {
 
-	// Works in PowerShell 5.x and Core
-	// (Get-CimInstance -ClassName Win32_ComputerSystem).Username
-	// ((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\')[1]
-
-	// todo: 2022-01-01: test
-	user, err := CMDShell("powershell", make([]string, 0), "((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\\')[1]", 5, false)
-	if err == nil {
-		return user[1]
+	// 2022-01-02: Works in PowerShell 5.x and Core 7.x
+	cmd := "((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\\')[1]"
+	user, _, _, err := a.RunScript(cmd, "powershell", []string{}, 20)
+	if err != nil {
+		a.Logger.Debugln(err)
 	}
-
-	/*pyCode := `
-	import psutil
-
-	try:
-		u = psutil.users()[0].name
-		if u.isascii():
-			print(u, end='')
-		else:
-			print('notascii', end='')
-	except Exception as e:
-		print("None", end='')
-
-	`
-		// Attempt #1: try with psutil first
-		user, err := a.RunPythonCode(pyCode, 5, []string{})
-		if err == nil && user != "notascii" {
-			return user
-		}*/
+	if err == nil {
+		return user
+	}
 
 	// Attempt #2: Go fallback
 	users, err := wapf.ListLoggedInUsers()
@@ -649,6 +643,7 @@ func (a *Agent) Sync() {
 	a.SendSoftware()
 }
 
+// SendSoftware Send list of installed software
 func (a *Agent) SendSoftware() {
 	sw := a.GetInstalledSoftware()
 	a.Logger.Debugln(sw)
@@ -832,8 +827,13 @@ func (a *Agent) CleanupAgentUpdates() {
 	}
 }
 
-// todo: 2022-01-01: make Python *optional*
+// RunPythonCode Run Python Code
 func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, error) {
+	if !a.PythonEnabled {
+		a.Logger.Warnln("Python is disabled on this agent instance, skipping execution.")
+		return "", errors.New("RunPythonCode disabled")
+	}
+
 	content := []byte(code)
 	dir, err := ioutil.TempDir("", PYTHON_TEMP_DIR)
 	if err != nil {
@@ -861,7 +861,7 @@ func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, 
 		cmdArgs = append(cmdArgs, args...)
 	}
 	a.Logger.Debugln(cmdArgs)
-	cmd := exec.CommandContext(ctx, a.PyBin, cmdArgs...)
+	cmd := exec.CommandContext(ctx, a.PythonBinary, cmdArgs...)
 	cmd.Stdout = &outb
 	cmd.Stderr = &errb
 
@@ -885,10 +885,22 @@ func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, 
 	return outb.String(), nil
 }
 
-// GetPython download Python
-// todo: 2021-12-31: make Python *optional*
+func (a *Agent) IsPythonInstalled() bool {
+	if FileExists(a.PythonBinary) {
+		return true
+	}
+	return false
+}
+
+// GetPython Download Python
 func (a *Agent) GetPython(force bool) {
-	if FileExists(a.PyBin) && !force {
+	// 2022-01-02
+	if !a.PythonEnabled {
+		a.Logger.Debugln("Python is disabled on this agent instance, skipping installation.")
+		return
+	}
+
+	if a.IsPythonInstalled() && !force {
 		return
 	}
 
@@ -902,10 +914,11 @@ func (a *Agent) GetPython(force bool) {
 		archZip = "py38-x32.zip"
 		folder = "py38-x32"
 	}
+
 	pyFolder := filepath.Join(a.ProgramDir, folder)
 	pyZip := filepath.Join(a.ProgramDir, archZip)
 	a.Logger.Debugln(pyZip)
-	a.Logger.Debugln(a.PyBin)
+	a.Logger.Debugln(a.PythonBinary)
 	defer os.Remove(pyZip)
 
 	if force {

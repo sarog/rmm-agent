@@ -22,11 +22,11 @@ func main() {
 
 	// CLI
 	ver := flag.Bool("version", false, "Prints version and exits")
-	mode := flag.String("m", "", "The mode to run: install, update, rpc, winagentsvc, runchecks, checkrunner, sysinfo, software, sync, wmi, pk, publicip, getpython, runigrations, taskrunner, cleanup")
+	mode := flag.String("m", "", "The mode to run: install, update, rpc, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, wmi, pk, publicip, getpython, runigrations, taskrunner, cleanup")
 	taskPK := flag.Int("p", 0, "Task PK")
 	logLevel := flag.String("log", "INFO", "Log level: INFO*, WARN, ERROR, DEBUG")
 	logTo := flag.String("logto", "file", "Log destination: file, stdout")
-	api := flag.String("api", "", "API URL")
+	apiUrl := flag.String("api", "", "API URL")
 	clientID := flag.Int("client-id", 0, "Client ID")
 	siteID := flag.Int("site-id", 0, "Site ID")
 	timeout := flag.Duration("timeout", 1000, "Installer timeout in seconds")
@@ -36,10 +36,11 @@ func main() {
 	power := flag.Bool("power", false, "Disable sleep and hibernate when set to True")
 	rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
 	ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
-	windef := flag.Bool("windef", false, "Add Windows Defender exclusions")
+	winDefender := flag.Bool("windef", false, "Add Windows Defender exclusions")
+	pythonEnabled := flag.Bool("py-enabled", false, "Enable or disable Python scripts to be executed on this system")
 	localMesh := flag.String("local-mesh", "", "Path to the Mesh executable")
-	meshDir := flag.String("meshdir", "", "Path to the custom Mesh Central directory")
-	noMesh := flag.Bool("nomesh", false, "Do not install the Mesh Agent")
+	meshDir := flag.String("meshdir", "", "Path to the custom Mesh Central directory") // todo
+	noMesh := flag.Bool("nomesh", false, "Do not install the Mesh Agent")              // todo
 	cert := flag.String("cert", "", "Path to the Domain's Certificate Authority's .pem")
 	updateurl := flag.String("updateurl", "", "Source URL to retrieve the update executable")
 	inno := flag.String("inno", "", "Inno setup filename")
@@ -107,27 +108,28 @@ func main() {
 		a.AgentUpdate(*updateurl, *inno, *updatever)
 	case "install":
 		log.SetOutput(os.Stdout)
-		if *api == "" || *clientID == 0 || *siteID == 0 || *token == "" {
+		if *apiUrl == "" || *clientID == 0 || *siteID == 0 || *token == "" {
 			installUsage()
 			return
 		}
 		a.Install(&agent.Installer{
-			RMM:         *api,
-			ClientID:    *clientID,
-			SiteID:      *siteID,
-			Description: *aDesc,
-			AgentType:   *aType,
-			Power:       *power,
-			RDP:         *rdp,
-			Ping:        *ping,
-			WinDefender: *windef,
-			Token:       *token,
-			LocalMesh:   *localMesh,
-			MeshDir:     *meshDir,
-			NoMesh:      *noMesh,
-			Cert:        *cert,
-			Timeout:     *timeout,
-			Silent:      *silent,
+			RMM:           *apiUrl,
+			ClientID:      *clientID,
+			SiteID:        *siteID,
+			Description:   *aDesc,
+			AgentType:     *aType,
+			Power:         *power,
+			RDP:           *rdp,
+			Ping:          *ping,
+			WinDefender:   *winDefender,
+			PythonEnabled: *pythonEnabled,
+			Token:         *token,
+			LocalMesh:     *localMesh,
+			MeshDir:       *meshDir,
+			NoMesh:        *noMesh,
+			Cert:          *cert,
+			Timeout:       *timeout,
+			Silent:        *silent,
 		})
 	default:
 		agent.ShowStatus(version)
