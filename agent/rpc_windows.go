@@ -482,7 +482,7 @@ func (a *Agent) RunRPC() {
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
 				if !atomic.CompareAndSwapUint32(&agentUpdateLocker, 0, 1) {
 					a.Logger.Debugln("Agent update already running")
-					ret.Encode("updaterunning")
+					ret.Encode("updaterunning") // todo: 2022-01-02: removed or renamed? no mention on server side
 					msg.Respond(resp)
 				} else {
 					ret.Encode("ok")
