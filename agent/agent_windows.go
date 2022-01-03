@@ -488,45 +488,30 @@ func (a *Agent) LoggedOnUser() string {
 }
 
 // GetCPULoadAvg Retrieve CPU load average
-// todo: 2021-12-31: remove Python dep
 func (a *Agent) GetCPULoadAvg() int {
+	fallback := false
 
-	// PowerShell 5.x only
-	// Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average | Select Average
-	// Get-WmiObject Win32_Processor | Select LoadPercentage | Format-List
+	// 2022-01-02: Works in PowerShell 5.x and Core 7.x
+	// todo? | Measure-Object -Property LoadPercentage -Average | Select Average
+	cmd := "(Get-CimInstance -ClassName Win32_Processor).LoadPercentage"
+	load, _, _, err := a.RunScript(cmd, "powershell", []string{}, 20)
 
-	// cpu, err := GetWin32_Processor()
-	// if err != nil {
-	// 	a.Logger.Debugln(err)
-	// }
-
-	/*fallback := false
-		pyCode := `
-	import psutil
-	try:
-		print(int(round(psutil.cpu_percent(interval=10))), end='')
-	except:
-		print("pyerror", end='')
-	`
-		pypercent, err := a.RunPythonCode(pyCode, 13, []string{})
-		if err != nil || pypercent == "pyerror" {
-			fallback = true
-		}
-
-		i, err := strconv.Atoi(pypercent)
-		if err != nil {
-			fallback = true
-		}*/
-
-	// if fallback {
-	percent, err := cpu.Percent(10*time.Second, false)
 	if err != nil {
-		a.Logger.Debugln("Go CPU Check:", err)
-		return 0
+		a.Logger.Debugln(err)
+		fallback = true
 	}
-	return int(math.Round(percent[0]))
-	// }
-	// return i
+
+	i, _ := strconv.Atoi(load)
+
+	if fallback {
+		percent, err := cpu.Percent(10*time.Second, false)
+		if err != nil {
+			a.Logger.Debugln("Go CPU Check:", err)
+			return 0
+		}
+		return int(math.Round(percent[0]))
+	}
+	return i
 }
 
 // ForceKillSalt kills all salt related processes
