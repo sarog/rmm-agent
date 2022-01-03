@@ -33,10 +33,11 @@ const (
 	NATS_MODE_OSINFO      = "agent-agentinfo"
 	NATS_MODE_PUBLICIP    = "agent-publicip"
 	NATS_MODE_WINSERVICES = "agent-winsvc"
-	NATS_MODE_WMI         = "agent-wmi"
+	NATS_MODE_WMI         = "agent-wmi" // sysinfo?
 )
 
-func (a *Agent) RunAsService() {
+// RunAgentService
+func (a *Agent) RunAgentService() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go a.WinAgentSvc()
@@ -57,6 +58,7 @@ func (a *Agent) WinAgentSvc() {
 	time.Sleep(time.Duration(sleepDelay) * time.Second)
 
 	a.RunMigrations()
+
 	startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OSINFO, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
 	for _, s := range startup {
 		a.CheckIn(s)
@@ -120,11 +122,11 @@ func (a *Agent) CheckIn(mode string) {
 			Version: a.Version,
 		}
 
-		payload = rmm.CheckIn{
+		/*payload = rmm.CheckIn{
 			Func:    "hello",
 			Agentid: a.AgentID,
 			Version: a.Version,
-		}
+		}*/
 
 	case CHECKIN_MODE_STARTUP:
 		// 2022-01-01: relies on 'post' endpoint @ api/tacticalrmm/apiv3/views.py:84
@@ -157,7 +159,7 @@ func (a *Agent) CheckIn(mode string) {
 			RebootNeeded: reboot,
 		}
 
-		payload = rmm.CheckInOS{
+		/*payload = rmm.CheckInOS{
 			CheckIn: rmm.CheckIn{
 				Func:    "osinfo",
 				Agentid: a.AgentID,
@@ -169,7 +171,7 @@ func (a *Agent) CheckIn(mode string) {
 			TotalRAM:     a.TotalRAM(),
 			BootTime:     a.BootTime(),
 			RebootNeeded: reboot,
-		}
+		}*/
 
 	case CHECKIN_MODE_WINSERVICES:
 		// 2022-01-01: 'agent-winsvc' @ natsapi/svc.go:117
@@ -179,14 +181,14 @@ func (a *Agent) CheckIn(mode string) {
 			WinSvcs: a.GetServicesNATS(),
 		}
 
-		payload = rmm.CheckInWinServices{
+		/*payload = rmm.CheckInWinServices{
 			CheckIn: rmm.CheckIn{
 				Func:    "winservices",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			Services: a.GetServices(),
-		}
+		}*/
 
 	case CHECKIN_MODE_PUBLICIP:
 		// 2022-01-01: 'agent-publicip' @ natsapi/svc.go:56
@@ -196,14 +198,14 @@ func (a *Agent) CheckIn(mode string) {
 			PublicIP: a.PublicIP(),
 		}
 
-		payload = rmm.CheckInPublicIP{
+		/*payload = rmm.CheckInPublicIP{
 			CheckIn: rmm.CheckIn{
 				Func:    "publicip",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			PublicIP: a.PublicIP(),
-		}
+		}*/
 
 	case CHECKIN_MODE_DISKS:
 		// 2022-01-01: 'agent-disks' @ natsapi/svc.go:97
@@ -213,14 +215,14 @@ func (a *Agent) CheckIn(mode string) {
 			Disks:   a.GetDisksNATS(),
 		}
 
-		payload = rmm.CheckInDisk{
+		/*payload = rmm.CheckInDisk{
 			CheckIn: rmm.CheckIn{
 				Func:    "disks",
 				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			Disks: a.GetDisks(),
-		}
+		}*/
 
 	case CHECKIN_MODE_LOGGEDONUSER:
 		// 2022-01-02: this is combined with 'agent-hello'
@@ -250,7 +252,7 @@ func (a *Agent) CheckIn(mode string) {
 	// todo: 2022-01-02: add error logging/handling
 	if len(nMode) > 0 {
 		opts := a.setupNatsOptions()
-		server := fmt.Sprintf("tls://%s:4222", a.ApiURL)
+		server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
 		nc, err := nats.Connect(server, opts...)
 		if err != nil {
 			a.Logger.Errorln(err)

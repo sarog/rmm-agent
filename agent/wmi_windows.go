@@ -7,7 +7,7 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
-const ApiSysInfo = "/api/v3/sysinfo/"
+const API_URL_SYSINFO = "/api/v3/sysinfo/"
 
 func GetWin32_USBController() ([]interface{}, error) {
 	var dst []rmm.Win32_USBController
@@ -506,6 +506,7 @@ func GetWin32_VideoController() ([]interface{}, error) {
 	return ret, nil
 }
 
+// GetWMI Retrieves (and sends) WMI data
 func (a *Agent) GetWMI() {
 	wmiInfo := make(map[string]interface{})
 
@@ -596,7 +597,7 @@ func (a *Agent) GetWMI() {
 	}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:362
-	_, rerr := a.rClient.R().SetBody(payload).Patch(ApiSysInfo)
+	_, rerr := a.rClient.R().SetBody(payload).Patch(API_URL_SYSINFO)
 	if rerr != nil {
 		a.Logger.Debugln(rerr)
 	}

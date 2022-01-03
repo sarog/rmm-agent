@@ -46,19 +46,21 @@ const (
 	INNO_SETUP_DIR      = "tacticalrmm"
 	INNO_SETUP_LOGFILE  = "tacticalrmm.txt"
 	NATS_RMM_IDENTIFIER = "TacticalRMM" // for server compat
+	NATS_DEFAULT_PORT   = 4222
 	PYTHON_TEMP_DIR     = "tacticalpy"
 	MESH_AGENT_FOLDER   = "Mesh Agent"
 	MESH_AGENT_FILENAME = "MeshAgent.exe"
 )
 
 // Agent struct
-// 2022-01-01: renamed to 'Agent'
+// 2022-01-01: renamed to 'Agent' from 'WindowsAgent'
 type Agent struct {
 	Hostname      string
 	Arch          string
 	AgentID       string
 	BaseURL       string
 	ApiURL        string
+	ApiPort       int
 	Token         string
 	AgentPK       int
 	Cert          string
@@ -176,6 +178,7 @@ func New(logger *logrus.Logger, version string) *Agent {
 		BaseURL:       baseurl,
 		AgentID:       agentid,
 		ApiURL:        apiurl,
+		ApiPort:       NATS_DEFAULT_PORT,
 		Token:         token,
 		AgentPK:       pk,
 		Cert:          cert,
@@ -515,6 +518,7 @@ func (a *Agent) GetCPULoadAvg() int {
 }
 
 // ForceKillSalt kills all salt related processes
+// Deprecated
 func (a *Agent) ForceKillSalt() {
 	pids := make([]int, 0)
 
@@ -568,8 +572,8 @@ func (a *Agent) ForceKillMesh() {
 	}
 }
 
-// RecoverTacticalAgent should only be called from the RPC service
-func (a *Agent) RecoverTacticalAgent() {
+// RecoverAgent Recover the Agent; only called from the RPC service
+func (a *Agent) RecoverAgent() {
 	a.Logger.Debugln("Attempting TacticalAgent recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
 	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
@@ -582,7 +586,6 @@ func (a *Agent) RecoverTacticalAgent() {
 func (a *Agent) RecoverSalt() {
 	a.Logger.Debugln("Attempting salt recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_SALTMINION}, 60, false)
-
 	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_SALTMINION}, 120, false)
 	a.ForceKillSalt()
 	time.Sleep(2 * time.Second)
@@ -633,7 +636,6 @@ func (a *Agent) SyncMeshNodeID() {
 func (a *Agent) RecoverMesh() {
 	a.Logger.Infoln("Attempting MeshAgent service recovery")
 	defer CMD("net", []string{"start", a.MeshSVC}, 60, false)
-
 	_, _ = CMD("net", []string{"stop", a.MeshSVC}, 60, false)
 	a.ForceKillMesh()
 	a.SyncMeshNodeID()
@@ -671,7 +673,10 @@ func (a *Agent) SendSoftware() {
 	sw := a.GetInstalledSoftware()
 	a.Logger.Debugln(sw)
 
-	payload := map[string]interface{}{"agent_id": a.AgentID, "software": sw}
+	payload := map[string]interface{}{
+		"agent_id": a.AgentID,
+		"software": sw,
+	}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:461
 	_, err := a.rClient.R().SetBody(payload).Post(API_URL_SOFTWARE)
@@ -709,7 +714,9 @@ func ShowStatus(version string) {
 			w32.ShowWindow(window, w32.SW_HIDE)
 		}
 		var handle w32.HWND
-		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s\n\nMesh Agent: %s", statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC], statusMap[SERVICE_NAME_MESHAGENT])
+		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s\n\nMesh Agent: %s",
+			statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC], statusMap[SERVICE_NAME_MESHAGENT])
+
 		w32.MessageBox(handle, msg, fmt.Sprintf("RMM Agent v%s", version), w32.MB_OK|w32.MB_ICONINFORMATION)
 	} else {
 		fmt.Println("RMM Version", version)
@@ -1025,11 +1032,18 @@ func (a *Agent) deleteOldTacticalServices() {
 
 func (a *Agent) addDefenderExclusions() {
 	code := `
-Add-MpPreference -ExclusionPath 'C:\Program Files\TacticalAgent\*'
+Add-MpPreference -ExclusionPath 'C:\Program Files\` + AGENT_NAME_LONG + `\*'
 Add-MpPreference -ExclusionPath 'C:\Windows\Temp\winagent-v*.exe'
 Add-MpPreference -ExclusionPath 'C:\Windows\Temp\trmm\*'
 Add-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
 `
+	// todo: 2022-01-02: toggle add/remove via boolean
+	// code := `
+	// Remove-MpPreference -ExclusionPath 'C:\Program Files\`+AGENT_NAME_LONG+`\*'
+	// Remove-MpPreference -ExclusionPath 'C:\Windows\Temp\winagent-v*.exe'
+	// Remove-MpPreference -ExclusionPath 'C:\Windows\Temp\trmm\*'
+	// Remove-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
+	// `
 	_, _, _, err := a.RunScript(code, "powershell", []string{}, 20)
 	if err != nil {
 		a.Logger.Debugln(err)

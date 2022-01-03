@@ -66,11 +66,11 @@ func main() {
 
 	switch *mode {
 	case "rpc":
-		a.RunRPC()
+		a.RunRPCService()
 	case "pk":
 		fmt.Println(a.AgentPK)
 	case "winagentsvc", "agentsvc":
-		a.RunAsService()
+		a.RunAgentService()
 	case "runchecks":
 		a.RunChecks(true)
 	case "checkrunner":

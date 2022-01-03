@@ -68,10 +68,11 @@ const (
 	NATS_CMD_WMI                = "wmi"
 )
 
-func (a *Agent) RunRPC() {
+// RunRPCService handles incoming NATS payloads from server
+func (a *Agent) RunRPCService() {
 	a.Logger.Infoln("RPC service started")
 	opts := a.setupNatsOptions()
-	server := fmt.Sprintf("tls://%s:4222", a.ApiURL)
+	server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
 	nc, err := nats.Connect(server, opts...)
 	if err != nil {
 		a.Logger.Fatalln(err)
@@ -318,7 +319,7 @@ func (a *Agent) RunRPC() {
 					a.RecoverSalt()
 				case "tacagent":
 					a.Logger.Debugln("Recovering agent")
-					a.RecoverTacticalAgent()
+					a.RecoverAgent()
 				}
 
 				ret.Encode("ok")

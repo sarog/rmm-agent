@@ -305,7 +305,7 @@ func (a *Agent) Install(i *Installer) {
 
 	// Check in once via nats
 	opts := a.setupNatsOptions()
-	server := fmt.Sprintf("tls://%s:4222", a.ApiURL)
+	server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
 
 	nc, err := nats.Connect(server, opts...)
 	if err != nil {

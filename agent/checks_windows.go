@@ -50,7 +50,7 @@ func (a *Agent) CheckRunner() {
 				a.Logger.Errorln("CheckRunner RunChecks", err)
 			}
 		}
-		a.Logger.Debugln("CheckRunner sleeping for", interval)
+		a.Logger.Debugf("CheckRunner sleeping for %d seconds", interval)
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }
