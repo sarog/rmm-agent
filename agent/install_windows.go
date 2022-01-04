@@ -256,6 +256,8 @@ func (a *Agent) Install(i *Installer) {
 			}
 			meshSuccess = true
 		}
+	} else {
+		a.Logger.Debugln("-NoMesh was specified during installation. Skipping MeshAgent installation.")
 	}
 
 	a.Logger.Infoln("Adding agent to the dashboard")
@@ -314,7 +316,6 @@ func (a *Agent) Install(i *Installer) {
 	if err != nil {
 		a.Logger.Errorln(err)
 	} else {
-		// todo: 2022-01-02: might have to replace this with the NATS calls
 		startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OSINFO, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
 		for _, mode := range startup {
 			a.CheckIn(mode)
