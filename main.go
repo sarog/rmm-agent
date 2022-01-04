@@ -17,22 +17,28 @@ var (
 	logFile *os.File
 )
 
+const AGENT_LOG_FILE = "agent.log"
+
 func main() {
 	hostname, _ := os.Hostname()
 
 	// CLI
-	ver := flag.Bool("version", false, "Prints version and exits")
+	ver := flag.Bool("version", false, "Prints agent version and exits")
 	mode := flag.String("m", "", "The mode to run: install, update, rpc, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, wmi, pk, publicip, getpython, runigrations, taskrunner, cleanup")
+
 	taskPK := flag.Int("p", 0, "Task PK")
 	logLevel := flag.String("log", "INFO", "Log level: INFO*, WARN, ERROR, DEBUG")
 	logTo := flag.String("logto", "file", "Log destination: file, stdout")
+
 	apiUrl := flag.String("api", "", "API URL")
 	clientID := flag.Int("client-id", 0, "Client ID")
 	siteID := flag.Int("site-id", 0, "Site ID")
+	token := flag.String("auth", "", "Agent's authorization token")
+
 	timeout := flag.Duration("timeout", 1000, "Installer timeout in seconds")
 	aDesc := flag.String("desc", hostname, "Agent's description to display on the RMM server")
 	aType := flag.String("agent-type", "server", "Agent type: server or workstation")
-	token := flag.String("auth", "", "Agent's authorization token")
+
 	power := flag.Bool("power", false, "Disable sleep and hibernate when set to True")
 	rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
 	ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
@@ -41,10 +47,12 @@ func main() {
 	localMesh := flag.String("local-mesh", "", "Path to the Mesh executable")
 	meshDir := flag.String("meshdir", "", "Path to the custom Mesh Central directory") // todo
 	noMesh := flag.Bool("nomesh", false, "Do not install the Mesh Agent")              // todo
-	cert := flag.String("cert", "", "Path to the Domain's Certificate Authority's .pem")
+	cert := flag.String("cert", "", "Path to the Certificate Authority's .pem")
+
 	updateurl := flag.String("updateurl", "", "Source URL to retrieve the update executable")
 	inno := flag.String("inno", "", "Inno setup filename")
 	updatever := flag.String("updatever", "", "Update version")
+
 	silent := flag.Bool("silent", false, "Do not popup any message boxes during installation")
 
 	flag.Parse()
@@ -67,8 +75,6 @@ func main() {
 	switch *mode {
 	case "rpc":
 		a.RunRPCService()
-	case "pk":
-		fmt.Println(a.AgentPK)
 	case "winagentsvc", "agentsvc":
 		a.RunAgentService()
 	case "runchecks":
@@ -83,14 +89,10 @@ func main() {
 		a.Sync()
 	case "wmi":
 		a.GetWMI()
-	case "recoversalt":
-		a.RecoverSalt()
 	case "cleanup":
 		a.UninstallCleanup()
 	case "publicip":
 		fmt.Println(a.PublicIP())
-	case "removesalt":
-		a.RemoveSalt()
 	case "getpython":
 		a.GetPython(true)
 	case "runmigrations":
@@ -100,6 +102,8 @@ func main() {
 			return
 		}
 		a.RunTask(*taskPK)
+	case "pk":
+		fmt.Println(a.AgentPK)
 	case "update":
 		if *updateurl == "" || *inno == "" || *updatever == "" {
 			updateUsage()
@@ -126,11 +130,15 @@ func main() {
 			Token:         *token,
 			LocalMesh:     *localMesh,
 			MeshDir:       *meshDir,
-			NoMesh:        *noMesh,
+			MeshDisabled:  *noMesh,
 			Cert:          *cert,
 			Timeout:       *timeout,
 			Silent:        *silent,
 		})
+	case "recoversalt":
+		a.RecoverSalt()
+	case "removesalt":
+		a.RemoveSalt()
 	default:
 		agent.ShowStatus(version)
 	}
@@ -148,7 +156,7 @@ func setupLogging(level, to *string) {
 	} else {
 		switch runtime.GOOS {
 		case "windows":
-			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.BRANDING_FOLDER, "agent.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.BRANDING_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		case "linux":
 			// todo
 		}

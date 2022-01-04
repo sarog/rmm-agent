@@ -33,7 +33,7 @@ type Installer struct {
 	Token         string
 	LocalMesh     string
 	MeshDir       string // todo: 2022-01-02: backported
-	NoMesh        bool   // todo: 2022-01-02: backported
+	MeshDisabled  bool   // todo: 2022-01-02: backported
 	Cert          string
 	Timeout       time.Duration
 	SaltMaster    string // Deprecated?
@@ -111,7 +111,7 @@ func (a *Agent) Install(i *Installer) {
 	a.checkExistingAndRemove(i.Silent)
 
 	i.Headers = map[string]string{
-		"content-type":  "application/json",
+		"Content-Type":  "application/json",
 		"Authorization": fmt.Sprintf("Token %s", i.Token),
 	}
 	a.AgentID = GenerateAgentID()
@@ -189,70 +189,73 @@ func (a *Agent) Install(i *Installer) {
 		rClient.SetRootCertificate(i.Cert)
 	}
 
-	var arch string
-	switch a.Arch {
-	case "x86_64":
-		arch = "64"
-	case "x86":
-		arch = "32"
-	}
-
-	// Download or copy the mesh-agent.exe
-	mesh := filepath.Join(a.ProgramDir, a.MeshInstaller)
-	if i.LocalMesh == "" {
-		a.Logger.Infoln("Downloading Mesh Agent...")
-		payload := map[string]string{"arch": arch}
-		// 2022-01-01: api/tacticalrmm/apiv3/views.py:373
-		r, err := rClient.R().SetBody(payload).SetOutput(mesh).Post(fmt.Sprintf("%s/api/v3/meshexe/", baseURL))
-		if err != nil {
-			a.installerMsg(fmt.Sprintf("Failed to download Mesh Agent: %s", err.Error()), "error", i.Silent)
-		}
-		if r.StatusCode() != 200 {
-			a.installerMsg(fmt.Sprintf("Unable to download the Mesh Agent from the RMM server. %s", r.String()), "error", i.Silent)
-		}
-	} else {
-		err := copyFile(i.LocalMesh, mesh)
-		if err != nil {
-			a.installerMsg(err.Error(), "error", i.Silent)
-		}
-	}
-
-	a.Logger.Infoln("Installing Mesh Agent...")
-	a.Logger.Debugln("Mesh Agent:", mesh)
-	meshOut, meshErr := CMD(mesh, []string{"-fullinstall"}, int(90), false)
-	if meshErr != nil {
-		fmt.Println(meshOut[0])
-		fmt.Println(meshOut[1])
-		fmt.Println(meshErr)
-	}
-
-	fmt.Println(meshOut)
-	a.Logger.Debugln("Sleeping for 5 seconds")
-	time.Sleep(5 * time.Second)
-
-	meshSuccess := false
 	var meshNodeID string
-	for !meshSuccess {
-		a.Logger.Debugln("Getting Mesh Node ID")
-		pMesh, pErr := CMD(a.MeshSystemEXE, []string{"-nodeid"}, int(30), false)
-		if pErr != nil {
-			a.Logger.Errorln(pErr)
-			time.Sleep(5 * time.Second)
-			continue
+	if !i.MeshDisabled {
+		var arch string
+		switch a.Arch {
+		case "x86_64":
+			arch = "64"
+		case "x86":
+			arch = "32"
 		}
-		if pMesh[1] != "" {
-			a.Logger.Errorln(pMesh[1])
-			time.Sleep(5 * time.Second)
-			continue
+
+		// Download or copy the mesh-agent.exe
+		mesh := filepath.Join(a.ProgramDir, a.MeshInstaller)
+		if i.LocalMesh == "" {
+			a.Logger.Infoln("Downloading Mesh Agent...")
+			payload := map[string]string{"arch": arch}
+			// 2022-01-01: api/tacticalrmm/apiv3/views.py:373
+			r, err := rClient.R().SetBody(payload).SetOutput(mesh).Post(fmt.Sprintf("%s/api/v3/meshexe/", baseURL))
+			if err != nil {
+				a.installerMsg(fmt.Sprintf("Failed to download Mesh Agent: %s", err.Error()), "error", i.Silent)
+			}
+			if r.StatusCode() != 200 {
+				a.installerMsg(fmt.Sprintf("Unable to download the Mesh Agent from the RMM server. %s", r.String()), "error", i.Silent)
+			}
+		} else {
+			err := copyFile(i.LocalMesh, mesh)
+			if err != nil {
+				a.installerMsg(err.Error(), "error", i.Silent)
+			}
 		}
-		meshNodeID = StripAll(pMesh[0])
-		a.Logger.Debugln("Node ID:", meshNodeID)
-		if strings.Contains(strings.ToLower(meshNodeID), "not defined") {
-			a.Logger.Errorln(meshNodeID)
-			time.Sleep(5 * time.Second)
-			continue
+
+		a.Logger.Infoln("Installing Mesh Agent...")
+		a.Logger.Debugln("Mesh Agent:", mesh)
+		meshOut, meshErr := CMD(mesh, []string{"-fullinstall"}, int(90), false)
+		if meshErr != nil {
+			fmt.Println(meshOut[0])
+			fmt.Println(meshOut[1])
+			fmt.Println(meshErr)
 		}
-		meshSuccess = true
+
+		fmt.Println(meshOut)
+
+		a.Logger.Debugln("Sleeping for 5 seconds")
+		time.Sleep(5 * time.Second)
+
+		meshSuccess := false
+		for !meshSuccess {
+			a.Logger.Debugln("Getting Mesh Node ID")
+			pMesh, pErr := CMD(a.MeshSystemEXE, []string{"-nodeid"}, int(30), false)
+			if pErr != nil {
+				a.Logger.Errorln(pErr)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			if pMesh[1] != "" {
+				a.Logger.Errorln(pMesh[1])
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			meshNodeID = StripAll(pMesh[0])
+			a.Logger.Debugln("Node ID:", meshNodeID)
+			if strings.Contains(strings.ToLower(meshNodeID), "not defined") {
+				a.Logger.Errorln(meshNodeID)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			meshSuccess = true
+		}
 	}
 
 	a.Logger.Infoln("Adding agent to the dashboard")
