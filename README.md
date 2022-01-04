@@ -29,8 +29,8 @@ This `dev` branch is focusing on making the agent on par with 1.7.2 (or latest) 
 
 ### What's missing
 
-As of `2022-01-02`:
-- The CLI flags `-nomesh` and `-meshdir` have not been implemented.
+As of `2022-01-03`:
+- The CLI flags ~~~-nomesh and~~~ `-meshdir` have not been implemented.
 - A few of the Task Scheduler / Automated Tasks functionality is (probably) incomplete.
 
 ### Building the Windows agent
