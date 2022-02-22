@@ -112,7 +112,7 @@ signtool sign /n "My Certificate" /fd SHA256 agent.exe
 
 Signature verification is quite simple:
 ```shell
-signtool verify agent.exe
+signtool verify /pa agent.exe
 ```
 
 ### Agent installation and deployment
