@@ -19,6 +19,28 @@ const (
 	S_FALSE = 1
 )
 
+const (
+	PROP_CATEGORIES     = "Categories"
+	PROP_SUPPORT_URL    = "SupportURL"
+	PROP_IDENTITY       = "Identity"
+	PROP_UPDATES        = "Updates"
+	PROP_DOWNLOAD       = "Download"
+	PROP_DESCRIPTION    = "Description"
+	PROP_UPDATE_ID      = "UpdateID"
+	PROP_MSRC_SEVERITY  = "MsrcSeverity"
+	PROP_IS_INSTALLED   = "IsInstalled"
+	PROP_IS_DOWNLOADED  = "IsDownloaded"
+	PROP_REVISION_NO    = "RevisionNumber"
+	PROP_COUNT          = "Count"
+	PROP_KB_ARTICLE_IDS = "KBArticleIDs"
+	PROP_MORE_INFO_URLS = "MoreInfoURLs"
+	PROP_ITEM           = "Item"
+	PROP_TITLE          = "Title"
+	PROP_EULA_ACCEPTED  = "EulaAccepted"
+	PROP_NAME           = "Name"
+	PROP_CATEGORY_ID    = "CategoryID"
+)
+
 var wuaSession sync.Mutex
 
 // IUpdateSession
@@ -64,9 +86,9 @@ func NewUpdateSession() (*IUpdateSession, error) {
 	return s, nil
 }
 
-// InstallWUAUpdate install a WIndows update.
+// InstallWUAUpdate install a Windows update.
 func (s *IUpdateSession) InstallWUAUpdate(updt *IUpdate) error {
-	_, err := updt.GetProperty("Title")
+	_, err := updt.GetProperty(PROP_TITLE)
 	if err != nil {
 		return fmt.Errorf(`updt.GetProperty("Title"): %v`, err)
 	}
@@ -77,7 +99,7 @@ func (s *IUpdateSession) InstallWUAUpdate(updt *IUpdate) error {
 	}
 	defer updts.Release()
 
-	eula, err := updt.GetProperty("EulaAccepted")
+	eula, err := updt.GetProperty(PROP_EULA_ACCEPTED)
 	if err != nil {
 		return fmt.Errorf(`updt.GetProperty("EulaAccepted"): %v`, err)
 	}
@@ -145,7 +167,7 @@ func (c *IUpdateCollection) Count() (int32, error) {
 }
 
 func (c *IUpdateCollection) Item(i int) (*IUpdate, error) {
-	updtRaw, err := c.GetProperty("Item", i)
+	updtRaw, err := c.GetProperty(PROP_ITEM, i)
 	if err != nil {
 		return nil, fmt.Errorf(`IUpdateCollection.GetProperty("Item", %d): %v`, i, err)
 	}
@@ -154,7 +176,7 @@ func (c *IUpdateCollection) Item(i int) (*IUpdate, error) {
 
 // GetCount returns the Count property.
 func GetCount(dis *ole.IDispatch) (int32, error) {
-	countRaw, err := dis.GetProperty("Count")
+	countRaw, err := dis.GetProperty(PROP_COUNT)
 	if err != nil {
 		return 0, fmt.Errorf(`IDispatch.GetProperty("Count"): %v`, err)
 	}
@@ -164,7 +186,7 @@ func GetCount(dis *ole.IDispatch) (int32, error) {
 }
 
 func (u *IUpdate) kbaIDs() ([]string, error) {
-	kbArticleIDsRaw, err := u.GetProperty("KBArticleIDs")
+	kbArticleIDsRaw, err := u.GetProperty(PROP_KB_ARTICLE_IDS)
 	if err != nil {
 		return nil, fmt.Errorf(`IUpdate.GetProperty("KBArticleIDs"): %v`, err)
 	}
@@ -182,7 +204,7 @@ func (u *IUpdate) kbaIDs() ([]string, error) {
 
 	var ss []string
 	for i := 0; i < int(count); i++ {
-		item, err := kbArticleIDs.GetProperty("Item", i)
+		item, err := kbArticleIDs.GetProperty(PROP_ITEM, i)
 		if err != nil {
 			return nil, fmt.Errorf(`kbArticleIDs.GetProperty("Item", %d): %v`, i, err)
 		}
@@ -193,7 +215,7 @@ func (u *IUpdate) kbaIDs() ([]string, error) {
 }
 
 func (u *IUpdate) categories() ([]string, []string, error) {
-	catRaw, err := u.GetProperty("Categories")
+	catRaw, err := u.GetProperty(PROP_CATEGORIES)
 	if err != nil {
 		return nil, nil, fmt.Errorf(`IUpdate.GetProperty("Categories"): %v`, err)
 	}
@@ -210,19 +232,19 @@ func (u *IUpdate) categories() ([]string, []string, error) {
 
 	var cns, cids []string
 	for i := 0; i < int(count); i++ {
-		itemRaw, err := cat.GetProperty("Item", i)
+		itemRaw, err := cat.GetProperty(PROP_ITEM, i)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`cat.GetProperty("Item", %d): %v`, i, err)
 		}
 		item := itemRaw.ToIDispatch()
 		defer item.Release()
 
-		name, err := item.GetProperty("Name")
+		name, err := item.GetProperty(PROP_NAME)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`item.GetProperty("Name"): %v`, err)
 		}
 
-		categoryID, err := item.GetProperty("CategoryID")
+		categoryID, err := item.GetProperty(PROP_CATEGORY_ID)
 		if err != nil {
 			return nil, nil, fmt.Errorf(`item.GetProperty("CategoryID"): %v`, err)
 		}
@@ -234,7 +256,7 @@ func (u *IUpdate) categories() ([]string, []string, error) {
 }
 
 func (u *IUpdate) moreInfoURLs() ([]string, error) {
-	moreInfoURLsRaw, err := u.GetProperty("MoreInfoURLs")
+	moreInfoURLsRaw, err := u.GetProperty(PROP_MORE_INFO_URLS)
 	if err != nil {
 		return nil, fmt.Errorf(`IUpdate.GetProperty("MoreInfoURLs"): %v`, err)
 	}
@@ -252,7 +274,7 @@ func (u *IUpdate) moreInfoURLs() ([]string, error) {
 
 	var ss []string
 	for i := 0; i < int(count); i++ {
-		item, err := moreInfoURLs.GetProperty("Item", i)
+		item, err := moreInfoURLs.GetProperty(PROP_ITEM, i)
 		if err != nil {
 			return nil, fmt.Errorf(`moreInfoURLs.GetProperty("Item", %d): %v`, i, err)
 		}
@@ -269,12 +291,12 @@ func (c *IUpdateCollection) extractPkg(item int) (*rmm.WUAPackage, error) {
 	}
 	defer updt.Release()
 
-	title, err := updt.GetProperty("Title")
+	title, err := updt.GetProperty(PROP_TITLE)
 	if err != nil {
 		return nil, fmt.Errorf(`updt.GetProperty("Title"): %v`, err)
 	}
 
-	description, err := updt.GetProperty("Description")
+	description, err := updt.GetProperty(PROP_DESCRIPTION)
 	if err != nil {
 		return nil, fmt.Errorf(`updt.GetProperty("Description"): %v`, err)
 	}
@@ -294,39 +316,39 @@ func (c *IUpdateCollection) extractPkg(item int) (*rmm.WUAPackage, error) {
 		return nil, err
 	}
 
-	supportURL, err := updt.GetProperty("SupportURL")
+	supportURL, err := updt.GetProperty(PROP_SUPPORT_URL)
 	if err != nil {
 		return nil, fmt.Errorf(`updt.GetProperty("SupportURL"): %v`, err)
 	}
 
-	identityRaw, err := updt.GetProperty("Identity")
+	identityRaw, err := updt.GetProperty(PROP_IDENTITY)
 	if err != nil {
 		return nil, fmt.Errorf(`updt.GetProperty("Identity"): %v`, err)
 	}
 	identity := identityRaw.ToIDispatch()
 	defer identity.Release()
 
-	revisionNumber, err := identity.GetProperty("RevisionNumber")
+	revisionNumber, err := identity.GetProperty(PROP_REVISION_NO)
 	if err != nil {
 		return nil, fmt.Errorf(`identity.GetProperty("RevisionNumber"): %v`, err)
 	}
 
-	updateID, err := identity.GetProperty("UpdateID")
+	updateID, err := identity.GetProperty(PROP_UPDATE_ID)
 	if err != nil {
 		return nil, fmt.Errorf(`identity.GetProperty("UpdateID"): %v`, err)
 	}
 
-	severity, err := updt.GetProperty("MsrcSeverity")
+	severity, err := updt.GetProperty(PROP_MSRC_SEVERITY)
 	if err != nil {
 		return nil, fmt.Errorf(`updt.GetProperty("MsrcSeverity"): %v`, err)
 	}
 
-	isInstalled, err := updt.GetProperty("IsInstalled")
+	isInstalled, err := updt.GetProperty(PROP_IS_INSTALLED)
 	if err != nil {
 		return nil, fmt.Errorf(`updt.GetProperty("IsInstalled"): %v`, err)
 	}
 
-	isDownloaded, err := updt.GetProperty("IsDownloaded")
+	isDownloaded, err := updt.GetProperty(PROP_IS_DOWNLOADED)
 	if err != nil {
 		return nil, fmt.Errorf(`updt.GetProperty("IsDownloaded"): %v`, err)
 	}
@@ -392,11 +414,11 @@ func (s *IUpdateSession) DownloadWUAUpdateCollection(updates *IUpdateCollection)
 	downloader := downloaderRaw.ToIDispatch()
 	defer downloader.Release()
 
-	if _, err := downloader.PutProperty("Updates", updates.IDispatch); err != nil {
+	if _, err := downloader.PutProperty(PROP_UPDATES, updates.IDispatch); err != nil {
 		return fmt.Errorf("error calling PutProperty Updates on IUpdateDownloader: %v", err)
 	}
 
-	if _, err := downloader.CallMethod("Download"); err != nil {
+	if _, err := downloader.CallMethod(PROP_DOWNLOAD); err != nil {
 		return fmt.Errorf("error calling method Download on IUpdateDownloader: %v", err)
 	}
 	return nil
@@ -413,7 +435,7 @@ func (s *IUpdateSession) InstallWUAUpdateCollection(updates *IUpdateCollection) 
 	installer := installerRaw.ToIDispatch()
 	defer installer.Release()
 
-	if _, err := installer.PutProperty("Updates", updates.IDispatch); err != nil {
+	if _, err := installer.PutProperty(PROP_UPDATES, updates.IDispatch); err != nil {
 		return fmt.Errorf("error calling PutProperty Updates on IUpdateInstaller: %v", err)
 	}
 
@@ -447,7 +469,7 @@ func (s *IUpdateSession) GetWUAUpdateCollection(query string) (*IUpdateCollectio
 
 	// returns IUpdateCollection
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386107(v=vs.85).aspx
-	updtsRaw, err := result.GetProperty("Updates")
+	updtsRaw, err := result.GetProperty(PROP_UPDATES)
 	if err != nil {
 		return nil, fmt.Errorf("error calling GetProperty Updates on ISearchResult: %v", err)
 	}
