@@ -4,7 +4,7 @@ import (
 	"time"
 
 	rmm "github.com/sarog/rmmagent/shared"
-	"github.com/wh1te909/trmm-shared"
+	"github.com/sarog/trmm-shared"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )
@@ -37,7 +37,8 @@ func GetServiceStatus(name string) (string, error) {
 }
 
 // ControlService Control a Windows Server
-//  Action = stop, start
+//
+//	Action = stop, start
 func (a *Agent) ControlService(name, action string) WinSvcResp {
 	conn, err := mgr.Connect()
 	if err != nil {

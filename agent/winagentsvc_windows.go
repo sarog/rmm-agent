@@ -8,8 +8,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 	rmm "github.com/sarog/rmmagent/shared"
+	trmm "github.com/sarog/trmm-shared"
 	"github.com/ugorji/go/codec"
-	trmm "github.com/wh1te909/trmm-shared"
 )
 
 const (

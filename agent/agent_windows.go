@@ -23,10 +23,10 @@ import (
 	nats "github.com/nats-io/nats.go"
 	wapf "github.com/sarog/go-win64api"
 	rmm "github.com/sarog/rmmagent/shared"
+	"github.com/sarog/trmm-shared"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/sirupsen/logrus"
-	"github.com/wh1te909/trmm-shared"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
