@@ -98,7 +98,7 @@ func (a *Agent) InstallUpdates(guids []string) {
 			result.Success = true
 			// 2022-01-01: api/tacticalrmm/apiv3/views.py:148
 			a.rClient.R().SetBody(result).Patch(API_URL_WINUPDATES)
-			a.Logger.Debugln("Installed windows update with guid", id)
+			a.Logger.Debugln("Installed Windows update with GUID", id)
 		}
 	}
 
