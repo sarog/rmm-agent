@@ -1,17 +1,17 @@
 # Fork of the Tactical RMM Agent
 
-This is a fork of [`wh1te909/rmmagent`](https://github.com/wh1te909/rmmagent) version `1.5.1` with the build scripts imported from `1.4.14` before the source repo [deleted them](https://github.com/wh1te909/rmmagent/commit/3fdb2e8c4833e5310840ca79bf394a53f6dbe990).
+This is a fork of [wh1te909/rmmagent](https://github.com/wh1te909/rmmagent) version `1.5.1` with the build scripts imported from `1.4.14` before the source repo [deleted them](https://github.com/wh1te909/rmmagent/commit/3fdb2e8c4833e5310840ca79bf394a53f6dbe990). It is considered the last MIT-licensed release before Amidaware's introduction of the _Tactical RMM License_.
 
-This `dev` branch is focusing on making the agent on par with 1.7.2 (or latest) features from upstream. It is considered incomplete and unfit for production use, but feel free to test.
+This `dev` branch is focusing on making the agent on par with 1.7.2 features from upstream. It is considered incomplete and unfit for production use, but feel free to test.
 
 **Please note**: downloadable binaries (executables) will not be provided on this GitHub repository as they will be useless. Users are encouraged to [build](#building-the-windows-agent) and [sign](#signing-the-agent) their own executables to guarantee integrity.
 
 ## Project goals
-- Re-introduce an open source version of the agent while maintaining compat with the server.
-- Backport changes from the upstream project, if possible.
+- ~~Re-introduce an open source version of the agent.~~ ✅
 - Allow anyone to use and modify the agent for whatever they see fit.
   - This includes using any other future open source RMM server/backend.
 - ~~Make the Python dependency optional.~~ ✅
+- De-brand the agent.
 
 ### Differences between upstream and this repo
 
@@ -37,7 +37,7 @@ As of `2022-02-22`:
 ### Building the Windows agent
 
 Pre-requisites:
-- [Go](https://go.dev/dl/) 1.17+
+- [Go](https://go.dev/dl/) 1.19+
 - [Inno Setup](https://jrsoftware.org/isdl.php) 6.2+ for (optionally) packaging & distributing the agent
 
 Clone the repository & download the dependencies:
