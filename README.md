@@ -4,7 +4,7 @@ This is a fork of [wh1te909/rmmagent](https://github.com/wh1te909/rmmagent) vers
 
 This `dev` branch is focusing on making the agent on par with 1.7.2 features from upstream. It is considered incomplete and unfit for production use, but feel free to test.
 
-**Please note**: downloadable binaries (executables) will not be provided on this GitHub repository as they will be useless. Users are encouraged to [build](#building-the-windows-agent) and [sign](#signing-the-agent) their own executables to guarantee integrity.
+**Please note**: downloadable binaries (executables) will not be provided on this GitHub repository as they will be useless. Users are encouraged to [build](#building-the-windows-agent) and [sign](CODESIGN.md) their own executables to guarantee integrity.
 
 ## Project goals
 - ~~Re-introduce an open source version of the agent.~~ ✅
