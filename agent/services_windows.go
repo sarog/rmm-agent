@@ -224,7 +224,7 @@ func (a *Agent) GetServicesNATS() []trmm.WindowsService {
 	return ret
 }
 
-// GetServices returns a list of windows services
+// GetServices returns a list of Windows services
 // Deprecated
 func (a *Agent) GetServices() []rmm.WindowsService {
 	ret := make([]rmm.WindowsService, 0)

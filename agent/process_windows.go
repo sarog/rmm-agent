@@ -50,7 +50,7 @@ func (a *Agent) GetProcsRPC() []ProcessMsg {
 }
 
 // ChecksRunning prevents duplicate checks from running
-// Have to do it this way, can't use atomic because they can run from both rpc and tacticalagent services
+// Have to do it this way, can't use atomic because they can run from both rpc and rmmagent services
 func (a *Agent) ChecksRunning() bool {
 	running := false
 	procs, err := ps.Processes()

@@ -12,6 +12,8 @@ import (
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
+const TASK_PREFIX = "RMM_"
+
 func (a *Agent) RunTask(id int) error {
 	data := rmm.AutomatedTask{}
 	// 2022-01-01: api/tacticalrmm/apiv3/views.py:306
@@ -60,7 +62,7 @@ func (a *Agent) RunTask(id int) error {
 	return nil
 }
 
-// CreateInternalTask creates predefined tacticalrmm internal tasks
+// CreateInternalTask creates predefined RMM agent internal tasks
 func (a *Agent) CreateInternalTask(name, args, repeat string, start int) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
@@ -81,7 +83,7 @@ func (a *Agent) CreateInternalTask(name, args, repeat string, start int) (bool, 
 	def.AddTrigger(dailyTrigger)
 
 	action := taskmaster.ExecAction{
-		Path:       "tacticalrmm.exe",
+		Path:       AGENT_FILENAME,
 		WorkingDir: a.ProgramDir,
 		Args:       args,
 	}
@@ -120,7 +122,8 @@ func (a *Agent) CreateInternalTask(name, args, repeat string, start int) (bool, 
 
 // SchedTask Scheduled Task
 // 2021-12-31: used in:
-// 		api/tacticalrmm/agents/views.py:389
+//
+//	api/tacticalrmm/agents/views.py:389
 type SchedTask struct {
 	PK                 int                  `json:"pk"`
 	Type               string               `json:"type"` // rmm, custom
@@ -207,7 +210,7 @@ func (a *Agent) CreateSchedTask(st SchedTask) (bool, error) {
 
 	switch st.Type {
 	case "rmm":
-		path = "tacticalrmm.exe"
+		path = AGENT_FILENAME
 		workdir = a.ProgramDir
 		args = fmt.Sprintf("-m taskrunner -p %d", st.PK)
 	case "schedreboot":
@@ -296,7 +299,7 @@ func EnableSchedTask(st SchedTask) error {
 	return nil
 }
 
-// CleanupSchedTasks removes all tacticalrmm scheduled tasks during uninstall
+// CleanupSchedTasks removes all RMM scheduled tasks during uninstall
 func CleanupSchedTasks() {
 	conn, err := taskmaster.Connect()
 	if err != nil {
@@ -310,7 +313,7 @@ func CleanupSchedTasks() {
 	}
 
 	for _, task := range tasks {
-		if strings.HasPrefix(task.Name, "TacticalRMM_") {
+		if strings.HasPrefix(task.Name, TASK_PREFIX) {
 			conn.DeleteTask(fmt.Sprintf("\\%s", task.Name))
 		}
 	}

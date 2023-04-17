@@ -1,6 +1,7 @@
 MIT License
 
-Copyright (c) 2019-present wh1te909
+Copyright (c) 2019-2022 wh1te909
+Copyright (c) 2022-present sarog
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

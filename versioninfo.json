@@ -23,10 +23,10 @@
         "CompanyName": "ACME",
         "FileDescription": "ACME RMM Agent OSS",
         "FileVersion": "v1.7.2.1000",
-        "InternalName": "acmermm.exe",
-        "LegalCopyright": "Copyright (c) 2022 ACME",
+        "InternalName": "rmmagent.exe",
+        "LegalCopyright": "Copyright (c) 2023 ACME",
         "LegalTrademarks": "",
-        "OriginalFilename": "tacticalrmm.exe",
+        "OriginalFilename": "rmmagent.exe",
         "PrivateBuild": "",
         "ProductName": "ACME RMM Agent",
         "ProductVersion": "v1.7.2.1000",
@@ -39,5 +39,5 @@
         }
     },
     "IconPath": "build/onit.ico",
-    "ManifestPath": "build/rmm.exe.manifest"
+    "ManifestPath": "build/rmmagent.exe.manifest"
 }

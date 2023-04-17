@@ -28,30 +28,34 @@ type Installer struct {
 	Power         bool
 	RDP           bool
 	Ping          bool
-	WinDefender   bool // 2022-01-01: new
-	PythonEnabled bool // 2022-01-01: new
+	WinDefender   bool // 2022-01-01: new // todo: 2023-04-17: remove
+	PythonEnabled bool // 2022-01-01: new // todo: 2023-04-17: remove
 	Token         string
 	LocalMesh     string
-	MeshDir       string // todo: 2022-01-02: backported
-	MeshDisabled  bool   // todo: 2022-01-02: backported
+	MeshDir       string // 2022-01-02: backported // todo: 2023-04-17: remove
+	MeshDisabled  bool   // 2022-01-02: backported // todo: 2023-04-17: remove
 	Cert          string
 	Timeout       time.Duration
-	SaltMaster    string // Deprecated?
+	SaltMaster    string // todo: 2023-04-17: remove
 	Silent        bool
 }
 
 // todo: 2021-12-31: custom branding
 // todo: 2022-01-01: consolidate these elsewhere
 const (
-	SERVICE_NAME_RPC        = "tacticalrpc"
-	SERVICE_NAME_AGENT      = "tacticalagent"
+	SERVICE_NAME_RPC        = "rpcagent"
+	SERVICE_NAME_AGENT      = "rmmagent"
 	SERVICE_NAME_MESHAGENT  = "mesh agent"
 	SERVICE_NAME_SALTMINION = "salt-minion"
-	SERVICE_DESC_RPC        = "Tactical RMM RPC Service"
-	SERVICE_DESC_AGENT      = "Tactical RMM Agent"
+	SERVICE_DESC_RPC        = "RMM RPC Service"
+	SERVICE_DESC_AGENT      = "RMM Agent Service"
+	SERVICE_RESTART_DELAY   = "5000"
+
+	AGENT_MODE_RPC = "rpc"
+	AGENT_MODE_SVC = "winagentsvc"
 
 	// Registry strings
-	REG_RMM_PATH      = `SOFTWARE\TacticalRMM`
+	REG_RMM_PATH      = `SOFTWARE\RMMAgent`
 	REG_RMM_BASEURL   = "BaseURL"
 	REG_RMM_AGENTID   = "AgentID"
 	REG_RMM_APIURL    = "ApiURL"
@@ -330,17 +334,17 @@ func (a *Agent) Install(i *Installer) {
 	a.Logger.Infoln("Installing services...")
 
 	svcCommands := [10][]string{
-		// tacticalrpc
-		{"install", SERVICE_NAME_RPC, a.EXE, "-m", "rpc"},
+		// rpc
+		{"install", SERVICE_NAME_RPC, a.EXE, "-m", AGENT_MODE_RPC},
 		{"set", SERVICE_NAME_RPC, "DisplayName", SERVICE_DESC_RPC},
 		{"set", SERVICE_NAME_RPC, "Description", SERVICE_DESC_RPC},
-		{"set", SERVICE_NAME_RPC, "AppRestartDelay", "5000"},
+		{"set", SERVICE_NAME_RPC, "AppRestartDelay", SERVICE_RESTART_DELAY},
 		{"start", SERVICE_NAME_RPC},
 		// winagentsvc
-		{"install", SERVICE_NAME_AGENT, a.EXE, "-m", "winagentsvc"},
+		{"install", SERVICE_NAME_AGENT, a.EXE, "-m", AGENT_MODE_SVC},
 		{"set", SERVICE_NAME_AGENT, "DisplayName", SERVICE_DESC_AGENT},
 		{"set", SERVICE_NAME_AGENT, "Description", SERVICE_DESC_AGENT},
-		{"set", SERVICE_NAME_AGENT, "AppRestartDelay", "5000"},
+		{"set", SERVICE_NAME_AGENT, "AppRestartDelay", SERVICE_RESTART_DELAY},
 		{"start", SERVICE_NAME_AGENT},
 	}
 
@@ -350,6 +354,7 @@ func (a *Agent) Install(i *Installer) {
 	}
 
 	// 2022-01-01: optional
+	// todo: 2023-04-17: remove
 	if i.WinDefender {
 		a.Logger.Infoln("Adding Windows Defender exclusions")
 		a.addDefenderExclusions()

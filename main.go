@@ -17,7 +17,29 @@ var (
 	logFile *os.File
 )
 
-const AGENT_LOG_FILE = "agent.log"
+const (
+	AGENT_LOG_FILE = "agent.log"
+
+	AGENT_MODE_RPC           = "rpc"
+	AGENT_MODE_SVC           = "agentsvc"
+	AGENT_MODE_WINSVC        = "winagentsvc"
+	AGENT_MODE_CHECKRUNNER   = "checkrunner"
+	AGENT_MODE_CLEANUP       = "cleanup"
+	AGENT_MODE_GETPYTHON     = "getpython"
+	AGENT_MODE_INSTALL       = "install"
+	AGENT_MODE_PK            = "pk"
+	AGENT_MODE_PUBLICIP      = "publicip"
+	AGENT_MODE_RUNCHECKS     = "runchecks"
+	AGENT_MODE_MIGRATIONS    = "migrations"
+	AGENT_MODE_RUNMIGRATIONS = "runmigrations"
+	AGENT_MODE_SOFTWARE      = "software"
+	AGENT_MODE_SYNC          = "sync"
+	AGENT_MODE_SYSINFO       = "sysinfo"
+	AGENT_MODE_TASK          = "task"
+	AGENT_MODE_TASKRUNNER    = "taskrunner"
+	AGENT_MODE_UPDATE        = "update"
+	AGENT_MODE_WMI           = "wmi"
+)
 
 func main() {
 	hostname, _ := os.Hostname()
@@ -73,44 +95,44 @@ func main() {
 	a := *agent.New(log, version)
 
 	switch *mode {
-	case "rpc":
+	case AGENT_MODE_RPC:
 		a.RunRPCService()
-	case "winagentsvc", "agentsvc":
+	case AGENT_MODE_WINSVC, AGENT_MODE_SVC:
 		a.RunAgentService()
-	case "runchecks":
+	case AGENT_MODE_RUNCHECKS:
 		a.RunChecks(true)
-	case "checkrunner":
+	case AGENT_MODE_CHECKRUNNER:
 		a.RunChecks(false)
-	case "sysinfo":
+	case AGENT_MODE_SYSINFO:
 		a.GetWMI()
-	case "software":
+	case AGENT_MODE_SOFTWARE:
 		a.SendSoftware()
-	case "sync":
+	case AGENT_MODE_SYNC:
 		a.Sync()
-	case "wmi":
+	case AGENT_MODE_WMI:
 		a.GetWMI()
-	case "cleanup":
+	case AGENT_MODE_CLEANUP:
 		a.UninstallCleanup()
-	case "publicip":
+	case AGENT_MODE_PUBLICIP:
 		fmt.Println(a.PublicIP())
-	case "getpython":
+	case AGENT_MODE_GETPYTHON:
 		a.GetPython(true)
-	case "runmigrations":
+	case AGENT_MODE_RUNMIGRATIONS, AGENT_MODE_MIGRATIONS:
 		a.RunMigrations()
-	case "taskrunner":
+	case AGENT_MODE_TASKRUNNER, AGENT_MODE_TASK:
 		if len(os.Args) < 5 || *taskPK == 0 {
 			return
 		}
 		a.RunTask(*taskPK)
-	case "pk":
+	case AGENT_MODE_PK:
 		fmt.Println(a.AgentPK)
-	case "update":
+	case AGENT_MODE_UPDATE:
 		if *updateurl == "" || *inno == "" || *updatever == "" {
 			updateUsage()
 			return
 		}
 		a.AgentUpdate(*updateurl, *inno, *updatever)
-	case "install":
+	case AGENT_MODE_INSTALL:
 		log.SetOutput(os.Stdout)
 		if *apiUrl == "" || *clientID == 0 || *siteID == 0 || *token == "" {
 			installUsage()
@@ -156,7 +178,7 @@ func setupLogging(level, to *string) {
 	} else {
 		switch runtime.GOOS {
 		case "windows":
-			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.BRANDING_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		case "linux":
 			// todo
 		}

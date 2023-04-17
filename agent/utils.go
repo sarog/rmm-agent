@@ -25,7 +25,7 @@ func (a *Agent) PublicIP() string {
 	client := resty.New()
 	client.SetTimeout(4 * time.Second)
 	// todo: 2021-12-31: allow custom URLs for IP lookups
-	urls := []string{"https://icanhazip.tacticalrmm.io/", "https://icanhazip.com", "https://ifconfig.co/ip"}
+	urls := []string{"https://icanhazip.com", "https://ifconfig.co/ip"}
 	ip := "error"
 
 	for _, url := range urls {
@@ -71,12 +71,11 @@ func GenerateAgentID() string {
 
 // ShowVersionInfo prints basic debugging info
 func ShowVersionInfo(ver string) {
-	// todo: 2021-12-31: add custom rebranding?
-	fmt.Println("Tactical RMM Agent:", ver)
-	fmt.Println("Arch:", runtime.GOARCH)
-	fmt.Println("Go version:", runtime.Version())
+	fmt.Println(AGENT_NAME_LONG, " Agent: ", ver)
+	fmt.Println("Arch: ", runtime.GOARCH)
+	fmt.Println("Go version: ", runtime.Version())
 	if runtime.GOOS == "windows" {
-		fmt.Println("Program Directory:", filepath.Join(os.Getenv("ProgramFiles"), "TacticalAgent"))
+		fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER))
 	}
 }
 

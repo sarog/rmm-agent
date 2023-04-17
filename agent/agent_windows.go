@@ -37,19 +37,24 @@ var (
 
 const (
 	// todo: 2022-01-01: consolidate these elsewhere
-	BRANDING_FOLDER     = "TacticalAgent"
+	AGENT_FOLDER        = "RMMAgent"
 	API_URL_SOFTWARE    = "/api/v3/software/"
 	API_URL_SYNCMESH    = "/api/v3/syncmesh/"
-	AGENT_NAME_LONG     = "Tactical RMM"
-	AGENT_TEMP_DIR      = "trmm"
-	AGENT_FILENAME      = "tacticalrmm.exe"
-	INNO_SETUP_DIR      = "tacticalrmm"
-	INNO_SETUP_LOGFILE  = "tacticalrmm.txt"
-	NATS_RMM_IDENTIFIER = "TacticalRMM" // for server compat
+	AGENT_NAME_LONG     = "RMM Agent"
+	AGENT_TEMP_DIR      = "rmm"
+	AGENT_FILENAME      = "rmmagent.exe"
+	INNO_SETUP_DIR      = "rmmagent"
+	INNO_SETUP_LOGFILE  = "rmmagent.txt"
+	NATS_RMM_IDENTIFIER = "ACMERMM"
 	NATS_DEFAULT_PORT   = 4222
-	PYTHON_TEMP_DIR     = "tacticalpy"
+	RMM_SEARCH_PREFIX   = "acmermm*"
+	PYTHON_TEMP_DIR     = "rmmagentpy"
 	MESH_AGENT_FOLDER   = "Mesh Agent"
 	MESH_AGENT_FILENAME = "MeshAgent.exe"
+	MESH_AGENT_NAME     = "meshagent"
+
+	AGENT_MODE_MESH    = "mesh"
+	AGENT_MODE_COMMAND = "command"
 )
 
 // Agent struct
@@ -84,7 +89,7 @@ type Agent struct {
 func New(logger *logrus.Logger, version string) *Agent {
 	host, _ := ps.Host()
 	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), BRANDING_FOLDER)
+	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	dbFile := filepath.Join(pd, "agentdb.db") // Deprecated
 	sd := os.Getenv("SystemDrive")
@@ -428,6 +433,7 @@ func EnableRDP() {
 }
 
 // DisableSleepHibernate disables sleep and hibernate
+// todo: 2023-04-17: see if the device is a laptop
 func DisableSleepHibernate() {
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Power`, registry.ALL_ACCESS)
 	if err != nil {
@@ -559,7 +565,7 @@ func (a *Agent) ForceKillMesh() {
 		if err != nil {
 			continue
 		}
-		if strings.Contains(strings.ToLower(p.Name), "meshagent") {
+		if strings.Contains(strings.ToLower(p.Name), MESH_AGENT_NAME) {
 			pids = append(pids, p.PID)
 		}
 	}
@@ -574,11 +580,11 @@ func (a *Agent) ForceKillMesh() {
 
 // RecoverAgent Recover the Agent; only called from the RPC service
 func (a *Agent) RecoverAgent() {
-	a.Logger.Debugln("Attempting TacticalAgent recovery on", a.Hostname)
+	a.Logger.Debugln("Attempting ", AGENT_NAME_LONG, " recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
 	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
 	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln("TacticalAgent recovery completed on", a.Hostname)
+	a.Logger.Debugln(AGENT_NAME_LONG, " recovery completed on", a.Hostname)
 }
 
 // RecoverSalt recovers the salt minion
@@ -821,8 +827,8 @@ func (a *Agent) GetUninstallExe() string {
 }
 
 func (a *Agent) AgentUninstall() {
-	tacUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
-	args := []string{"/C", tacUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
+	agentUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
+	args := []string{"/C", agentUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 	cmd := exec.Command("cmd.exe", args...)
 	cmd.SysProcAttr = &windows.SysProcAttr{
 		CreationFlags: windows.DETACHED_PROCESS | windows.CREATE_NEW_PROCESS_GROUP,
@@ -849,7 +855,7 @@ func (a *Agent) CleanupAgentUpdates() {
 		a.Logger.Errorln(cderr)
 		return
 	}
-	folders, err := filepath.Glob("tacticalrmm*")
+	folders, err := filepath.Glob(RMM_SEARCH_PREFIX)
 	if err == nil {
 		for _, f := range folders {
 			os.RemoveAll(f)
@@ -923,6 +929,7 @@ func (a *Agent) IsPythonInstalled() bool {
 }
 
 // GetPython Download Python
+// todo: 2023-04-17: remove
 func (a *Agent) GetPython(force bool) {
 	// 2022-01-02
 	if !a.PythonEnabled {
@@ -1020,7 +1027,7 @@ func (a *Agent) RemoveSalt() error {
 }
 
 // Deprecated
-func (a *Agent) deleteOldTacticalServices() {
+func (a *Agent) deleteOldAgentServices() {
 	services := []string{"checkrunner"}
 	for _, svc := range services {
 		if serviceExists(svc) {
@@ -1030,6 +1037,7 @@ func (a *Agent) deleteOldTacticalServices() {
 	}
 }
 
+// todo: 2023-04-17: remove
 func (a *Agent) addDefenderExclusions() {
 	code := `
 Add-MpPreference -ExclusionPath 'C:\Program Files\` + AGENT_NAME_LONG + `\*'
@@ -1052,8 +1060,8 @@ Add-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
 
 // RunMigrations cleans up unused stuff from older agents
 func (a *Agent) RunMigrations() {
-	a.deleteOldTacticalServices()
-	CMD("schtasks.exe", []string{"/delete", "/TN", "TacticalRMM_fixmesh", "/f"}, 10, false)
+	a.deleteOldAgentServices()
+	CMD("schtasks.exe", []string{"/delete", "/TN", "RMM_fixmesh", "/f"}, 10, false)
 }
 
 // CheckForRecovery Check for agent recovery
@@ -1076,14 +1084,14 @@ func (a *Agent) CheckForRecovery() {
 
 	switch mode {
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:551
-	case "mesh":
+	case AGENT_MODE_MESH:
 		// 2022-01-01:
 		// 	api/tacticalrmm/agents/views.py:236
 		// 	api/tacticalrmm/agents/views.py:569
 		a.RecoverMesh()
-	case "rpc":
+	case AGENT_MODE_RPC:
 		a.RecoverRPC()
-	case "command":
+	case AGENT_MODE_COMMAND:
 		// 2022-01-01: api/tacticalrmm/apiv3/views.py:552
 		a.RecoverCMD(command)
 	default:
