@@ -1,4 +1,4 @@
-package agent
+package windows
 
 import (
 	"fmt"
@@ -37,7 +37,7 @@ const (
 )
 
 // RunAgentService
-func (a *Agent) RunAgentService() {
+func (a *WindowsAgent) RunAgentService() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go a.WinAgentSvc()
@@ -46,10 +46,10 @@ func (a *Agent) RunAgentService() {
 }
 
 // WinAgentSvc Windows nssm service startup
-func (a *Agent) WinAgentSvc() {
+func (a *WindowsAgent) WinAgentSvc() {
 	a.Logger.Infoln("Agent service started")
 
-	go a.GetPython(false)
+	// go a.GetPython(false)
 
 	a.CreateAgentTempDir()
 
@@ -106,7 +106,7 @@ func (a *Agent) WinAgentSvc() {
 }
 
 // CheckIn Check in with the server
-func (a *Agent) CheckIn(mode string) {
+func (a *WindowsAgent) CheckIn(mode string) {
 	var rerr error
 	var payload interface{}
 	var nPayload interface{}
@@ -118,13 +118,13 @@ func (a *Agent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-hello' @ natsapi/svc.go:36
 		nMode = NATS_MODE_HELLO
 		nPayload = trmm.CheckInNats{
-			Agentid: a.AgentID,
+			Agentid: a.AgentID(),
 			Version: a.Version,
 		}
 
 		/*payload = rmm.CheckIn{
 			Func:    "hello",
-			Agentid: a.AgentID,
+			Agentid: a.AgentID(),
 			Version: a.Version,
 		}*/
 
@@ -135,7 +135,7 @@ func (a *Agent) CheckIn(mode string) {
 		// 	'getwinupdates' @ api/tacticalrmm/apiv3/views.py:90
 		payload = rmm.CheckIn{
 			Func:    "startup",
-			Agentid: a.AgentID,
+			Agentid: a.AgentID(),
 			Version: a.Version,
 		}
 
@@ -149,9 +149,9 @@ func (a *Agent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-agentinfo' @ natsapi/svc.go:70
 		nMode = NATS_MODE_OSINFO
 		nPayload = trmm.AgentInfoNats{
-			Agentid:      a.AgentID,
+			Agentid:      a.AgentID(),
 			Username:     a.LoggedOnUser(),
-			Hostname:     a.Hostname,
+			Hostname:     a.Hostname(),
 			OS:           osInfo,
 			Platform:     plat,
 			TotalRAM:     a.TotalRAM(),
@@ -162,7 +162,7 @@ func (a *Agent) CheckIn(mode string) {
 		/*payload = rmm.CheckInOS{
 			CheckIn: rmm.CheckIn{
 				Func:    "osinfo",
-				Agentid: a.AgentID,
+				Agentid: a.AgentID(),
 				Version: a.Version,
 			},
 			Hostname:     a.Hostname,
@@ -177,14 +177,14 @@ func (a *Agent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-winsvc' @ natsapi/svc.go:117
 		nMode = NATS_MODE_WINSERVICES
 		nPayload = trmm.WinSvcNats{
-			Agentid: a.AgentID,
+			Agentid: a.AgentID(),
 			WinSvcs: a.GetServicesNATS(),
 		}
 
 		/*payload = rmm.CheckInWinServices{
 			CheckIn: rmm.CheckIn{
 				Func:    "winservices",
-				Agentid: a.AgentID,
+				Agentid: a.AgentID(),
 				Version: a.Version,
 			},
 			Services: a.GetServices(),
@@ -194,14 +194,14 @@ func (a *Agent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-publicip' @ natsapi/svc.go:56
 		nMode = NATS_MODE_PUBLICIP
 		nPayload = trmm.PublicIPNats{
-			Agentid:  a.AgentID,
+			Agentid:  a.AgentID(),
 			PublicIP: a.PublicIP(),
 		}
 
 		/*payload = rmm.CheckInPublicIP{
 			CheckIn: rmm.CheckIn{
 				Func:    "publicip",
-				Agentid: a.AgentID,
+				Agentid: a.AgentID(),
 				Version: a.Version,
 			},
 			PublicIP: a.PublicIP(),
@@ -211,14 +211,14 @@ func (a *Agent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-disks' @ natsapi/svc.go:97
 		nMode = NATS_MODE_DISKS
 		nPayload = trmm.WinDisksNats{
-			Agentid: a.AgentID,
+			Agentid: a.AgentID(),
 			Disks:   a.GetDisksNATS(),
 		}
 
 		/*payload = rmm.CheckInDisk{
 			CheckIn: rmm.CheckIn{
 				Func:    "disks",
-				Agentid: a.AgentID,
+				Agentid: a.AgentID(),
 				Version: a.Version,
 			},
 			Disks: a.GetDisks(),
@@ -230,7 +230,7 @@ func (a *Agent) CheckIn(mode string) {
 		payload = rmm.CheckInLoggedUser{
 			CheckIn: rmm.CheckIn{
 				Func:    "loggedonuser",
-				Agentid: a.AgentID,
+				Agentid: a.AgentID(),
 				Version: a.Version,
 			},
 			Username: a.LoggedOnUser(),
@@ -241,7 +241,7 @@ func (a *Agent) CheckIn(mode string) {
 		payload = rmm.CheckInSW{
 			CheckIn: rmm.CheckIn{
 				Func:    "software",
-				Agentid: a.AgentID,
+				Agentid: a.AgentID(),
 				Version: a.Version,
 			},
 			InstalledSW: a.GetInstalledSoftware(),
@@ -260,8 +260,8 @@ func (a *Agent) CheckIn(mode string) {
 			var cPayload []byte
 			codec.NewEncoderBytes(&cPayload, new(codec.MsgpackHandle)).Encode(nPayload)
 			// todo: 2022-01-02: test
-			err = nc.PublishRequest(a.AgentID, nMode, cPayload)
-			// was testing with: nc.Publish(a.AgentID, cPayload)
+			err = nc.PublishRequest(a.AgentID(), nMode, cPayload)
+			// was testing with: nc.Publish(a.AgentID(), cPayload)
 		}
 		// mh.RawToString = true
 		// dec := codec.NewDecoderBytes(msg.Data, &mh)
@@ -275,16 +275,16 @@ func (a *Agent) CheckIn(mode string) {
 		// Deprecated endpoint
 		if mode == CHECKIN_MODE_HELLO {
 			// 2022-01-01: 'patch' was removed, endpoint deprecated
-			// _, rerr = a.rClient.R().SetBody(payload).Patch(API_URL_CHECKIN)
+			// _, rerr = a.RClient.R().SetBody(payload).Patch(API_URL_CHECKIN)
 			// a.CheckIn(CHECKIN_MODE_HELLO)
 			// time.Sleep(200 * time.Millisecond)
 		} else if mode == CHECKIN_MODE_STARTUP {
 			// 2022-01-01: api/tacticalrmm/apiv3/views.py:84
-			_, rerr = a.rClient.R().SetBody(payload).Post(API_URL_CHECKIN)
+			_, rerr = a.RClient.R().SetBody(payload).Post(API_URL_CHECKIN)
 		} else {
 			// 'put' is deprecated as of 1.7.0
 			// 2021-12-31: api/tacticalrmm/apiv3/views.py:30
-			_, rerr = a.rClient.R().SetBody(payload).Put(API_URL_CHECKIN)
+			_, rerr = a.RClient.R().SetBody(payload).Put(API_URL_CHECKIN)
 		}
 		if rerr != nil {
 			a.Logger.Debugln("Checkin:", rerr)

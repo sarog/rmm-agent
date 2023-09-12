@@ -1,4 +1,4 @@
-package agent
+package windows
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-func (a *Agent) GetEventLog(logName string, searchLastDays int) []rmm.EventLogMsg {
+func (a *WindowsAgent) GetEventLog(logName string, searchLastDays int) []rmm.EventLogMsg {
 	var (
 		oldestLog uint32
 		nextSize  uint32

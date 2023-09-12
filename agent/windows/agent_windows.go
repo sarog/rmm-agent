@@ -1,10 +1,10 @@
-package agent
+package windows
 
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
+	"github.com/sarog/rmmagent/agent"
 	"io/ioutil"
 	"math"
 	"os"
@@ -36,91 +36,71 @@ var (
 )
 
 const (
-	// todo: 2022-01-01: consolidate these elsewhere
-	AGENT_FOLDER        = "RMMAgent"
-	API_URL_SOFTWARE    = "/api/v3/software/"
-	API_URL_SYNCMESH    = "/api/v3/syncmesh/"
-	AGENT_NAME_LONG     = "RMM Agent"
-	AGENT_TEMP_DIR      = "rmm"
 	AGENT_FILENAME      = "rmmagent.exe"
 	INNO_SETUP_DIR      = "rmmagent"
 	INNO_SETUP_LOGFILE  = "rmmagent.txt"
-	NATS_RMM_IDENTIFIER = "ACMERMM"
-	NATS_DEFAULT_PORT   = 4222
-	RMM_SEARCH_PREFIX   = "acmermm*"
-	PYTHON_TEMP_DIR     = "rmmagentpy"
 	MESH_AGENT_FOLDER   = "Mesh Agent"
 	MESH_AGENT_FILENAME = "MeshAgent.exe"
 	MESH_AGENT_NAME     = "meshagent"
-
-	AGENT_MODE_MESH    = "mesh"
-	AGENT_MODE_COMMAND = "command"
+	AGENT_MODE_MESH     = "mesh"
+	AGENT_MODE_COMMAND  = "command"
 )
 
-// Agent struct
-// 2022-01-01: renamed to 'Agent' from 'WindowsAgent'
-type Agent struct {
-	Hostname      string
-	Arch          string
-	AgentID       string
-	BaseURL       string
-	ApiURL        string
-	ApiPort       int
-	Token         string
-	AgentPK       int
-	Cert          string
+// WindowsAgent struct
+type WindowsAgent struct {
+	agent.AgentInfo
+
+	// Arch    string
+	// BaseURL string
+	// ApiURL  string
+	// ApiPort int
+	// Token   string
+	// AgentPK int
+	// Cert    string
+	// Debug   bool
+	// Version string
+
 	ProgramDir    string
-	EXE           string
+	AgentExe      string
 	SystemDrive   string
 	Nssm          string
 	MeshInstaller string
 	MeshSystemEXE string
 	MeshSVC       string
-	PythonEnabled bool
-	PythonBinary  string
-	Headers       map[string]string
-	Logger        *logrus.Logger
-	Version       string
-	Debug         bool
-	rClient       *resty.Client
+	// Headers       map[string]string
+	// Logger        *logrus.Logger
+	// rClient       *resty.Client
+}
+
+func (a *WindowsAgent) Hostname() string {
+	sysHost, _ := ps.Host()
+	return sysHost.Info().Hostname
+}
+
+func (a *WindowsAgent) AgentID() string {
+	return a.AgentInfo.AgentID
 }
 
 // New Initializes a new Agent with logger
-func New(logger *logrus.Logger, version string) *Agent {
+func New(logger *logrus.Logger, version string) *WindowsAgent {
 	host, _ := ps.Host()
 	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
+	pd := filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
-	dbFile := filepath.Join(pd, "agentdb.db") // Deprecated
 	sd := os.Getenv("SystemDrive")
 	nssm, mesh := ArchInfo(pd)
 
-	var pyBin string
-	switch runtime.GOARCH {
-	case "amd64":
-		pyBin = filepath.Join(pd, "py38-x64", "python.exe")
-	case "386":
-		pyBin = filepath.Join(pd, "py38-x32", "python.exe")
-	}
-
-	// Previous Python agent database
-	if FileExists(dbFile) {
-		os.Remove(dbFile)
-	}
-
 	var (
-		baseurl   string
-		agentid   string
-		apiurl    string
-		token     string
-		agentpk   string
-		pk        int
-		cert      string
-		pyStr     string
-		pyEnabled bool
+		baseurl string
+		agentid string
+		apiurl  string
+		token   string
+		agentpk string
+		pk      int
+		cert    string
 	)
 
-	// todo: 2021-12-31: migrate to DPAPI?
+	// todo: 2021-12-31: migrate to DPAPI
 	key, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err == nil {
 		baseurl, _, err = key.GetStringValue(REG_RMM_BASEURL)
@@ -151,14 +131,6 @@ func New(logger *logrus.Logger, version string) *Agent {
 		pk, _ = strconv.Atoi(agentpk)
 
 		cert, _, _ = key.GetStringValue(REG_RMM_CERT)
-
-		pyStr = "false"
-		pyStr, _, err = key.GetStringValue(REG_RMM_PYENABLED)
-		if err != nil {
-			logger.Warnln("Unable to get PythonEnabled:", err)
-			key.SetStringValue(REG_RMM_PYENABLED, "false")
-		}
-		pyEnabled, _ = strconv.ParseBool(pyStr)
 	}
 
 	headers := make(map[string]string)
@@ -177,30 +149,31 @@ func New(logger *logrus.Logger, version string) *Agent {
 		restyC.SetRootCertificate(cert)
 	}
 
-	return &Agent{
-		Hostname:      info.Hostname,
-		Arch:          info.Architecture,
-		BaseURL:       baseurl,
-		AgentID:       agentid,
-		ApiURL:        apiurl,
-		ApiPort:       NATS_DEFAULT_PORT,
-		Token:         token,
-		AgentPK:       pk,
-		Cert:          cert,
+	return &WindowsAgent{
+		AgentInfo: agent.AgentInfo{
+			AgentID:  agentid,
+			AgentPK:  agentpk,
+			BaseURL:  baseurl,
+			ApiURL:   apiurl,
+			ApiPort:  agent.NATS_DEFAULT_PORT,
+			Token:    token,
+			PK:       pk,
+			Cert:     cert,
+			Arch:     info.Architecture,
+			Hostname: info.Hostname,
+			Version:  version,
+			Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
+			Headers:  headers,
+			Logger:   logger,
+			RClient:  restyC,
+		},
 		ProgramDir:    pd,
-		EXE:           exe,
+		AgentExe:      exe,
 		SystemDrive:   sd,
 		Nssm:          nssm,
 		MeshInstaller: mesh,
 		MeshSystemEXE: filepath.Join(os.Getenv("ProgramFiles"), MESH_AGENT_FOLDER, MESH_AGENT_FILENAME),
 		MeshSVC:       SERVICE_NAME_MESHAGENT,
-		PythonBinary:  pyBin,
-		PythonEnabled: pyEnabled,
-		Headers:       headers,
-		Logger:        logger,
-		Version:       version,
-		Debug:         logger.IsLevelEnabled(logrus.DebugLevel),
-		rClient:       restyC,
 	}
 }
 
@@ -218,7 +191,7 @@ func ArchInfo(programDir string) (nssm, mesh string) {
 }
 
 // OSInfo returns formatted OS names
-func (a *Agent) OSInfo() (plat, osFullName string) {
+func (a *WindowsAgent) OSInfo() (plat, osFullName string) {
 	host, _ := ps.Host()
 	info := host.Info()
 	osInfo := info.OS
@@ -237,7 +210,7 @@ func (a *Agent) OSInfo() (plat, osFullName string) {
 }
 
 // GetDisksNATS returns a list of fixed disks
-func (a *Agent) GetDisksNATS() []trmm.Disk {
+func (a *WindowsAgent) GetDisksNATS() []trmm.Disk {
 	ret := make([]trmm.Disk, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
@@ -274,7 +247,7 @@ func (a *Agent) GetDisksNATS() []trmm.Disk {
 
 // GetDisks returns a list of fixed disks
 // Deprecated
-func (a *Agent) GetDisks() []rmm.Disk {
+func (a *WindowsAgent) GetDisks() []rmm.Disk {
 	ret := make([]rmm.Disk, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
@@ -356,7 +329,7 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 
 	go func(p int32) {
 		<-ctx.Done()
-		_ = KillProc(p)
+		_ = agent.KillProc(p)
 		timedOut = true
 	}(pid)
 
@@ -401,6 +374,7 @@ func CMD(exe string, args []string, timeout int, detached bool) (output [2]strin
 
 // EnablePing modifies the Windows Firewall ruleset to allow incoming ICMPv4
 // todo: 2021-12-31: this may not always work, especially if enforced by a GPO (is this even needed?)
+// Deprecated
 func EnablePing() {
 	args := make([]string, 0)
 	cmd := `netsh advfirewall firewall add rule name="ICMP Allow incoming V4 echo request" protocol=icmpv4:8,any dir=in action=allow`
@@ -412,6 +386,7 @@ func EnablePing() {
 
 // EnableRDP enables Remote Desktop
 // todo: 2021-12-31: this may not always work if enforced by a GPO
+// Deprecated
 func EnableRDP() {
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Terminal Server`, registry.ALL_ACCESS)
 	if err != nil {
@@ -434,6 +409,7 @@ func EnableRDP() {
 
 // DisableSleepHibernate disables sleep and hibernate
 // todo: 2023-04-17: see if the device is a laptop
+// Deprecated
 func DisableSleepHibernate() {
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Power`, registry.ALL_ACCESS)
 	if err != nil {
@@ -466,7 +442,7 @@ func DisableSleepHibernate() {
 }
 
 // LoggedOnUser returns the first logged on user it finds
-func (a *Agent) LoggedOnUser() string {
+func (a *WindowsAgent) LoggedOnUser() string {
 
 	// 2022-01-02: Works in PowerShell 5.x and Core 7.x
 	cmd := "((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\\')[1]"
@@ -497,7 +473,7 @@ func (a *Agent) LoggedOnUser() string {
 }
 
 // GetCPULoadAvg Retrieve CPU load average
-func (a *Agent) GetCPULoadAvg() int {
+func (a *WindowsAgent) GetCPULoadAvg() int {
 	fallback := false
 
 	// 2022-01-02: Works in PowerShell 5.x and Core 7.x
@@ -523,36 +499,8 @@ func (a *Agent) GetCPULoadAvg() int {
 	return i
 }
 
-// ForceKillSalt kills all salt related processes
-// Deprecated
-func (a *Agent) ForceKillSalt() {
-	pids := make([]int, 0)
-
-	procs, err := ps.Processes()
-	if err != nil {
-		return
-	}
-
-	for _, process := range procs {
-		p, err := process.Info()
-		if err != nil {
-			continue
-		}
-		if strings.ToLower(p.Name) == "python.exe" && strings.Contains(strings.ToLower(p.Exe), "salt") {
-			pids = append(pids, p.PID)
-		}
-	}
-
-	for _, pid := range pids {
-		a.Logger.Debugln("Killing salt process with pid %d", pid)
-		if err := KillProc(int32(pid)); err != nil {
-			a.Logger.Debugln(err)
-		}
-	}
-}
-
 // ForceKillMesh kills all MeshAgent-related processes
-func (a *Agent) ForceKillMesh() {
+func (a *WindowsAgent) ForceKillMesh() {
 	pids := make([]int, 0)
 
 	procs, err := ps.Processes()
@@ -572,40 +520,22 @@ func (a *Agent) ForceKillMesh() {
 
 	for _, pid := range pids {
 		a.Logger.Debugln("Killing MeshAgent process with pid %d", pid)
-		if err := KillProc(int32(pid)); err != nil {
+		if err := agent.KillProc(int32(pid)); err != nil {
 			a.Logger.Debugln(err)
 		}
 	}
 }
 
 // RecoverAgent Recover the Agent; only called from the RPC service
-func (a *Agent) RecoverAgent() {
-	a.Logger.Debugln("Attempting ", AGENT_NAME_LONG, " recovery on", a.Hostname)
+func (a *WindowsAgent) RecoverAgent() {
+	a.Logger.Debugln("Attempting ", agent.AGENT_NAME_LONG, " recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
 	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
 	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln(AGENT_NAME_LONG, " recovery completed on", a.Hostname)
+	a.Logger.Debugln(agent.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
 }
 
-// RecoverSalt recovers the salt minion
-// Deprecated
-func (a *Agent) RecoverSalt() {
-	a.Logger.Debugln("Attempting salt recovery on", a.Hostname)
-	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_SALTMINION}, 60, false)
-	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_SALTMINION}, 120, false)
-	a.ForceKillSalt()
-	time.Sleep(2 * time.Second)
-	cacheDir := filepath.Join(a.SystemDrive, "\\salt", "var", "cache", "salt", "minion")
-	a.Logger.Debugln("Clearing salt cache in", cacheDir)
-	err := os.RemoveAll(cacheDir)
-	if err != nil {
-		a.Logger.Debugln(err)
-	}
-	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln("Salt recovery completed on", a.Hostname)
-}
-
-func (a *Agent) SyncMeshNodeID() {
+func (a *WindowsAgent) SyncMeshNodeID() {
 	out, err := CMD(a.MeshSystemEXE, []string{"-nodeid"}, 10, false)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -620,7 +550,7 @@ func (a *Agent) SyncMeshNodeID() {
 		return
 	}
 
-	if stdout == "" || strings.Contains(strings.ToLower(StripAll(stdout)), "not defined") {
+	if stdout == "" || strings.Contains(strings.ToLower(agent.StripAll(stdout)), "not defined") {
 		a.Logger.Debugln("Failed getting Mesh Node ID", stdout)
 		return
 	}
@@ -628,18 +558,18 @@ func (a *Agent) SyncMeshNodeID() {
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:94
 	payload := rmm.MeshNodeID{
 		Func:    "syncmesh",
-		Agentid: a.AgentID,
-		NodeID:  StripAll(stdout),
+		Agentid: a.AgentID(),
+		NodeID:  agent.StripAll(stdout),
 	}
 
-	_, err = a.rClient.R().SetBody(payload).Post(API_URL_SYNCMESH)
+	_, err = a.RClient.R().SetBody(payload).Post(agent.API_URL_SYNCMESH)
 	if err != nil {
 		a.Logger.Debugln("SyncMesh:", err)
 	}
 }
 
 // RecoverMesh Recovers the MeshAgent service
-func (a *Agent) RecoverMesh() {
+func (a *WindowsAgent) RecoverMesh() {
 	a.Logger.Infoln("Attempting MeshAgent service recovery")
 	defer CMD("net", []string{"start", a.MeshSVC}, 60, false)
 	_, _ = CMD("net", []string{"stop", a.MeshSVC}, 60, false)
@@ -648,7 +578,7 @@ func (a *Agent) RecoverMesh() {
 }
 
 // RecoverRPC Recovers the NATS RPC service
-func (a *Agent) RecoverRPC() {
+func (a *WindowsAgent) RecoverRPC() {
 	a.Logger.Infoln("Attempting RPC service recovery")
 	_, _ = CMD("net", []string{"stop", SERVICE_NAME_RPC}, 90, false)
 	time.Sleep(2 * time.Second)
@@ -656,7 +586,7 @@ func (a *Agent) RecoverRPC() {
 }
 
 // RecoverCMD runs a shell recovery command
-func (a *Agent) RecoverCMD(command string) {
+func (a *WindowsAgent) RecoverCMD(command string) {
 	a.Logger.Infoln("Attempting shell recovery with command:", command)
 	// To prevent killing ourselves, prefix the command with 'cmd /C'
 	// so the parent process is now cmd.exe and not tacticalrmm.exe
@@ -668,14 +598,14 @@ func (a *Agent) RecoverCMD(command string) {
 	cmd.Start()
 }
 
-func (a *Agent) Sync() {
+func (a *WindowsAgent) SyncInfo() {
 	a.GetWMI()
 	time.Sleep(1 * time.Second)
 	a.SendSoftware()
 }
 
 // SendSoftware Send list of installed software
-func (a *Agent) SendSoftware() {
+func (a *WindowsAgent) SendSoftware() {
 	sw := a.GetInstalledSoftware()
 	a.Logger.Debugln(sw)
 
@@ -685,13 +615,13 @@ func (a *Agent) SendSoftware() {
 	}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:461
-	_, err := a.rClient.R().SetBody(payload).Post(API_URL_SOFTWARE)
+	_, err := a.RClient.R().SetBody(payload).Post(agent.API_URL_SOFTWARE)
 	if err != nil {
 		a.Logger.Debugln(err)
 	}
 }
 
-func (a *Agent) UninstallCleanup() {
+func (a *WindowsAgent) UninstallCleanup() {
 	registry.DeleteKey(registry.LOCAL_MACHINE, REG_RMM_PATH)
 	a.CleanupAgentUpdates()
 	CleanupSchedTasks()
@@ -732,7 +662,7 @@ func ShowStatus(version string) {
 	}
 }
 
-func (a *Agent) installerMsg(msg, alert string, silent bool) {
+func (a *WindowsAgent) installerMsg(msg, alert string, silent bool) {
 	window := w32.GetForegroundWindow()
 	if !silent && window != 0 {
 		var (
@@ -749,7 +679,7 @@ func (a *Agent) installerMsg(msg, alert string, silent bool) {
 			flags = w32.MB_OK | w32.MB_ICONINFORMATION
 		}
 
-		w32.MessageBox(handle, msg, AGENT_NAME_LONG, flags)
+		w32.MessageBox(handle, msg, agent.AGENT_NAME_LONG, flags)
 	} else {
 		fmt.Println(msg)
 	}
@@ -759,7 +689,7 @@ func (a *Agent) installerMsg(msg, alert string, silent bool) {
 	}
 }
 
-func (a *Agent) AgentUpdate(url, inno, version string) {
+func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
 	time.Sleep(time.Duration(randRange(1, 15)) * time.Second)
 	a.CleanupAgentUpdates()
 	updater := filepath.Join(a.ProgramDir, inno)
@@ -800,10 +730,10 @@ func (a *Agent) AgentUpdate(url, inno, version string) {
 	time.Sleep(1 * time.Second)
 }
 
-func (a *Agent) setupNatsOptions() []nats.Option {
+func (a *WindowsAgent) setupNatsOptions() []nats.Option {
 	opts := make([]nats.Option, 0)
-	opts = append(opts, nats.Name(NATS_RMM_IDENTIFIER))
-	opts = append(opts, nats.UserInfo(a.AgentID, a.Token))
+	opts = append(opts, nats.Name(agent.NATS_RMM_IDENTIFIER))
+	opts = append(opts, nats.UserInfo(a.AgentID(), a.Token))
 	opts = append(opts, nats.ReconnectWait(time.Second*5))
 	opts = append(opts, nats.RetryOnFailedConnect(true))
 	opts = append(opts, nats.MaxReconnects(-1))
@@ -811,7 +741,7 @@ func (a *Agent) setupNatsOptions() []nats.Option {
 	return opts
 }
 
-func (a *Agent) GetUninstallExe() string {
+func (a *WindowsAgent) GetUninstallExe() string {
 	cderr := os.Chdir(a.ProgramDir)
 	if cderr == nil {
 		files, err := filepath.Glob("unins*.exe")
@@ -826,7 +756,7 @@ func (a *Agent) GetUninstallExe() string {
 	return "unins000.exe"
 }
 
-func (a *Agent) AgentUninstall() {
+func (a *WindowsAgent) AgentUninstall() {
 	agentUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
 	args := []string{"/C", agentUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 	cmd := exec.Command("cmd.exe", args...)
@@ -836,7 +766,7 @@ func (a *Agent) AgentUninstall() {
 	cmd.Start()
 }
 
-func (a *Agent) CleanupAgentUpdates() {
+func (a *WindowsAgent) CleanupAgentUpdates() {
 	cderr := os.Chdir(a.ProgramDir)
 	if cderr != nil {
 		a.Logger.Errorln(cderr)
@@ -855,7 +785,7 @@ func (a *Agent) CleanupAgentUpdates() {
 		a.Logger.Errorln(cderr)
 		return
 	}
-	folders, err := filepath.Glob(RMM_SEARCH_PREFIX)
+	folders, err := filepath.Glob(agent.RMM_SEARCH_PREFIX)
 	if err == nil {
 		for _, f := range folders {
 			os.RemoveAll(f)
@@ -863,171 +793,8 @@ func (a *Agent) CleanupAgentUpdates() {
 	}
 }
 
-// RunPythonCode Run Python Code
-func (a *Agent) RunPythonCode(code string, timeout int, args []string) (string, error) {
-	if !a.PythonEnabled {
-		a.Logger.Warnln("Python is disabled on this agent instance, skipping execution.")
-		return "", errors.New("RunPythonCode disabled")
-	}
-
-	content := []byte(code)
-	dir, err := ioutil.TempDir("", PYTHON_TEMP_DIR)
-	if err != nil {
-		a.Logger.Debugln(err)
-		return "", err
-	}
-	defer os.RemoveAll(dir)
-
-	tmpfn, _ := ioutil.TempFile(dir, "*.py")
-	if _, err := tmpfn.Write(content); err != nil {
-		a.Logger.Debugln(err)
-		return "", err
-	}
-	if err := tmpfn.Close(); err != nil {
-		a.Logger.Debugln(err)
-		return "", err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-
-	var outb, errb bytes.Buffer
-	cmdArgs := []string{tmpfn.Name()}
-	if len(args) > 0 {
-		cmdArgs = append(cmdArgs, args...)
-	}
-	a.Logger.Debugln(cmdArgs)
-	cmd := exec.CommandContext(ctx, a.PythonBinary, cmdArgs...)
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-
-	cmdErr := cmd.Run()
-
-	if ctx.Err() == context.DeadlineExceeded {
-		a.Logger.Debugln("RunPythonCode:", ctx.Err())
-		return "", ctx.Err()
-	}
-
-	if cmdErr != nil {
-		a.Logger.Debugln("RunPythonCode:", cmdErr)
-		return "", cmdErr
-	}
-
-	if errb.String() != "" {
-		a.Logger.Debugln(errb.String())
-		return errb.String(), errors.New("RunPythonCode stderr")
-	}
-
-	return outb.String(), nil
-}
-
-func (a *Agent) IsPythonInstalled() bool {
-	if FileExists(a.PythonBinary) {
-		return true
-	}
-	return false
-}
-
-// GetPython Download Python
-// todo: 2023-04-17: remove
-func (a *Agent) GetPython(force bool) {
-	// 2022-01-02
-	if !a.PythonEnabled {
-		a.Logger.Debugln("Python is disabled on this agent instance, skipping installation.")
-		return
-	}
-
-	if a.IsPythonInstalled() && !force {
-		return
-	}
-
-	var archZip string
-	var folder string
-	switch runtime.GOARCH {
-	case "amd64":
-		archZip = "py38-x64.zip"
-		folder = "py38-x64"
-	case "386":
-		archZip = "py38-x32.zip"
-		folder = "py38-x32"
-	}
-
-	pyFolder := filepath.Join(a.ProgramDir, folder)
-	pyZip := filepath.Join(a.ProgramDir, archZip)
-	a.Logger.Debugln(pyZip)
-	a.Logger.Debugln(a.PythonBinary)
-	defer os.Remove(pyZip)
-
-	if force {
-		os.RemoveAll(pyFolder)
-	}
-
-	rClient := resty.New()
-	rClient.SetTimeout(20 * time.Minute)
-	rClient.SetRetryCount(10)
-	rClient.SetRetryWaitTime(1 * time.Minute)
-	rClient.SetRetryMaxWaitTime(15 * time.Minute)
-
-	// useAlternative := false
-
-	// todo: 2021-12-28: we'll implement a better way of doing this later on
-	url := fmt.Sprintf("https://localhost/%s/%s", a.Version, archZip)
-	// nope
-	// url2 := fmt.Sprintf("https://files.tacticalrmm.io/%s", archZip)
-	a.Logger.Debugln(url)
-	r, err := rClient.R().SetOutput(pyZip).Get(url)
-	if err != nil {
-		a.Logger.Errorln("Unable to download py3.zip from github, using alternative link.", err)
-		// useAlternative = true
-	}
-	if r.IsError() {
-		a.Logger.Errorln("Unable to download py3.zip from github, using alternative link. Status code", r.StatusCode())
-		// useAlternative = true
-	}
-
-	/*if useAlternative {
-		a.Logger.Debugln(url2)
-		r1, err := rClient.R().SetOutput(pyZip).Get(url2)
-		if err != nil {
-			a.Logger.Errorln("Unable to download py3.zip:", err)
-			return
-		}
-		if r1.IsError() {
-			a.Logger.Errorln("Unable to download py3.zip. Status code", r.StatusCode())
-			return
-		}
-	}*/
-
-	err = Unzip(pyZip, a.ProgramDir)
-	if err != nil {
-		a.Logger.Errorln(err)
-	}
-}
-
 // Deprecated
-func (a *Agent) RemoveSalt() error {
-	saltFiles := []string{"saltcustom", "salt-minion-setup.exe", "salt-minion-setup-x86.exe"}
-	for _, sf := range saltFiles {
-		if FileExists(filepath.Join(a.ProgramDir, sf)) {
-			os.Remove(filepath.Join(a.ProgramDir, sf))
-		}
-	}
-
-	saltUnins := filepath.Join(a.SystemDrive, "\\salt", "uninst.exe")
-	if !FileExists(saltUnins) {
-		return errors.New("salt uninstaller does not exist")
-	}
-
-	_, err := CMD(saltUnins, []string{"/S"}, 900, false)
-	if err != nil {
-		a.Logger.Debugln("Error uninstalling salt:", err)
-		return errors.New(err.Error())
-	}
-	return nil
-}
-
-// Deprecated
-func (a *Agent) deleteOldAgentServices() {
+/*func (a *WindowsAgent) deleteOldAgentServices() {
 	services := []string{"checkrunner"}
 	for _, svc := range services {
 		if serviceExists(svc) {
@@ -1035,12 +802,13 @@ func (a *Agent) deleteOldAgentServices() {
 			_, _ = CMD(a.Nssm, []string{"remove", svc, "confirm"}, 30, false)
 		}
 	}
-}
+}*/
 
 // todo: 2023-04-17: remove
-func (a *Agent) addDefenderExclusions() {
+// Deprecated
+func (a *WindowsAgent) addDefenderExclusions() {
 	code := `
-Add-MpPreference -ExclusionPath 'C:\Program Files\` + AGENT_NAME_LONG + `\*'
+Add-MpPreference -ExclusionPath 'C:\Program Files\` + agent.AGENT_NAME_LONG + `\*'
 Add-MpPreference -ExclusionPath 'C:\Windows\Temp\winagent-v*.exe'
 Add-MpPreference -ExclusionPath 'C:\Windows\Temp\trmm\*'
 Add-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
@@ -1059,16 +827,16 @@ Add-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
 }
 
 // RunMigrations cleans up unused stuff from older agents
-func (a *Agent) RunMigrations() {
-	a.deleteOldAgentServices()
+func (a *WindowsAgent) RunMigrations() {
+	// a.deleteOldAgentServices()
 	CMD("schtasks.exe", []string{"/delete", "/TN", "RMM_fixmesh", "/f"}, 10, false)
 }
 
 // CheckForRecovery Check for agent recovery
 // 2022-01-01: api/tacticalrmm/apiv3/urls.py:22
-func (a *Agent) CheckForRecovery() {
+func (a *WindowsAgent) CheckForRecovery() {
 	url := fmt.Sprintf("/api/v3/%s/recovery/", a.AgentID)
-	r, err := a.rClient.R().SetResult(&rmm.RecoveryAction{}).Get(url)
+	r, err := a.RClient.R().SetResult(&rmm.RecoveryAction{}).Get(url)
 
 	if err != nil {
 		a.Logger.Debugln("Recovery:", err)
@@ -1100,10 +868,10 @@ func (a *Agent) CheckForRecovery() {
 }
 
 // CreateAgentTempDir Create the temp directory for running scripts
-// This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\trmm' depending on context
-func (a *Agent) CreateAgentTempDir() {
-	dir := filepath.Join(os.TempDir(), AGENT_TEMP_DIR)
-	if !FileExists(dir) {
+// This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\<rmm>' depending on context
+func (a *WindowsAgent) CreateAgentTempDir() {
+	dir := filepath.Join(os.TempDir(), agent.AGENT_TEMP_DIR)
+	if !agent.FileExists(dir) {
 		// todo: 2021-12-31: verify permissions
 		err := os.Mkdir(dir, 0775)
 		if err != nil {

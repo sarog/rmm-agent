@@ -1,10 +1,11 @@
-package agent
+package windows
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sarog/rmmagent/agent"
 	"io/ioutil"
 	"math"
 	"os"
@@ -37,7 +38,7 @@ const (
 	AGENT_MODE_CHECKRUNNER = "checkrunner"
 )
 
-func (a *Agent) CheckRunner() {
+func (a *WindowsAgent) CheckRunner() {
 	a.Logger.Infoln("CheckRunner service started.")
 	sleepDelay := randRange(14, 22)
 	a.Logger.Debugf("Sleeping for %v seconds", sleepDelay)
@@ -45,7 +46,7 @@ func (a *Agent) CheckRunner() {
 	for {
 		interval, err := a.GetCheckInterval()
 		if err == nil && !a.ChecksRunning() {
-			_, err = CMD(a.EXE, []string{"-m", AGENT_MODE_CHECKRUNNER}, 600, false)
+			_, err = CMD(a.AgentExe, []string{"-m", AGENT_MODE_CHECKRUNNER}, 600, false)
 			if err != nil {
 				a.Logger.Errorln("CheckRunner RunChecks", err)
 			}
@@ -55,8 +56,8 @@ func (a *Agent) CheckRunner() {
 	}
 }
 
-func (a *Agent) GetCheckInterval() (int, error) {
-	r, err := a.rClient.R().SetResult(&rmm.CheckInfo{}).Get(fmt.Sprintf("/api/v3/%s/checkinterval/", a.AgentID))
+func (a *WindowsAgent) GetCheckInterval() (int, error) {
+	r, err := a.RClient.R().SetResult(&rmm.CheckInfo{}).Get(fmt.Sprintf("/api/v3/%s/checkinterval/", a.AgentID))
 	if err != nil {
 		a.Logger.Debugln(err)
 		return 120, err
@@ -70,7 +71,7 @@ func (a *Agent) GetCheckInterval() (int, error) {
 }
 
 // RunChecks Run Checks
-func (a *Agent) RunChecks(force bool) error {
+func (a *WindowsAgent) RunChecks(force bool) error {
 	data := rmm.AllChecks{}
 	var url string
 	if force {
@@ -84,7 +85,7 @@ func (a *Agent) RunChecks(force bool) error {
 	// 2021-12-31:
 	// 	api.tacticalrmm.apiv3.views.RunChecks.get
 	// 	api.tacticalrmm.apiv3.views.CheckRunner.get
-	r, err := a.rClient.R().Get(url)
+	r, err := a.RClient.R().Get(url)
 	if err != nil {
 		a.Logger.Debugln(err)
 		return err
@@ -113,21 +114,21 @@ func (a *Agent) RunChecks(force bool) error {
 				defer wg.Done()
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.DiskCheck(c, r)
-			}(check, &wg, a.rClient)
+			}(check, &wg, a.RClient)
 		case CHECK_TYPE_CPULOAD:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:315
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
 				a.CPULoadCheck(c, r)
-			}(check, &wg, a.rClient)
+			}(check, &wg, a.RClient)
 		case CHECK_TYPE_MEMORY:
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.MemCheck(c, r)
-			}(check, &wg, a.rClient)
+			}(check, &wg, a.RClient)
 		case CHECK_TYPE_PING:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:407
 			wg.Add(1)
@@ -135,7 +136,7 @@ func (a *Agent) RunChecks(force bool) error {
 				defer wg.Done()
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.PingCheck(c, r)
-			}(check, &wg, a.rClient)
+			}(check, &wg, a.RClient)
 		case CHECK_TYPE_SCRIPT:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:368
 			wg.Add(1)
@@ -143,7 +144,7 @@ func (a *Agent) RunChecks(force bool) error {
 				defer wg.Done()
 				time.Sleep(time.Duration(randRange(300, 950)) * time.Millisecond)
 				a.ScriptCheck(c, r)
-			}(check, &wg, a.rClient)
+			}(check, &wg, a.RClient)
 		case CHECK_TYPE_WINSVC:
 			// 2021-12-31: api/tacticalrmm/checks/models.py:417
 			winServiceChecks = append(winServiceChecks, check)
@@ -162,7 +163,7 @@ func (a *Agent) RunChecks(force bool) error {
 				defer wg.Done()
 				a.WinSvcCheck(winSvcCheck, r)
 			}
-		}(&wg, a.rClient)
+		}(&wg, a.RClient)
 	}
 
 	if len(eventLogChecks) > 0 {
@@ -172,18 +173,18 @@ func (a *Agent) RunChecks(force bool) error {
 				defer wg.Done()
 				a.EventLogCheck(evtCheck, r)
 			}
-		}(&wg, a.rClient)
+		}(&wg, a.RClient)
 	}
 	wg.Wait()
 	return nil
 }
 
 // RunScript Runs a script
-func (a *Agent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
+func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
 	content := []byte(code)
 
-	dir := filepath.Join(os.TempDir(), AGENT_TEMP_DIR)
-	if !FileExists(dir) {
+	dir := filepath.Join(os.TempDir(), agent.AGENT_TEMP_DIR)
+	if !agent.FileExists(dir) {
 		a.CreateAgentTempDir()
 	}
 
@@ -200,8 +201,6 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 	switch shell {
 	case "powershell":
 		ext = "*.ps1"
-	case "python":
-		ext = "*.py"
 	case "cmd":
 		ext = "*.bat" // todo: .cmd?
 	}
@@ -227,9 +226,6 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 		exe = "Powershell"
 		// todo: 2021-12-31: allow ExecutionPolicy to be chosen by the sysadmin
 		cmdArgs = []string{"-NonInteractive", "-NoProfile", "-ExecutionPolicy", "Bypass", tmpfn.Name()}
-	case "python":
-		exe = a.PythonBinary
-		cmdArgs = []string{tmpfn.Name()}
 	case "cmd":
 		exe = tmpfn.Name()
 	}
@@ -257,7 +253,7 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 	// the normal exec.CommandContext() doesn't work since it only kills the parent process
 	go func(p int32) {
 		<-ctx.Done()
-		_ = KillProc(p)
+		_ = agent.KillProc(p)
 		timedOut = true
 	}(pid)
 
@@ -296,7 +292,7 @@ func (a *Agent) RunScript(code string, shell string, args []string, timeout int)
 
 // ScriptCheck Runs either a batch file, PowerShell or Python script,
 // and sends the results back to the server
-func (a *Agent) ScriptCheck(data rmm.Check, r *resty.Client) {
+func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 	start := time.Now()
 	stdout, stderr, retcode, _ := a.RunScript(data.Script.Code, data.Script.Shell, data.ScriptArgs, data.Timeout)
 
@@ -321,7 +317,7 @@ func (a *Agent) ScriptCheck(data rmm.Check, r *resty.Client) {
 
 // DiskCheck checks disk usage
 // 2021-12-31: api/tacticalrmm/checks/models.py:340
-func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
+func (a *WindowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 	var payload map[string]interface{}
 
 	usage, err := disk.Usage(data.Disk)
@@ -358,7 +354,7 @@ func (a *Agent) DiskCheck(data rmm.Check, r *resty.Client) {
 }
 
 // CPULoadCheck Checks the average processor load
-func (a *Agent) CPULoadCheck(data rmm.Check, r *resty.Client) {
+func (a *WindowsAgent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 	payload := map[string]interface{}{
 		"id":      data.CheckPK,
 		"percent": a.GetCPULoadAvg(),
@@ -374,7 +370,7 @@ func (a *Agent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 }
 
 // MemCheck Checks memory usage percentage
-func (a *Agent) MemCheck(data rmm.Check, r *resty.Client) {
+func (a *WindowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
 	host, _ := ps.Host()
 	mem, _ := host.Memory()
 	percent := (float64(mem.Used) / float64(mem.Total)) * 100
@@ -394,7 +390,7 @@ func (a *Agent) MemCheck(data rmm.Check, r *resty.Client) {
 }
 
 // EventLogCheck Retrieve the Windows Event Logs
-func (a *Agent) EventLogCheck(data rmm.Check, r *resty.Client) {
+func (a *WindowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
 	evtLog := a.GetEventLog(data.LogName, data.SearchLastDays)
 
 	payload := map[string]interface{}{
@@ -412,7 +408,7 @@ func (a *Agent) EventLogCheck(data rmm.Check, r *resty.Client) {
 }
 
 // PingCheck Plays ping pong
-func (a *Agent) PingCheck(data rmm.Check, r *resty.Client) {
+func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 	cmdArgs := []string{data.IP}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(90)*time.Second)
 	defer cancel()
@@ -462,7 +458,7 @@ func (a *Agent) PingCheck(data rmm.Check, r *resty.Client) {
 }
 
 // WinSvcCheck Checks a Windows Service
-func (a *Agent) WinSvcCheck(data rmm.Check, r *resty.Client) {
+func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 	var status string
 	exists := true
 
@@ -489,8 +485,8 @@ func (a *Agent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-func (a *Agent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
-	if len(tasks) > 0 && DjangoStringResp(status) == "failing" {
+func (a *WindowsAgent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
+	if len(tasks) > 0 && agent.DjangoStringResp(status) == "failing" {
 		var wg sync.WaitGroup
 		for _, t := range tasks {
 			if t.Enabled {

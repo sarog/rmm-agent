@@ -1,8 +1,7 @@
-package agent
+package windows
 
 import (
 	"encoding/json"
-
 	"github.com/StackExchange/wmi"
 	rmm "github.com/sarog/rmmagent/shared"
 )
@@ -507,7 +506,7 @@ func GetWin32_VideoController() ([]interface{}, error) {
 }
 
 // GetWMI Retrieves (and sends) WMI data
-func (a *Agent) GetWMI() {
+func (a *WindowsAgent) GetWMI() {
 	wmiInfo := make(map[string]interface{})
 
 	compSysProd, err := GetWin32_ComputerSystemProduct()
@@ -597,7 +596,7 @@ func (a *Agent) GetWMI() {
 	}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:362
-	_, rerr := a.rClient.R().SetBody(payload).Patch(API_URL_SYSINFO)
+	_, rerr := a.RClient.R().SetBody(payload).Patch(API_URL_SYSINFO)
 	if rerr != nil {
 		a.Logger.Debugln(rerr)
 	}

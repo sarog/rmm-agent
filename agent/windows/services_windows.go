@@ -1,4 +1,4 @@
-package agent
+package windows
 
 import (
 	"time"
@@ -39,7 +39,7 @@ func GetServiceStatus(name string) (string, error) {
 // ControlService Control a Windows Server
 //
 //	Action = stop, start
-func (a *Agent) ControlService(name, action string) WinSvcResp {
+func (a *WindowsAgent) ControlService(name, action string) WinSvcResp {
 	conn, err := mgr.Connect()
 	if err != nil {
 		return WinSvcResp{Success: false, ErrorMsg: err.Error()}
@@ -84,7 +84,7 @@ func (a *Agent) ControlService(name, action string) WinSvcResp {
 	return WinSvcResp{Success: false, ErrorMsg: "Something went wrong"}
 }
 
-func (a *Agent) EditService(name, startupType string) WinSvcResp {
+func (a *WindowsAgent) EditService(name, startupType string) WinSvcResp {
 	conn, err := mgr.Connect()
 	if err != nil {
 		return WinSvcResp{Success: false, ErrorMsg: err.Error()}
@@ -130,7 +130,7 @@ func (a *Agent) EditService(name, startupType string) WinSvcResp {
 	return WinSvcResp{Success: true, ErrorMsg: ""}
 }
 
-func (a *Agent) GetServiceDetail(name string) rmm.WindowsService {
+func (a *WindowsAgent) GetServiceDetail(name string) rmm.WindowsService {
 	ret := rmm.WindowsService{}
 
 	conn, err := mgr.Connect()
@@ -172,7 +172,7 @@ func (a *Agent) GetServiceDetail(name string) rmm.WindowsService {
 }
 
 // GetServicesNATS returns a list of windows services
-func (a *Agent) GetServicesNATS() []trmm.WindowsService {
+func (a *WindowsAgent) GetServicesNATS() []trmm.WindowsService {
 	ret := make([]trmm.WindowsService, 0)
 
 	conn, err := mgr.Connect()
@@ -226,7 +226,7 @@ func (a *Agent) GetServicesNATS() []trmm.WindowsService {
 
 // GetServices returns a list of Windows services
 // Deprecated
-func (a *Agent) GetServices() []rmm.WindowsService {
+func (a *WindowsAgent) GetServices() []rmm.WindowsService {
 	ret := make([]rmm.WindowsService, 0)
 
 	conn, err := mgr.Connect()

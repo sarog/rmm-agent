@@ -1,7 +1,8 @@
-package agent
+package windows
 
 import (
 	"fmt"
+	"github.com/sarog/rmmagent/agent"
 	"io"
 	"log"
 	"net/url"
@@ -19,54 +20,55 @@ import (
 )
 
 type Installer struct {
-	Headers       map[string]string
-	RMM           string // API URL
-	ClientID      int
-	SiteID        int
-	Description   string
-	AgentType     string
-	Power         bool
-	RDP           bool
-	Ping          bool
-	WinDefender   bool // 2022-01-01: new // todo: 2023-04-17: remove
-	PythonEnabled bool // 2022-01-01: new // todo: 2023-04-17: remove
-	Token         string
-	LocalMesh     string
-	MeshDir       string // 2022-01-02: backported // todo: 2023-04-17: remove
-	MeshDisabled  bool   // 2022-01-02: backported // todo: 2023-04-17: remove
-	Cert          string
-	Timeout       time.Duration
-	SaltMaster    string // todo: 2023-04-17: remove
-	Silent        bool
+	Headers     map[string]string
+	ServerURL   string
+	ClientID    int
+	SiteID      int
+	Description string
+	AgentType   string
+	// Deprecated
+	DisableSleep bool
+	// Deprecated
+	EnableRDP bool
+	// Deprecated
+	EnablePing bool
+	// Deprecated
+	WinDefender  bool // 2022-01-01: new // todo: 2023-04-17: remove
+	Token        string
+	LocalMesh    string
+	MeshDir      string // 2022-01-02: backported // todo: 2023-04-17: remove
+	MeshDisabled bool   // 2022-01-02: backported // todo: 2023-04-17: remove
+	Cert         string
+	Timeout      time.Duration
+	SaltMaster   string // todo: 2023-04-17: remove
+	Silent       bool
 }
 
 // todo: 2021-12-31: custom branding
 // todo: 2022-01-01: consolidate these elsewhere
 const (
-	SERVICE_NAME_RPC        = "rpcagent"
-	SERVICE_NAME_AGENT      = "rmmagent"
-	SERVICE_NAME_MESHAGENT  = "mesh agent"
-	SERVICE_NAME_SALTMINION = "salt-minion"
-	SERVICE_DESC_RPC        = "RMM RPC Service"
-	SERVICE_DESC_AGENT      = "RMM Agent Service"
-	SERVICE_RESTART_DELAY   = "5000"
+	SERVICE_NAME_RPC       = "rpcagent"
+	SERVICE_NAME_AGENT     = "rmmagent"
+	SERVICE_NAME_MESHAGENT = "mesh agent"
+	SERVICE_DESC_RPC       = "RMM RPC Service"
+	SERVICE_DESC_AGENT     = "RMM Agent Service"
+	SERVICE_RESTART_DELAY  = "5000"
 
 	AGENT_MODE_RPC = "rpc"
 	AGENT_MODE_SVC = "winagentsvc"
 
 	// Registry strings
-	REG_RMM_PATH      = `SOFTWARE\RMMAgent`
-	REG_RMM_BASEURL   = "BaseURL"
-	REG_RMM_AGENTID   = "AgentID"
-	REG_RMM_APIURL    = "ApiURL"
-	REG_RMM_TOKEN     = "Token"
-	REG_RMM_AGENTPK   = "AgentPK"
-	REG_RMM_CERT      = "Cert"
-	REG_RMM_PYENABLED = "PythonEnabled"
+	REG_RMM_PATH    = `SOFTWARE\RMMAgent`
+	REG_RMM_BASEURL = "BaseURL"
+	REG_RMM_AGENTID = "AgentID"
+	REG_RMM_APIURL  = "ApiURL"
+	REG_RMM_TOKEN   = "Token"
+	REG_RMM_AGENTPK = "AgentPK"
+	REG_RMM_CERT    = "Cert"
 )
 
-func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string, pyEnabled bool) {
-	// todo: 2021-12-31: migrate to DPAPI?
+func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
+	// todo: 2021-12-31: migrate to DPAPI
 	key, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err != nil {
 		log.Fatalln("Error creating registry key:", err)
@@ -104,24 +106,19 @@ func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string, pyEnab
 			log.Fatalln("Error creating Cert registry key:", err)
 		}
 	}
-
-	err = key.SetStringValue(REG_RMM_PYENABLED, strconv.FormatBool(pyEnabled))
-	if err != nil {
-		log.Fatalln("Error creating PythonEnabled registry key:", err)
-	}
 }
 
-func (a *Agent) Install(i *Installer) {
+func (a *WindowsAgent) Install(i *Installer) {
 	a.checkExistingAndRemove(i.Silent)
 
 	i.Headers = map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": fmt.Sprintf("Token %s", i.Token),
 	}
-	a.AgentID = GenerateAgentID()
+	a.AgentInfo.AgentID = agent.GenerateAgentID()
 	a.Logger.Debugln("Agent ID:", a.AgentID)
 
-	u, err := url.Parse(i.RMM)
+	u, err := url.Parse(i.ServerURL)
 	if err != nil {
 		a.installerMsg(err.Error(), "error", i.Silent)
 	}
@@ -144,7 +141,7 @@ func (a *Agent) Install(i *Installer) {
 
 	a.Logger.Debugln("Salt Master:", i.SaltMaster)
 
-	terr := TestTCP(fmt.Sprintf("%s:4222", i.SaltMaster))
+	terr := agent.TestTCP(fmt.Sprintf("%s:4222", i.SaltMaster))
 	if terr != nil {
 		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM server, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
 	}
@@ -175,7 +172,7 @@ func (a *Agent) Install(i *Installer) {
 		a.installerMsg(ierr.Error(), "error", i.Silent)
 	}
 	if iVersion.StatusCode() != 200 {
-		a.installerMsg(DjangoStringResp(iVersion.String()), "error", i.Silent)
+		a.installerMsg(agent.DjangoStringResp(iVersion.String()), "error", i.Silent)
 	}
 
 	rClient := resty.New()
@@ -187,7 +184,7 @@ func (a *Agent) Install(i *Installer) {
 
 	// Set local certificate if applicable
 	if len(i.Cert) > 0 {
-		if !FileExists(i.Cert) {
+		if !agent.FileExists(i.Cert) {
 			a.installerMsg(fmt.Sprintf("%s does not exist", i.Cert), "error", i.Silent)
 		}
 		rClient.SetRootCertificate(i.Cert)
@@ -196,7 +193,7 @@ func (a *Agent) Install(i *Installer) {
 	var meshNodeID string
 	if !i.MeshDisabled {
 		var arch string
-		switch a.Arch {
+		switch a.AgentInfo.Arch {
 		case "x86_64":
 			arch = "64"
 		case "x86":
@@ -251,7 +248,7 @@ func (a *Agent) Install(i *Installer) {
 				time.Sleep(5 * time.Second)
 				continue
 			}
-			meshNodeID = StripAll(pMesh[0])
+			meshNodeID = agent.StripAll(pMesh[0])
 			a.Logger.Debugln("Node ID:", meshNodeID)
 			if strings.Contains(strings.ToLower(meshNodeID), "not defined") {
 				a.Logger.Errorln(meshNodeID)
@@ -301,7 +298,7 @@ func (a *Agent) Install(i *Installer) {
 	a.Logger.Debugln("Agent PK:", agentPK)
 	a.Logger.Debugln("Salt ID:", saltID)
 
-	createRegKeys(baseURL, a.AgentID, i.SaltMaster, agentToken, strconv.Itoa(agentPK), i.Cert, a.PythonEnabled)
+	createRegKeys(baseURL, a.AgentID(), i.SaltMaster, agentToken, strconv.Itoa(agentPK), i.Cert)
 	// Refresh our agent with new values
 	a = New(a.Logger, a.Version)
 
@@ -335,13 +332,13 @@ func (a *Agent) Install(i *Installer) {
 
 	svcCommands := [10][]string{
 		// rpc
-		{"install", SERVICE_NAME_RPC, a.EXE, "-m", AGENT_MODE_RPC},
+		{"install", SERVICE_NAME_RPC, a.AgentExe, "-m", AGENT_MODE_RPC},
 		{"set", SERVICE_NAME_RPC, "DisplayName", SERVICE_DESC_RPC},
 		{"set", SERVICE_NAME_RPC, "Description", SERVICE_DESC_RPC},
 		{"set", SERVICE_NAME_RPC, "AppRestartDelay", SERVICE_RESTART_DELAY},
 		{"start", SERVICE_NAME_RPC},
 		// winagentsvc
-		{"install", SERVICE_NAME_AGENT, a.EXE, "-m", AGENT_MODE_SVC},
+		{"install", SERVICE_NAME_AGENT, a.AgentExe, "-m", AGENT_MODE_SVC},
 		{"set", SERVICE_NAME_AGENT, "DisplayName", SERVICE_DESC_AGENT},
 		{"set", SERVICE_NAME_AGENT, "Description", SERVICE_DESC_AGENT},
 		{"set", SERVICE_NAME_AGENT, "AppRestartDelay", SERVICE_RESTART_DELAY},
@@ -360,17 +357,17 @@ func (a *Agent) Install(i *Installer) {
 		a.addDefenderExclusions()
 	}
 
-	if i.Power {
+	if i.DisableSleep {
 		a.Logger.Infoln("Disabling sleep/hibernate...")
 		DisableSleepHibernate()
 	}
 
-	if i.Ping {
+	if i.EnablePing {
 		a.Logger.Infoln("Enabling ping...")
 		EnablePing()
 	}
 
-	if i.RDP {
+	if i.EnableRDP {
 		a.Logger.Infoln("Enabling RDP...")
 		EnableRDP()
 	}
@@ -398,16 +395,14 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-func (a *Agent) checkExistingAndRemove(silent bool) {
+func (a *WindowsAgent) checkExistingAndRemove(silent bool) {
 	hasReg := false
 	_, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err == nil {
 		hasReg = true
 	}
 	installedMesh := filepath.Join(a.ProgramDir, MESH_AGENT_FOLDER, MESH_AGENT_FILENAME)
-	installedSalt := filepath.Join(a.SystemDrive, "\\salt", "uninst.exe")
-	agentDB := filepath.Join(a.ProgramDir, "agentdb.db")
-	if hasReg || FileExists(installedMesh) || FileExists(installedSalt) || FileExists(agentDB) {
+	if hasReg || agent.FileExists(installedMesh) {
 		tacUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
 		tacUninstArgs := []string{tacUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 
@@ -415,7 +410,7 @@ func (a *Agent) checkExistingAndRemove(silent bool) {
 		if !silent && window != 0 {
 			var handle w32.HWND
 			msg := "Existing installation found\nClick OK to remove, then re-run the installer.\nClick Cancel to abort."
-			action := w32.MessageBox(handle, msg, AGENT_NAME_LONG, w32.MB_OKCANCEL|w32.MB_ICONWARNING)
+			action := w32.MessageBox(handle, msg, agent.AGENT_NAME_LONG, w32.MB_OKCANCEL|w32.MB_ICONWARNING)
 			if action == w32.IDOK {
 				a.AgentUninstall()
 			}

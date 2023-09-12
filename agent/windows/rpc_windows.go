@@ -1,7 +1,8 @@
-package agent
+package windows
 
 import (
 	"fmt"
+	"github.com/sarog/rmmagent/agent"
 	"os"
 	"runtime"
 	"strconv"
@@ -33,14 +34,14 @@ var (
 )
 
 const (
-	NATS_CMD_AGENT_UNINSTALL    = "uninstall"
-	NATS_CMD_AGENT_UPDATE       = "agentupdate"
-	NATS_CMD_CHOCO_INSTALL      = "installwithchoco"
-	NATS_CMD_CPULOADAVG         = "cpuloadavg"
-	NATS_CMD_EVENTLOG           = "eventlog"
-	NATS_CMD_GETWINUPDATES      = "getwinupdates"
-	NATS_CMD_INSTALL_CHOCO      = "installchoco"
-	NATS_CMD_INSTALL_PYTHON     = "installpython"
+	NATS_CMD_AGENT_UNINSTALL = "uninstall"
+	NATS_CMD_AGENT_UPDATE    = "agentupdate"
+	NATS_CMD_CHOCO_INSTALL   = "installwithchoco"
+	NATS_CMD_CPULOADAVG      = "cpuloadavg"
+	NATS_CMD_EVENTLOG        = "eventlog"
+	NATS_CMD_GETWINUPDATES   = "getwinupdates"
+	NATS_CMD_INSTALL_CHOCO   = "installchoco"
+	// NATS_CMD_INSTALL_PYTHON     = "installpython"
 	NATS_CMD_INSTALL_WINUPDATES = "installwinupdates"
 	NATS_CMD_PING               = "ping"
 	NATS_CMD_PROCS_KILL         = "killproc"
@@ -69,7 +70,7 @@ const (
 )
 
 // RunRPCService handles incoming NATS payloads from server
-func (a *Agent) RunRPCService() {
+func (a *WindowsAgent) RunRPCService() {
 	a.Logger.Infoln("RPC service started")
 	opts := a.setupNatsOptions()
 	server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
@@ -79,7 +80,7 @@ func (a *Agent) RunRPCService() {
 	}
 
 	// Incoming payload from server
-	nc.Subscribe(a.AgentID, func(msg *nats.Msg) {
+	nc.Subscribe(a.AgentID(), func(msg *nats.Msg) {
 		a.Logger.SetOutput(os.Stdout)
 		var payload *NatsMsg
 		var mh codec.MsgpackHandle
@@ -196,7 +197,7 @@ func (a *Agent) RunRPCService() {
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
-				err := KillProc(p.ProcPID)
+				err := agent.KillProc(p.ProcPID)
 				if err != nil {
 					ret.Encode(err.Error())
 					a.Logger.Debugln(err.Error())
@@ -314,9 +315,6 @@ func (a *Agent) RunRPCService() {
 				case "mesh":
 					a.Logger.Debugln("Recovering mesh")
 					a.RecoverMesh()
-				case "salt": // 2022-01-01: deprecated?
-					a.Logger.Debugln("Recovering salt")
-					a.RecoverSalt()
 				case "tacagent":
 					a.Logger.Debugln("Recovering agent")
 					a.RecoverAgent()
@@ -395,7 +393,7 @@ func (a *Agent) RunRPCService() {
 		case NATS_CMD_SYNC:
 			go func() {
 				a.Logger.Debugln("Sending system info and software")
-				a.Sync()
+				a.SyncInfo()
 			}()
 
 		case NATS_CMD_WMI:
@@ -427,7 +425,7 @@ func (a *Agent) RunRPCService() {
 					ret.Encode("ok")
 					msg.Respond(resp)
 					a.Logger.Debugln("Running checks")
-					_, checkerr := CMD(a.EXE, []string{"-m", "runchecks"}, 600, false)
+					_, checkerr := CMD(a.AgentExe, []string{"-m", "runchecks"}, 600, false)
 					if checkerr != nil {
 						a.Logger.Errorln("RPC RunChecks", checkerr)
 					}
@@ -449,23 +447,6 @@ func (a *Agent) RunRPCService() {
 				msg.Respond(resp)
 			}()
 
-		case NATS_CMD_INSTALL_PYTHON:
-			go a.GetPython(true)
-
-		case "removesalt":
-			// 2022-01-01: deprecated
-			go func() {
-				var resp []byte
-				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
-				err := a.RemoveSalt()
-				if err != nil {
-					ret.Encode(err.Error())
-				} else {
-					ret.Encode("ok")
-				}
-				msg.Respond(resp)
-			}()
-
 		case NATS_CMD_INSTALL_CHOCO:
 			// 2021-12-31: called by: api/tacticalrmm/apiv3/views.py:87
 			go a.InstallChoco()
@@ -480,7 +461,7 @@ func (a *Agent) RunRPCService() {
 				out, _ := a.InstallWithChoco(p.ChocoProgName)
 				results := map[string]string{"results": out}
 				url := fmt.Sprintf("/api/v3/%d/chocoresult/", p.PendingActionPK)
-				a.rClient.R().SetBody(results).Patch(url)
+				a.RClient.R().SetBody(results).Patch(url)
 			}(payload)
 
 		case NATS_CMD_GETWINUPDATES:

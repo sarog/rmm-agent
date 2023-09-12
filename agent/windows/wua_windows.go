@@ -1,4 +1,4 @@
-package agent
+package windows
 
 /*
   code copied from https://github.com/GoogleCloudPlatform/osconfig/blob/master/ospatch and modified by https://github.com/wh1te909
@@ -478,7 +478,7 @@ func (s *IUpdateSession) GetWUAUpdateCollection(query string) (*IUpdateCollectio
 }
 
 // SystemRebootRequired checks whether a system reboot is required.
-func (a *Agent) SystemRebootRequired() (bool, error) {
+func (a *WindowsAgent) SystemRebootRequired() (bool, error) {
 	regKeys := []string{
 		`SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired`,
 	}

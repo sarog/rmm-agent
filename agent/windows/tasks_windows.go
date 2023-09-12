@@ -1,4 +1,4 @@
-package agent
+package windows
 
 import (
 	"encoding/json"
@@ -14,13 +14,13 @@ import (
 
 const TASK_PREFIX = "RMM_"
 
-func (a *Agent) RunTask(id int) error {
+func (a *WindowsAgent) RunTask(id int) error {
 	data := rmm.AutomatedTask{}
 	// 2022-01-01: api/tacticalrmm/apiv3/views.py:306
 	url := fmt.Sprintf("/api/v3/%d/%s/taskrunner/", id, a.AgentID)
 
 	// 2022-01-01: api/tacticalrmm/apiv3/views.py:310
-	r1, gerr := a.rClient.R().Get(url)
+	r1, gerr := a.RClient.R().Get(url)
 	if gerr != nil {
 		a.Logger.Debugln(gerr)
 		return gerr
@@ -54,7 +54,7 @@ func (a *Agent) RunTask(id int) error {
 	}
 
 	// 2022-01-01: api/tacticalrmm/apiv3/views.py:315
-	_, perr := a.rClient.R().SetBody(payload).Patch(url)
+	_, perr := a.RClient.R().SetBody(payload).Patch(url)
 	if perr != nil {
 		a.Logger.Debugln(perr)
 		return perr
@@ -63,7 +63,7 @@ func (a *Agent) RunTask(id int) error {
 }
 
 // CreateInternalTask creates predefined RMM agent internal tasks
-func (a *Agent) CreateInternalTask(name, args, repeat string, start int) (bool, error) {
+func (a *WindowsAgent) CreateInternalTask(name, args, repeat string, start int) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
 		return false, err
@@ -153,7 +153,7 @@ type SchedTask struct {
 }
 
 // CreateSchedTask Create a Scheduled Task
-func (a *Agent) CreateSchedTask(st SchedTask) (bool, error) {
+func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
 		a.Logger.Errorln(err)

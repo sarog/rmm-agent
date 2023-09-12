@@ -1,4 +1,4 @@
-package agent
+package windows
 
 import (
 	"time"
@@ -11,10 +11,10 @@ import (
 const API_URL_CHOCO = "/api/v3/choco/"
 
 // InstallChoco Installs the Chocolatey PowerShell script
-func (a *Agent) InstallChoco() {
+func (a *WindowsAgent) InstallChoco() {
 
 	var result rmm.ChocoInstalled
-	result.AgentID = a.AgentID
+	result.AgentID = a.AgentID()
 	result.Installed = false
 
 	rClient := resty.New()
@@ -24,32 +24,32 @@ func (a *Agent) InstallChoco() {
 	r, err := rClient.R().Get("https://chocolatey.org/install.ps1")
 	if err != nil {
 		a.Logger.Debugln(err)
-		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
+		a.RClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 	if r.IsError() {
-		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
+		a.RClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 
 	_, _, exitcode, err := a.RunScript(string(r.Body()), "powershell", []string{}, 900)
 	if err != nil {
 		a.Logger.Debugln(err)
-		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
+		a.RClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 
 	if exitcode != 0 {
-		a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
+		a.RClient.R().SetBody(result).Post(API_URL_CHOCO)
 		return
 	}
 
 	result.Installed = true
-	a.rClient.R().SetBody(result).Post(API_URL_CHOCO)
+	a.RClient.R().SetBody(result).Post(API_URL_CHOCO)
 }
 
 // InstallWithChoco Install an application with Chocolatey
-func (a *Agent) InstallWithChoco(name string) (string, error) {
+func (a *WindowsAgent) InstallWithChoco(name string) (string, error) {
 	out, err := CMD("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
 	if err != nil {
 		a.Logger.Errorln(err)

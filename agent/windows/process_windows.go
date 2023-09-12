@@ -1,8 +1,7 @@
-package agent
+package windows
 
 import (
 	"fmt"
-
 	ps "github.com/elastic/go-sysinfo"
 	gops "github.com/shirou/gopsutil/v3/process"
 )
@@ -16,7 +15,7 @@ type ProcessMsg struct {
 	CPU      string `json:"cpu_percent"`
 }
 
-func (a *Agent) GetProcsRPC() []ProcessMsg {
+func (a *WindowsAgent) GetProcsRPC() []ProcessMsg {
 	ret := make([]ProcessMsg, 0)
 
 	procs, _ := ps.Processes()
@@ -51,7 +50,7 @@ func (a *Agent) GetProcsRPC() []ProcessMsg {
 
 // ChecksRunning prevents duplicate checks from running
 // Have to do it this way, can't use atomic because they can run from both rpc and rmmagent services
-func (a *Agent) ChecksRunning() bool {
+func (a *WindowsAgent) ChecksRunning() bool {
 	running := false
 	procs, err := ps.Processes()
 	if err != nil {
@@ -67,7 +66,7 @@ Out:
 		if p.PID == 0 {
 			continue
 		}
-		if p.Exe != a.EXE {
+		if p.Exe != a.AgentExe {
 			continue
 		}
 
@@ -79,19 +78,4 @@ Out:
 		}
 	}
 	return running
-}
-
-// https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
-func ByteCountSI(b uint64) string {
-	const unit = 1000
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB",
-		float64(b)/float64(div), "kMGTPE"[exp])
 }

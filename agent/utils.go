@@ -3,81 +3,13 @@ package agent
 import (
 	"archive/zip"
 	"fmt"
+	"github.com/shirou/gopsutil/v3/process"
 	"io"
-	"math"
-	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"time"
-
-	ps "github.com/elastic/go-sysinfo"
-	"github.com/go-resty/resty/v2"
-	"github.com/shirou/gopsutil/v3/process"
 )
-
-// PublicIP returns the agent's public IP address
-// Tries 3 times before giving up
-func (a *Agent) PublicIP() string {
-	a.Logger.Debugln("PublicIP start")
-	client := resty.New()
-	client.SetTimeout(4 * time.Second)
-	// todo: 2021-12-31: allow custom URLs for IP lookups
-	urls := []string{"https://icanhazip.com", "https://ifconfig.co/ip"}
-	ip := "error"
-
-	for _, url := range urls {
-		r, err := client.R().Get(url)
-		if err != nil {
-			a.Logger.Debugln("PublicIP error", err)
-			continue
-		}
-		ip = StripAll(r.String())
-		if !IsValidIP(ip) {
-			a.Logger.Debugln("PublicIP not valid", ip)
-			continue
-		}
-		v4 := net.ParseIP(ip)
-		if v4.To4() == nil {
-			r1, err := client.R().Get("https://ifconfig.me/ip")
-			if err != nil {
-				return ip
-			}
-			ipv4 := StripAll(r1.String())
-			if !IsValidIP(ipv4) {
-				continue
-			}
-			a.Logger.Debugln("Forcing IPv4:", ipv4)
-			return ipv4
-		}
-		a.Logger.Debugln("PublicIP return: ", ip)
-		break
-	}
-	return ip
-}
-
-// GenerateAgentID creates and returns a unique Agent ID
-func GenerateAgentID() string {
-	rand.Seed(time.Now().UnixNano())
-	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, 40)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
-// ShowVersionInfo prints basic debugging info
-func ShowVersionInfo(ver string) {
-	fmt.Println(AGENT_NAME_LONG, " Agent: ", ver)
-	fmt.Println("Arch: ", runtime.GOARCH)
-	fmt.Println("Go version: ", runtime.Version())
-	if runtime.GOOS == "windows" {
-		fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER))
-	}
-}
 
 // FileExists checks whether a file exists
 func FileExists(path string) bool {
@@ -87,29 +19,6 @@ func FileExists(path string) bool {
 		}
 	}
 	return true
-}
-
-// TotalRAM returns total RAM in GB
-func (a *Agent) TotalRAM() float64 {
-	host, err := ps.Host()
-	if err != nil {
-		return 8.0
-	}
-	mem, err := host.Memory()
-	if err != nil {
-		return 8.0
-	}
-	return math.Ceil(float64(mem.Total) / 1073741824.0)
-}
-
-// BootTime returns system boot time as a Unix timestamp
-func (a *Agent) BootTime() int64 {
-	host, err := ps.Host()
-	if err != nil {
-		return 1000
-	}
-	info := host.Info()
-	return info.BootTime.Unix()
 }
 
 // IsValidIP checks for a valid IPv4 or IPv6 address
@@ -212,4 +121,19 @@ func Unzip(src, dest string) error {
 		}
 	}
 	return nil
+}
+
+// https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
+func ByteCountSI(b uint64) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB",
+		float64(b)/float64(div), "kMGTPE"[exp])
 }
