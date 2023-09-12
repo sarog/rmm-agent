@@ -53,8 +53,8 @@ func (a *WindowsAgent) ControlService(name, action string) WinSvcResp {
 	defer srv.Close()
 
 	var status svc.Status
-	switch action {
 
+	switch action {
 	case "stop":
 		status, err = srv.Control(svc.Stop)
 		if err != nil {

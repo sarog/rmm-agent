@@ -64,7 +64,6 @@ func (a *WindowsAgent) WinAgentSvc() {
 		a.CheckIn(s)
 		time.Sleep(time.Duration(randRange(300, 900)) * time.Millisecond)
 	}
-	a.SyncMeshNodeID()
 	time.Sleep(1 * time.Second)
 	a.CheckForRecovery()
 
@@ -78,7 +77,6 @@ func (a *WindowsAgent) WinAgentSvc() {
 	checkInDisksTicker := time.NewTicker(time.Duration(randRange(200, 600)) * time.Second)
 	checkInLoggedUserTicker := time.NewTicker(time.Duration(randRange(850, 1400)) * time.Second)
 	checkInSWTicker := time.NewTicker(time.Duration(randRange(2400, 3000)) * time.Second)
-	syncMeshTicker := time.NewTicker(time.Duration(randRange(2400, 2900)) * time.Second)
 	recoveryTicker := time.NewTicker(time.Duration(randRange(180, 300)) * time.Second)
 
 	for {
@@ -97,8 +95,6 @@ func (a *WindowsAgent) WinAgentSvc() {
 			a.CheckIn(CHECKIN_MODE_LOGGEDONUSER)
 		case <-checkInSWTicker.C:
 			a.CheckIn(CHECKIN_MODE_SOFTWARE)
-		case <-syncMeshTicker.C:
-			a.SyncMeshNodeID()
 		case <-recoveryTicker.C:
 			a.CheckForRecovery()
 		}

@@ -16,7 +16,6 @@ import (
 const (
 	AGENT_FOLDER        = "RMMAgent"
 	API_URL_SOFTWARE    = "/api/v3/software/"
-	API_URL_SYNCMESH    = "/api/v3/syncmesh/"
 	AGENT_NAME_LONG     = "RMM Agent"
 	AGENT_TEMP_DIR      = "rmm"
 	NATS_RMM_IDENTIFIER = "ACMERMM"
@@ -24,11 +23,11 @@ const (
 	RMM_SEARCH_PREFIX   = "acmermm*"
 )
 
-type AgentInfo struct {
+type AgentConfig struct {
 	AgentID  string
 	AgentPK  string
-	BaseURL  string
-	ApiURL   string
+	BaseURL  string // dupe?
+	ApiURL   string // dupe?
 	ApiPort  int
 	Token    string
 	PK       int
@@ -44,11 +43,11 @@ type AgentInfo struct {
 
 type Installer struct {
 	// Headers     map[string]string
-	ServerURL   string
+	ServerURL   string // dupe?
 	ClientID    int
 	SiteID      int
 	Description string
-	AgentType   string
+	// AgentType   string
 	// Token        string
 	// Cert         string
 	Timeout time.Duration
@@ -98,6 +97,7 @@ type Agent interface {
 	Hostname() string
 	AgentID() string
 	// Logger() *logrus.Logger
+	ShowStatus(version string)
 }
 
 // GenerateAgentID creates and returns a unique Agent ID
@@ -119,4 +119,8 @@ func ShowVersionInfo(ver string) {
 	if runtime.GOOS == "windows" {
 		fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER))
 	}
+}
+
+func ShowStatus(version string) {
+
 }

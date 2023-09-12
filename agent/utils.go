@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-// FileExists checks whether a file exists
 func FileExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
@@ -57,6 +56,7 @@ func KillProc(pid int32) error {
 }
 
 // DjangoStringResp removes double quotes from a Django REST API response
+// Deprecated
 func DjangoStringResp(resp string) string {
 	return strings.Trim(resp, `"`)
 }

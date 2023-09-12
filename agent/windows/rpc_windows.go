@@ -34,14 +34,13 @@ var (
 )
 
 const (
-	NATS_CMD_AGENT_UNINSTALL = "uninstall"
-	NATS_CMD_AGENT_UPDATE    = "agentupdate"
-	NATS_CMD_CHOCO_INSTALL   = "installwithchoco"
-	NATS_CMD_CPULOADAVG      = "cpuloadavg"
-	NATS_CMD_EVENTLOG        = "eventlog"
-	NATS_CMD_GETWINUPDATES   = "getwinupdates"
-	NATS_CMD_INSTALL_CHOCO   = "installchoco"
-	// NATS_CMD_INSTALL_PYTHON     = "installpython"
+	NATS_CMD_AGENT_UNINSTALL    = "uninstall"
+	NATS_CMD_AGENT_UPDATE       = "agentupdate"
+	NATS_CMD_CHOCO_INSTALL      = "installwithchoco"
+	NATS_CMD_CPULOADAVG         = "cpuloadavg"
+	NATS_CMD_EVENTLOG           = "eventlog"
+	NATS_CMD_GETWINUPDATES      = "getwinupdates"
+	NATS_CMD_INSTALL_CHOCO      = "installchoco"
 	NATS_CMD_INSTALL_WINUPDATES = "installwinupdates"
 	NATS_CMD_PING               = "ping"
 	NATS_CMD_PROCS_KILL         = "killproc"
@@ -312,9 +311,6 @@ func (a *WindowsAgent) RunRPCService() {
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
 
 				switch p.Data["mode"] {
-				case "mesh":
-					a.Logger.Debugln("Recovering mesh")
-					a.RecoverMesh()
 				case "tacagent":
 					a.Logger.Debugln("Recovering agent")
 					a.RecoverAgent()

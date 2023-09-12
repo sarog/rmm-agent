@@ -25,34 +25,29 @@ type Installer struct {
 	ClientID    int
 	SiteID      int
 	Description string
-	AgentType   string
+	// Deprecated
+	// AgentType string
 	// Deprecated
 	DisableSleep bool
 	// Deprecated
 	EnableRDP bool
 	// Deprecated
 	EnablePing bool
-	// Deprecated
-	WinDefender  bool // 2022-01-01: new // todo: 2023-04-17: remove
-	Token        string
-	LocalMesh    string
-	MeshDir      string // 2022-01-02: backported // todo: 2023-04-17: remove
-	MeshDisabled bool   // 2022-01-02: backported // todo: 2023-04-17: remove
-	Cert         string
-	Timeout      time.Duration
-	SaltMaster   string // todo: 2023-04-17: remove
-	Silent       bool
+	Token      string
+	Cert       string
+	Timeout    time.Duration
+	SaltMaster string // todo: 2023-04-17: remove
+	Silent     bool
 }
 
 // todo: 2021-12-31: custom branding
 // todo: 2022-01-01: consolidate these elsewhere
 const (
-	SERVICE_NAME_RPC       = "rpcagent"
-	SERVICE_NAME_AGENT     = "rmmagent"
-	SERVICE_NAME_MESHAGENT = "mesh agent"
-	SERVICE_DESC_RPC       = "RMM RPC Service"
-	SERVICE_DESC_AGENT     = "RMM Agent Service"
-	SERVICE_RESTART_DELAY  = "5000"
+	SERVICE_NAME_RPC      = "rpcagent"
+	SERVICE_NAME_AGENT    = "rmmagent"
+	SERVICE_DESC_RPC      = "RMM RPC Service"
+	SERVICE_DESC_AGENT    = "RMM Agent Service"
+	SERVICE_RESTART_DELAY = "5000"
 
 	AGENT_MODE_RPC = "rpc"
 	AGENT_MODE_SVC = "winagentsvc"
@@ -115,7 +110,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 		"Content-Type":  "application/json",
 		"Authorization": fmt.Sprintf("Token %s", i.Token),
 	}
-	a.AgentInfo.AgentID = agent.GenerateAgentID()
+	a.AgentConfig.AgentID = agent.GenerateAgentID()
 	a.Logger.Debugln("Agent ID:", a.AgentID)
 
 	u, err := url.Parse(i.ServerURL)
@@ -190,77 +185,6 @@ func (a *WindowsAgent) Install(i *Installer) {
 		rClient.SetRootCertificate(i.Cert)
 	}
 
-	var meshNodeID string
-	if !i.MeshDisabled {
-		var arch string
-		switch a.AgentInfo.Arch {
-		case "x86_64":
-			arch = "64"
-		case "x86":
-			arch = "32"
-		}
-
-		// Download or copy the mesh-agent.exe
-		mesh := filepath.Join(a.ProgramDir, a.MeshInstaller)
-		if i.LocalMesh == "" {
-			a.Logger.Infoln("Downloading Mesh Agent...")
-			payload := map[string]string{"arch": arch}
-			// 2022-01-01: api/tacticalrmm/apiv3/views.py:373
-			r, err := rClient.R().SetBody(payload).SetOutput(mesh).Post(fmt.Sprintf("%s/api/v3/meshexe/", baseURL))
-			if err != nil {
-				a.installerMsg(fmt.Sprintf("Failed to download Mesh Agent: %s", err.Error()), "error", i.Silent)
-			}
-			if r.StatusCode() != 200 {
-				a.installerMsg(fmt.Sprintf("Unable to download the Mesh Agent from the RMM server. %s", r.String()), "error", i.Silent)
-			}
-		} else {
-			err := copyFile(i.LocalMesh, mesh)
-			if err != nil {
-				a.installerMsg(err.Error(), "error", i.Silent)
-			}
-		}
-
-		a.Logger.Infoln("Installing Mesh Agent...")
-		a.Logger.Debugln("Mesh Agent:", mesh)
-		meshOut, meshErr := CMD(mesh, []string{"-fullinstall"}, int(90), false)
-		if meshErr != nil {
-			fmt.Println(meshOut[0])
-			fmt.Println(meshOut[1])
-			fmt.Println(meshErr)
-		}
-
-		fmt.Println(meshOut)
-
-		a.Logger.Debugln("Sleeping for 5 seconds")
-		time.Sleep(5 * time.Second)
-
-		meshSuccess := false
-		for !meshSuccess {
-			a.Logger.Debugln("Getting Mesh Node ID")
-			pMesh, pErr := CMD(a.MeshSystemEXE, []string{"-nodeid"}, int(30), false)
-			if pErr != nil {
-				a.Logger.Errorln(pErr)
-				time.Sleep(5 * time.Second)
-				continue
-			}
-			if pMesh[1] != "" {
-				a.Logger.Errorln(pMesh[1])
-				time.Sleep(5 * time.Second)
-				continue
-			}
-			meshNodeID = agent.StripAll(pMesh[0])
-			a.Logger.Debugln("Node ID:", meshNodeID)
-			if strings.Contains(strings.ToLower(meshNodeID), "not defined") {
-				a.Logger.Errorln(meshNodeID)
-				time.Sleep(5 * time.Second)
-				continue
-			}
-			meshSuccess = true
-		}
-	} else {
-		a.Logger.Debugln("-NoMesh was specified during installation. Skipping MeshAgent installation.")
-	}
-
 	a.Logger.Infoln("Adding agent to the dashboard")
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:448
@@ -272,13 +196,12 @@ func (a *WindowsAgent) Install(i *Installer) {
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:409
 	agentPayload := map[string]interface{}{
-		"agent_id":        a.AgentID,
-		"hostname":        a.Hostname,
-		"client":          i.ClientID,
-		"site":            i.SiteID,
-		"mesh_node_id":    meshNodeID,
-		"description":     i.Description,
-		"monitoring_type": i.AgentType,
+		"agent_id":    a.AgentID,
+		"hostname":    a.Hostname,
+		"client":      i.ClientID,
+		"site":        i.SiteID,
+		"description": i.Description,
+		// -sg: "monitoring_type": i.AgentType,
 	}
 
 	// 2022-01-01: api/tacticalrmm/apiv3/views.py:398
@@ -350,13 +273,6 @@ func (a *WindowsAgent) Install(i *Installer) {
 		_, _ = CMD(a.Nssm, s, 25, false)
 	}
 
-	// 2022-01-01: optional
-	// todo: 2023-04-17: remove
-	if i.WinDefender {
-		a.Logger.Infoln("Adding Windows Defender exclusions")
-		a.addDefenderExclusions()
-	}
-
 	if i.DisableSleep {
 		a.Logger.Infoln("Disabling sleep/hibernate...")
 		DisableSleepHibernate()
@@ -401,8 +317,7 @@ func (a *WindowsAgent) checkExistingAndRemove(silent bool) {
 	if err == nil {
 		hasReg = true
 	}
-	installedMesh := filepath.Join(a.ProgramDir, MESH_AGENT_FOLDER, MESH_AGENT_FILENAME)
-	if hasReg || agent.FileExists(installedMesh) {
+	if hasReg {
 		tacUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
 		tacUninstArgs := []string{tacUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 

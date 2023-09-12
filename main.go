@@ -59,18 +59,14 @@ func main() {
 
 	timeout := flag.Duration("timeout", 1000, "Installer timeout in seconds")
 	aDesc := flag.String("desc", hostname, "Agent's description to display on the RMM server")
-	aType := flag.String("agent-type", "server", "Agent type: server or workstation")
 
+	// todo: remove the following:
+	// aType := flag.String("agent-type", "server", "Agent type: server or workstation")
 	power := flag.Bool("power", false, "Disable sleep and hibernate when set to True")
 	rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
 	ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
-	winDefender := flag.Bool("windef", false, "Add Windows Defender exclusions")
-	// pythonEnabled := flag.Bool("py-enabled", false, "Enable or disable Python scripts to be executed on this system")
-	localMesh := flag.String("local-mesh", "", "Path to the Mesh executable")
-	meshDir := flag.String("meshdir", "", "Path to the custom Mesh Central directory") // todo
-	noMesh := flag.Bool("nomesh", false, "Do not install the Mesh Agent")              // todo
-	cert := flag.String("cert", "", "Path to the Certificate Authority's .pem")
 
+	cert := flag.String("cert", "", "Path to the Certificate Authority's .pem")
 	updateurl := flag.String("updateurl", "", "Source URL to retrieve the update executable")
 	inno := flag.String("inno", "", "Inno setup filename")
 	updatever := flag.String("updatever", "", "Update version")
@@ -85,7 +81,8 @@ func main() {
 	}
 
 	if len(os.Args) == 1 {
-		windows.ShowStatus(version)
+		// todo:
+		agent.ShowStatus(version)
 		return
 	}
 
@@ -115,8 +112,6 @@ func main() {
 		a.UninstallCleanup()
 	case AGENT_MODE_PUBLICIP:
 		fmt.Println(a.PublicIP())
-	// case AGENT_MODE_GETPYTHON:
-	// 	a.GetPython(true)
 	case AGENT_MODE_RUNMIGRATIONS, AGENT_MODE_MIGRATIONS:
 		a.RunMigrations()
 	case AGENT_MODE_TASKRUNNER, AGENT_MODE_TASK:
@@ -139,25 +134,21 @@ func main() {
 			return
 		}
 		a.Install(&windows.Installer{
-			ServerURL:    *apiUrl,
-			ClientID:     *clientID,
-			SiteID:       *siteID,
-			Description:  *aDesc,
-			AgentType:    *aType,
+			ServerURL:   *apiUrl,
+			ClientID:    *clientID,
+			SiteID:      *siteID,
+			Description: *aDesc,
+			// AgentType:    *aType,
 			DisableSleep: *power,
 			EnableRDP:    *rdp,
 			EnablePing:   *ping,
-			WinDefender:  *winDefender,
 			Token:        *token,
-			LocalMesh:    *localMesh,
-			MeshDir:      *meshDir,
-			MeshDisabled: *noMesh,
 			Cert:         *cert,
 			Timeout:      *timeout,
 			Silent:       *silent,
 		})
 	default:
-		windows.ShowStatus(version)
+		agent.ShowStatus(version)
 	}
 }
 
@@ -174,6 +165,8 @@ func setupLogging(level, to *string) {
 		switch runtime.GOOS {
 		case "windows":
 			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+		case "freebsd":
+		case "darwin":
 		case "linux":
 			// todo
 		}
@@ -186,10 +179,10 @@ func installUsage() {
 	case "windows":
 		u := `Usage: %s -m install -api <https://api.example.com> -client-id X -site-id X -auth <TOKEN>`
 		fmt.Printf(u, windows.AGENT_FILENAME)
+	case "freebsd":
+	case "darwin":
 	case "linux":
 		// todo
-	case "freebsd":
-		// todo :)
 	}
 }
 

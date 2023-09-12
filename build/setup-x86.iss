@@ -1,13 +1,9 @@
 #define MyAppName "RMM Agent"
-#define MyAppVersion "1.7.2"
+#define MyAppVersion "0.1.0"
 #define MyAppPublisher "ACME"
 #define MyAppURL "https://example.com"
 #define MyAppExeName "rmmagent.exe"
 #define NSSM "nssm-x86.exe"
-#define MESHEXE "meshagent-x86.exe"
-#define SALTUNINSTALL "{sd}\salt\uninst.exe"
-#define SALTDIR "{sd}\salt"
-#define MESHDIR "{sd}\Program Files\Mesh Agent"
 #define SERVICE_AGENT_NAME "rmmagent"
 #define SERVICE_RPC_NAME "rpcagent"
 
@@ -58,13 +54,9 @@ Filename: "{app}\{#NSSM}"; Parameters: "stop {#SERVICE_RPC_NAME}"; RunOnceId: "s
 Filename: "{app}\{#NSSM}"; Parameters: "remove {#SERVICE_RPC_NAME} confirm"; RunOnceId: "removermmrpc";
 Filename: "{app}\{#MyAppExeName}"; Parameters: "-m cleanup"; RunOnceId: "cleanuprm";
 Filename: "{cmd}"; Parameters: "/c taskkill /F /IM {#MyAppExeName}"; RunOnceId: "killrmmagent";
-Filename: "{#SALTUNINSTALL}"; Parameters: "/S"; RunOnceId: "saltrm"; Check: FileExists(ExpandConstant('{sd}\salt\uninst.exe'));
-Filename: "{app}\{#MESHEXE}"; Parameters: "-fulluninstall"; RunOnceId: "meshrm";
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}";
-Type: filesandordirs; Name: "{#SALTDIR}"; Check: DirExists(ExpandConstant('{sd}\salt'));
-Type: filesandordirs; Name: "{#MESHDIR}";
 
 [Code]
 function InitializeSetup(): boolean;

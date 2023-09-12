@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/sarog/rmmagent/agent"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
@@ -36,19 +35,15 @@ var (
 )
 
 const (
-	AGENT_FILENAME      = "rmmagent.exe"
-	INNO_SETUP_DIR      = "rmmagent"
-	INNO_SETUP_LOGFILE  = "rmmagent.txt"
-	MESH_AGENT_FOLDER   = "Mesh Agent"
-	MESH_AGENT_FILENAME = "MeshAgent.exe"
-	MESH_AGENT_NAME     = "meshagent"
-	AGENT_MODE_MESH     = "mesh"
-	AGENT_MODE_COMMAND  = "command"
+	AGENT_FILENAME     = "rmmagent.exe"
+	INNO_SETUP_DIR     = "rmmagent"
+	INNO_SETUP_LOGFILE = "rmmagent.txt"
+	AGENT_MODE_COMMAND = "command"
 )
 
 // WindowsAgent struct
 type WindowsAgent struct {
-	agent.AgentInfo
+	agent.AgentConfig
 
 	// Arch    string
 	// BaseURL string
@@ -60,13 +55,10 @@ type WindowsAgent struct {
 	// Debug   bool
 	// Version string
 
-	ProgramDir    string
-	AgentExe      string
-	SystemDrive   string
-	Nssm          string
-	MeshInstaller string
-	MeshSystemEXE string
-	MeshSVC       string
+	ProgramDir  string
+	AgentExe    string
+	SystemDrive string
+	Nssm        string
 	// Headers       map[string]string
 	// Logger        *logrus.Logger
 	// rClient       *resty.Client
@@ -78,7 +70,7 @@ func (a *WindowsAgent) Hostname() string {
 }
 
 func (a *WindowsAgent) AgentID() string {
-	return a.AgentInfo.AgentID
+	return a.AgentConfig.AgentID
 }
 
 // New Initializes a new Agent with logger
@@ -88,7 +80,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 	pd := filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	sd := os.Getenv("SystemDrive")
-	nssm, mesh := ArchInfo(pd)
+	nssm := ArchInfo(pd)
 
 	var (
 		baseurl string
@@ -150,7 +142,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 	}
 
 	return &WindowsAgent{
-		AgentInfo: agent.AgentInfo{
+		AgentConfig: agent.AgentConfig{
 			AgentID:  agentid,
 			AgentPK:  agentpk,
 			BaseURL:  baseurl,
@@ -167,25 +159,20 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 			Logger:   logger,
 			RClient:  restyC,
 		},
-		ProgramDir:    pd,
-		AgentExe:      exe,
-		SystemDrive:   sd,
-		Nssm:          nssm,
-		MeshInstaller: mesh,
-		MeshSystemEXE: filepath.Join(os.Getenv("ProgramFiles"), MESH_AGENT_FOLDER, MESH_AGENT_FILENAME),
-		MeshSVC:       SERVICE_NAME_MESHAGENT,
+		ProgramDir:  pd,
+		AgentExe:    exe,
+		SystemDrive: sd,
+		Nssm:        nssm,
 	}
 }
 
 // ArchInfo returns architecture-specific filenames and URLs
-func ArchInfo(programDir string) (nssm, mesh string) {
+func ArchInfo(programDir string) (nssm string) {
 	switch runtime.GOARCH {
 	case "amd64":
 		nssm = filepath.Join(programDir, "nssm.exe")
-		mesh = "meshagent.exe"
 	case "386":
 		nssm = filepath.Join(programDir, "nssm-x86.exe")
-		mesh = "meshagent-x86.exe"
 	}
 	return
 }
@@ -499,33 +486,6 @@ func (a *WindowsAgent) GetCPULoadAvg() int {
 	return i
 }
 
-// ForceKillMesh kills all MeshAgent-related processes
-func (a *WindowsAgent) ForceKillMesh() {
-	pids := make([]int, 0)
-
-	procs, err := ps.Processes()
-	if err != nil {
-		return
-	}
-
-	for _, process := range procs {
-		p, err := process.Info()
-		if err != nil {
-			continue
-		}
-		if strings.Contains(strings.ToLower(p.Name), MESH_AGENT_NAME) {
-			pids = append(pids, p.PID)
-		}
-	}
-
-	for _, pid := range pids {
-		a.Logger.Debugln("Killing MeshAgent process with pid %d", pid)
-		if err := agent.KillProc(int32(pid)); err != nil {
-			a.Logger.Debugln(err)
-		}
-	}
-}
-
 // RecoverAgent Recover the Agent; only called from the RPC service
 func (a *WindowsAgent) RecoverAgent() {
 	a.Logger.Debugln("Attempting ", agent.AGENT_NAME_LONG, " recovery on", a.Hostname)
@@ -533,48 +493,6 @@ func (a *WindowsAgent) RecoverAgent() {
 	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
 	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
 	a.Logger.Debugln(agent.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
-}
-
-func (a *WindowsAgent) SyncMeshNodeID() {
-	out, err := CMD(a.MeshSystemEXE, []string{"-nodeid"}, 10, false)
-	if err != nil {
-		a.Logger.Debugln(err)
-		return
-	}
-
-	stdout := out[0]
-	stderr := out[1]
-
-	if stderr != "" {
-		a.Logger.Debugln(stderr)
-		return
-	}
-
-	if stdout == "" || strings.Contains(strings.ToLower(agent.StripAll(stdout)), "not defined") {
-		a.Logger.Debugln("Failed getting Mesh Node ID", stdout)
-		return
-	}
-
-	// 2021-12-31: api/tacticalrmm/apiv3/views.py:94
-	payload := rmm.MeshNodeID{
-		Func:    "syncmesh",
-		Agentid: a.AgentID(),
-		NodeID:  agent.StripAll(stdout),
-	}
-
-	_, err = a.RClient.R().SetBody(payload).Post(agent.API_URL_SYNCMESH)
-	if err != nil {
-		a.Logger.Debugln("SyncMesh:", err)
-	}
-}
-
-// RecoverMesh Recovers the MeshAgent service
-func (a *WindowsAgent) RecoverMesh() {
-	a.Logger.Infoln("Attempting MeshAgent service recovery")
-	defer CMD("net", []string{"start", a.MeshSVC}, 60, false)
-	_, _ = CMD("net", []string{"stop", a.MeshSVC}, 60, false)
-	a.ForceKillMesh()
-	a.SyncMeshNodeID()
 }
 
 // RecoverRPC Recovers the NATS RPC service
@@ -630,9 +548,9 @@ func (a *WindowsAgent) UninstallCleanup() {
 // ShowStatus prints the Windows service status
 // If called from an interactive desktop, pops up a message box
 // Otherwise prints to the console
-func ShowStatus(version string) {
+func (a *WindowsAgent) ShowStatus(version string) {
 	statusMap := make(map[string]string)
-	svcs := []string{SERVICE_NAME_AGENT, SERVICE_NAME_RPC, SERVICE_NAME_MESHAGENT}
+	svcs := []string{SERVICE_NAME_AGENT, SERVICE_NAME_RPC}
 
 	for _, service := range svcs {
 		status, err := GetServiceStatus(service)
@@ -650,15 +568,14 @@ func ShowStatus(version string) {
 			w32.ShowWindow(window, w32.SW_HIDE)
 		}
 		var handle w32.HWND
-		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s\n\nMesh Agent: %s",
-			statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC], statusMap[SERVICE_NAME_MESHAGENT])
+		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s",
+			statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC])
 
 		w32.MessageBox(handle, msg, fmt.Sprintf("RMM Agent v%s", version), w32.MB_OK|w32.MB_ICONINFORMATION)
 	} else {
-		fmt.Println("RMM Version", version)
+		fmt.Println("Agent Version", version)
 		fmt.Println("Agent Service:", statusMap[SERVICE_NAME_AGENT])
 		fmt.Println("RPC Service:", statusMap[SERVICE_NAME_RPC])
-		fmt.Println("Mesh Agent:", statusMap[SERVICE_NAME_MESHAGENT])
 	}
 }
 
@@ -712,7 +629,7 @@ func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
 		return
 	}
 
-	dir, err := ioutil.TempDir("", INNO_SETUP_DIR)
+	dir, err := os.MkdirTemp("", INNO_SETUP_DIR)
 	if err != nil {
 		a.Logger.Errorln("AgentUpdate unable to create temporary directory:", err)
 		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
@@ -804,32 +721,10 @@ func (a *WindowsAgent) CleanupAgentUpdates() {
 	}
 }*/
 
-// todo: 2023-04-17: remove
-// Deprecated
-func (a *WindowsAgent) addDefenderExclusions() {
-	code := `
-Add-MpPreference -ExclusionPath 'C:\Program Files\` + agent.AGENT_NAME_LONG + `\*'
-Add-MpPreference -ExclusionPath 'C:\Windows\Temp\winagent-v*.exe'
-Add-MpPreference -ExclusionPath 'C:\Windows\Temp\trmm\*'
-Add-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
-`
-	// todo: 2022-01-02: toggle add/remove via boolean
-	// code := `
-	// Remove-MpPreference -ExclusionPath 'C:\Program Files\`+AGENT_NAME_LONG+`\*'
-	// Remove-MpPreference -ExclusionPath 'C:\Windows\Temp\winagent-v*.exe'
-	// Remove-MpPreference -ExclusionPath 'C:\Windows\Temp\trmm\*'
-	// Remove-MpPreference -ExclusionPath 'C:\Program Files\Mesh Agent\*'
-	// `
-	_, _, _, err := a.RunScript(code, "powershell", []string{}, 20)
-	if err != nil {
-		a.Logger.Debugln(err)
-	}
-}
-
 // RunMigrations cleans up unused stuff from older agents
 func (a *WindowsAgent) RunMigrations() {
 	// a.deleteOldAgentServices()
-	CMD("schtasks.exe", []string{"/delete", "/TN", "RMM_fixmesh", "/f"}, 10, false)
+	// CMD("schtasks.exe", []string{"/delete", "/TN", "RMM_fixmesh", "/f"}, 10, false)
 }
 
 // CheckForRecovery Check for agent recovery
@@ -852,11 +747,6 @@ func (a *WindowsAgent) CheckForRecovery() {
 
 	switch mode {
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:551
-	case AGENT_MODE_MESH:
-		// 2022-01-01:
-		// 	api/tacticalrmm/agents/views.py:236
-		// 	api/tacticalrmm/agents/views.py:569
-		a.RecoverMesh()
 	case AGENT_MODE_RPC:
 		a.RecoverRPC()
 	case AGENT_MODE_COMMAND:
