@@ -505,8 +505,8 @@ func GetWin32_VideoController() ([]interface{}, error) {
 	return ret, nil
 }
 
-// GetWMI Retrieves (and sends) WMI data
-func (a *WindowsAgent) GetWMI() {
+// SysInfo Retrieves (and sends) WMI data
+func (a *WindowsAgent) SysInfo() {
 	wmiInfo := make(map[string]interface{})
 
 	compSysProd, err := GetWin32_ComputerSystemProduct()

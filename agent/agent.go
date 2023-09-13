@@ -1,21 +1,16 @@
 package agent
 
 import (
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/sarog/rmmagent/shared"
 	"github.com/sarog/trmm-shared"
 	"github.com/sirupsen/logrus"
 	"math/rand"
-	"os"
-	"path/filepath"
-	"runtime"
 	"time"
 )
 
 const (
 	AGENT_FOLDER        = "RMMAgent"
-	API_URL_SOFTWARE    = "/api/v3/software/"
 	AGENT_NAME_LONG     = "RMM Agent"
 	AGENT_TEMP_DIR      = "rmm"
 	NATS_RMM_IDENTIFIER = "ACMERMM"
@@ -37,8 +32,6 @@ type AgentConfig struct {
 	Hostname string
 	Version  string
 	Headers  map[string]string
-	Logger   *logrus.Logger
-	RClient  *resty.Client
 }
 
 type Installer struct {
@@ -47,60 +40,97 @@ type Installer struct {
 	ClientID    int
 	SiteID      int
 	Description string
-	// AgentType   string
-	// Token        string
-	// Cert         string
+	// AgentType   string // Workstation, Server
+	Token   string // dupe?
+	Cert    string // dupe?
 	Timeout time.Duration
 	Silent  bool
 }
 
-type Agent interface {
-	// InstallUpdates(guids []string)
-	// New(logger *logrus.Logger, version string) *Agent
+type InfoCollector interface {
 	PublicIP() string
 	TotalRAM() float64
 	BootTime() int64
+	GetInstalledSoftware() []shared.SoftwareList
+	OSInfo() (plat, osFullName string)
+	SysInfo()
+	GetDisksNATS() []trmm.Disk
+	LoggedOnUser() string
+	GetCPULoadAvg() int
+}
+
+type TaskChecker interface {
+	ScriptCheck(data shared.Check, r *resty.Client)
+	DiskCheck(data shared.Check, r *resty.Client)
+	CPULoadCheck(data shared.Check, r *resty.Client)
+	MemCheck(data shared.Check, r *resty.Client)
+	PingCheck(data shared.Check, r *resty.Client)
+}
+
+// todo
+type TaskRunner interface {
+}
+
+// todo
+type ServiceManager interface {
+	// ControlService(name, action string) windows.WinSvcResp
+	// EditService(name, startupType string) windows.WinSvcResp
+}
+
+type Interface interface {
+	New(logger *logrus.Logger, version string) (Agent, error) // todo: move this?
+
+	// New(i Interface, c *AgentConfig) (Agent, error)
+
+	// Setup
+	Install(i *Installer)
+	AgentUpdate(url, inno, version string)
+	AgentUninstall()
+	UninstallCleanup()
+
+	// Service management
 	RunAgentService()
+	// Deprecated replace with combined Service
+	RunRPCService()
+
+	Hostname() string
+	ShowStatus(version string)
+
+	RunTask(int)
+	RunChecks(force bool) error
+	RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error)
 	CheckIn(mode string)
+	CreateInternalTask(name, args, repeat string, start int) (bool, error)
+	CheckRunner()
+	GetCheckInterval() (int, error)
+
+	// Transmit
+	SendSoftware()
+	SyncInfo()
+
+	RecoverAgent()
+
+	// Windows-specific:
+	// InstallUpdates(guids []string)
 	// ControlService(name, action string) windows.WinSvcResp
 	// EditService(name, startupType string) windows.WinSvcResp
 	// GetServiceDetail(name string) shared.WindowsService
 	// GetServicesNATS() []trmm.WindowsService
 	// GetServices() []shared.WindowsService
 	// CreateSchedTask(st windows.SchedTask) (bool, error)
-	// Install(i *windows.Installer)
-	GetInstalledSoftware() []shared.SoftwareList
-	CreateInternalTask(name, args, repeat string, start int) (bool, error)
-	CheckRunner()
-	GetCheckInterval() (int, error)
-	RunChecks(force bool) error
-	RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error)
-
-	ScriptCheck(data shared.Check, r *resty.Client)
-	DiskCheck(data shared.Check, r *resty.Client)
-	CPULoadCheck(data shared.Check, r *resty.Client)
-	MemCheck(data shared.Check, r *resty.Client)
-	PingCheck(data shared.Check, r *resty.Client)
-
-	OSInfo() (plat, osFullName string)
-	GetDisksNATS() []trmm.Disk
-	// GetDisks() []shared.Disk
-	LoggedOnUser() string
-	GetCPULoadAvg() int
-	RecoverAgent()
-	SyncInfo()
-	SendSoftware()
-	AgentUpdate(url, inno, version string)
-	AgentUninstall()
-
-	// new:
-	Hostname() string
-	AgentID() string
-	// Logger() *logrus.Logger
-	ShowStatus(version string)
 }
 
-// GenerateAgentID creates and returns a unique Agent ID
+type Agent struct {
+	Interface
+	AgentConfig
+	InfoCollector
+	Logger  *logrus.Logger
+	RClient *resty.Client
+	// Logger *logrus.Logger
+}
+
+// GenerateAgentID creates and returns a unique agent ID
+// todo: what about UUIDs?
 func GenerateAgentID() string {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -111,16 +141,6 @@ func GenerateAgentID() string {
 	return string(b)
 }
 
-// ShowVersionInfo prints basic debugging info
-func ShowVersionInfo(ver string) {
-	fmt.Println(AGENT_NAME_LONG, " Agent: ", ver)
-	fmt.Println("Arch: ", runtime.GOARCH)
-	fmt.Println("Go version: ", runtime.Version())
-	if runtime.GOOS == "windows" {
-		fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER))
-	}
-}
-
-func ShowStatus(version string) {
-
+func ShowStatus(a Agent, version string) {
+	a.ShowStatus(version)
 }

@@ -14,7 +14,7 @@ const API_URL_CHOCO = "/api/v3/choco/"
 func (a *WindowsAgent) InstallChoco() {
 
 	var result rmm.ChocoInstalled
-	result.AgentID = a.AgentID()
+	result.AgentID = a.AgentID
 	result.Installed = false
 
 	rClient := resty.New()

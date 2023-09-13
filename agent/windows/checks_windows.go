@@ -70,7 +70,7 @@ func (a *WindowsAgent) GetCheckInterval() (int, error) {
 	return interval, nil
 }
 
-// RunChecks Run Checks
+// RunChecks
 func (a *WindowsAgent) RunChecks(force bool) error {
 	data := rmm.AllChecks{}
 	var url string

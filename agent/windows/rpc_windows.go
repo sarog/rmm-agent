@@ -79,7 +79,7 @@ func (a *WindowsAgent) RunRPCService() {
 	}
 
 	// Incoming payload from server
-	nc.Subscribe(a.AgentID(), func(msg *nats.Msg) {
+	nc.Subscribe(a.AgentID, func(msg *nats.Msg) {
 		a.Logger.SetOutput(os.Stdout)
 		var payload *NatsMsg
 		var mh codec.MsgpackHandle
@@ -381,7 +381,7 @@ func (a *WindowsAgent) RunRPCService() {
 					a.CheckIn(mode)
 					time.Sleep(200 * time.Millisecond)
 				}
-				a.GetWMI()
+				a.SysInfo()
 				ret.Encode("ok")
 				msg.Respond(resp)
 			}()
@@ -395,7 +395,7 @@ func (a *WindowsAgent) RunRPCService() {
 		case NATS_CMD_WMI:
 			go func() {
 				a.Logger.Debugln("Sending WMI")
-				a.GetWMI()
+				a.SysInfo()
 			}()
 
 		case NATS_CMD_CPULOADAVG:

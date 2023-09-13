@@ -27,7 +27,7 @@ func (a *WindowsAgent) GetWinUpdates() {
 		a.Logger.Debugln("--------------------------------")
 	}
 
-	payload := rmm.WinUpdateResult{AgentID: a.AgentID(), Updates: updates}
+	payload := rmm.WinUpdateResult{AgentID: a.AgentID, Updates: updates}
 	// 2022-01-01: api/tacticalrmm/apiv3/views.py:172
 	_, err = a.RClient.R().SetBody(payload).Post(API_URL_WINUPDATES)
 	if err != nil {
@@ -45,7 +45,7 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 
 	for _, id := range guids {
 		var result rmm.WinUpdateInstallResult
-		result.AgentID = a.AgentID()
+		result.AgentID = a.AgentID
 		result.UpdateID = id
 
 		query := fmt.Sprintf("UpdateID='%s'", id)
@@ -71,7 +71,7 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 		a.Logger.Debugln("updtCnt:", updtCnt)
 
 		if updtCnt == 0 {
-			superseded := rmm.SupersededUpdate{AgentID: a.AgentID(), UpdateID: id}
+			superseded := rmm.SupersededUpdate{AgentID: a.AgentID, UpdateID: id}
 			// 2022-01-01: api/tacticalrmm/apiv3/views.py:220
 			a.RClient.R().SetBody(superseded).Post(API_URL_SUPERSEDED)
 			continue
@@ -108,7 +108,7 @@ func (a *WindowsAgent) InstallUpdates(guids []string) {
 		a.Logger.Errorln(err)
 	}
 
-	rebootPayload := rmm.AgentNeedsReboot{AgentID: a.AgentID(), NeedsReboot: needsReboot}
+	rebootPayload := rmm.AgentNeedsReboot{AgentID: a.AgentID, NeedsReboot: needsReboot}
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:122
 	_, err = a.RClient.R().SetBody(rebootPayload).Put(API_URL_WINUPDATES)
 	if err != nil {

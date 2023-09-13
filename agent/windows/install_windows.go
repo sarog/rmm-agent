@@ -3,7 +3,6 @@ package windows
 import (
 	"fmt"
 	"github.com/sarog/rmmagent/agent"
-	"io"
 	"log"
 	"net/url"
 	"os"
@@ -25,6 +24,12 @@ type Installer struct {
 	ClientID    int
 	SiteID      int
 	Description string
+	Token       string
+	Cert        string
+	Timeout     time.Duration
+	ApiURL      string // was "SaltMaster"
+	Silent      bool
+
 	// Deprecated
 	// AgentType string
 	// Deprecated
@@ -33,11 +38,6 @@ type Installer struct {
 	EnableRDP bool
 	// Deprecated
 	EnablePing bool
-	Token      string
-	Cert       string
-	Timeout    time.Duration
-	SaltMaster string // todo: 2023-04-17: remove
-	Silent     bool
 }
 
 // todo: 2021-12-31: custom branding
@@ -127,16 +127,16 @@ func (a *WindowsAgent) Install(i *Installer) {
 
 	// if ipv4:port, strip the port to get ip for salt master
 	if ipPort.MatchString(u.Host) && strings.Contains(u.Host, ":") {
-		i.SaltMaster = strings.Split(u.Host, ":")[0]
+		i.ApiURL = strings.Split(u.Host, ":")[0]
 	} else if strings.Contains(u.Host, ":") {
-		i.SaltMaster = strings.Split(u.Host, ":")[0]
+		i.ApiURL = strings.Split(u.Host, ":")[0]
 	} else {
-		i.SaltMaster = u.Host
+		i.ApiURL = u.Host
 	}
 
-	a.Logger.Debugln("Salt Master:", i.SaltMaster)
+	a.Logger.Debugln("API URL:", i.ApiURL)
 
-	terr := agent.TestTCP(fmt.Sprintf("%s:4222", i.SaltMaster))
+	terr := agent.TestTCP(fmt.Sprintf("%s:4222", i.ApiURL))
 	if terr != nil {
 		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM server, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
 	}
@@ -189,9 +189,9 @@ func (a *WindowsAgent) Install(i *Installer) {
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:448
 	type NewAgentResp struct {
-		AgentPK int    `json:"pk"`
-		SaltID  string `json:"saltid"`
-		Token   string `json:"token"`
+		AgentPK int `json:"pk"`
+		// SaltID  string `json:"saltid"`
+		Token string `json:"token"`
 	}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:409
@@ -214,23 +214,23 @@ func (a *WindowsAgent) Install(i *Installer) {
 	}
 
 	agentPK := r.Result().(*NewAgentResp).AgentPK
-	saltID := r.Result().(*NewAgentResp).SaltID
 	agentToken := r.Result().(*NewAgentResp).Token
 
 	a.Logger.Debugln("Agent Token:", agentToken)
 	a.Logger.Debugln("Agent PK:", agentPK)
-	a.Logger.Debugln("Salt ID:", saltID)
 
-	createRegKeys(baseURL, a.AgentID(), i.SaltMaster, agentToken, strconv.Itoa(agentPK), i.Cert)
+	createRegKeys(baseURL, a.AgentID, i.ApiURL, agentToken, strconv.Itoa(agentPK), i.Cert)
+
 	// Refresh our agent with new values
-	a = New(a.Logger, a.Version)
+	// was: a = New(a.Logger, a.Version)
+	a = a.New(a.Logger, a.Version)
 
 	// Set new headers. No longer knox auth; use agent auth
 	rClient.SetHeaders(a.Headers)
 
 	// Send WMI system information
 	a.Logger.Debugln("Getting system information with WMI")
-	a.GetWMI()
+	a.SysInfo()
 
 	// Check in once via nats
 	opts := a.setupNatsOptions()
@@ -273,7 +273,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 		_, _ = CMD(a.Nssm, s, 25, false)
 	}
 
-	if i.DisableSleep {
+	/*if i.DisableSleep {
 		a.Logger.Infoln("Disabling sleep/hibernate...")
 		DisableSleepHibernate()
 	}
@@ -286,31 +286,12 @@ func (a *WindowsAgent) Install(i *Installer) {
 	if i.EnableRDP {
 		a.Logger.Infoln("Enabling RDP...")
 		EnableRDP()
-	}
+	}*/
 
 	a.installerMsg("Installation was successful!\nPlease allow a few minutes for the agent to show up in the RMM server", "info", i.Silent)
 }
 
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
+// todo: add to Agent interface
 func (a *WindowsAgent) checkExistingAndRemove(silent bool) {
 	hasReg := false
 	_, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)

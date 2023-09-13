@@ -39,26 +39,20 @@ const (
 	INNO_SETUP_DIR     = "rmmagent"
 	INNO_SETUP_LOGFILE = "rmmagent.txt"
 	AGENT_MODE_COMMAND = "command"
+
+	API_URL_SOFTWARE = "/api/v3/software/"
 )
 
 // WindowsAgent struct
 type WindowsAgent struct {
-	agent.AgentConfig
-
-	// Arch    string
-	// BaseURL string
-	// ApiURL  string
-	// ApiPort int
-	// Token   string
-	// AgentPK int
-	// Cert    string
-	// Debug   bool
-	// Version string
+	*agent.Agent
 
 	ProgramDir  string
 	AgentExe    string
 	SystemDrive string
-	Nssm        string
+	// Deprecated
+	Nssm string
+
 	// Headers       map[string]string
 	// Logger        *logrus.Logger
 	// rClient       *resty.Client
@@ -69,12 +63,8 @@ func (a *WindowsAgent) Hostname() string {
 	return sysHost.Info().Hostname
 }
 
-func (a *WindowsAgent) AgentID() string {
-	return a.AgentConfig.AgentID
-}
-
-// New Initializes a new Agent with logger
-func New(logger *logrus.Logger, version string) *WindowsAgent {
+// New Initializes a new WindowsAgent with logger
+func (a *WindowsAgent) New(logger *logrus.Logger, version string) *WindowsAgent {
 	host, _ := ps.Host()
 	info := host.Info()
 	pd := filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER)
@@ -142,22 +132,24 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 	}
 
 	return &WindowsAgent{
-		AgentConfig: agent.AgentConfig{
-			AgentID:  agentid,
-			AgentPK:  agentpk,
-			BaseURL:  baseurl,
-			ApiURL:   apiurl,
-			ApiPort:  agent.NATS_DEFAULT_PORT,
-			Token:    token,
-			PK:       pk,
-			Cert:     cert,
-			Arch:     info.Architecture,
-			Hostname: info.Hostname,
-			Version:  version,
-			Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
-			Headers:  headers,
-			Logger:   logger,
-			RClient:  restyC,
+		Agent: &agent.Agent{
+			AgentConfig: agent.AgentConfig{
+				AgentID:  agentid,
+				AgentPK:  agentpk,
+				BaseURL:  baseurl,
+				ApiURL:   apiurl,
+				ApiPort:  agent.NATS_DEFAULT_PORT,
+				Token:    token,
+				PK:       pk,
+				Cert:     cert,
+				Arch:     info.Architecture,
+				Hostname: info.Hostname,
+				Version:  version,
+				Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
+				Headers:  headers,
+			},
+			Logger:  logger,
+			RClient: restyC,
 		},
 		ProgramDir:  pd,
 		AgentExe:    exe,
@@ -167,6 +159,7 @@ func New(logger *logrus.Logger, version string) *WindowsAgent {
 }
 
 // ArchInfo returns architecture-specific filenames and URLs
+// Deprecated
 func ArchInfo(programDir string) (nssm string) {
 	switch runtime.GOARCH {
 	case "amd64":
@@ -517,7 +510,7 @@ func (a *WindowsAgent) RecoverCMD(command string) {
 }
 
 func (a *WindowsAgent) SyncInfo() {
-	a.GetWMI()
+	a.SysInfo()
 	time.Sleep(1 * time.Second)
 	a.SendSoftware()
 }
@@ -533,7 +526,7 @@ func (a *WindowsAgent) SendSoftware() {
 	}
 
 	// 2021-12-31: api/tacticalrmm/apiv3/views.py:461
-	_, err := a.RClient.R().SetBody(payload).Post(agent.API_URL_SOFTWARE)
+	_, err := a.RClient.R().SetBody(payload).Post(API_URL_SOFTWARE)
 	if err != nil {
 		a.Logger.Debugln(err)
 	}
@@ -650,7 +643,7 @@ func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
 func (a *WindowsAgent) setupNatsOptions() []nats.Option {
 	opts := make([]nats.Option, 0)
 	opts = append(opts, nats.Name(agent.NATS_RMM_IDENTIFIER))
-	opts = append(opts, nats.UserInfo(a.AgentID(), a.Token))
+	opts = append(opts, nats.UserInfo(a.AgentID, a.Token))
 	opts = append(opts, nats.ReconnectWait(time.Second*5))
 	opts = append(opts, nats.RetryOnFailedConnect(true))
 	opts = append(opts, nats.MaxReconnects(-1))
@@ -722,10 +715,10 @@ func (a *WindowsAgent) CleanupAgentUpdates() {
 }*/
 
 // RunMigrations cleans up unused stuff from older agents
-func (a *WindowsAgent) RunMigrations() {
+/*func (a *WindowsAgent) RunMigrations() {
 	// a.deleteOldAgentServices()
 	// CMD("schtasks.exe", []string{"/delete", "/TN", "RMM_fixmesh", "/f"}, 10, false)
-}
+}*/
 
 // CheckForRecovery Check for agent recovery
 // 2022-01-01: api/tacticalrmm/apiv3/urls.py:22

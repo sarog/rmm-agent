@@ -37,6 +37,7 @@ const (
 )
 
 // RunAgentService
+// Deprecated
 func (a *WindowsAgent) RunAgentService() {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -46,6 +47,7 @@ func (a *WindowsAgent) RunAgentService() {
 }
 
 // WinAgentSvc Windows nssm service startup
+// Deprecated
 func (a *WindowsAgent) WinAgentSvc() {
 	a.Logger.Infoln("Agent service started")
 
@@ -57,7 +59,7 @@ func (a *WindowsAgent) WinAgentSvc() {
 	a.Logger.Debugf("Sleeping for %v seconds", sleepDelay)
 	time.Sleep(time.Duration(sleepDelay) * time.Second)
 
-	a.RunMigrations()
+	// a.RunMigrations()
 
 	startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OSINFO, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
 	for _, s := range startup {
@@ -114,13 +116,13 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-hello' @ natsapi/svc.go:36
 		nMode = NATS_MODE_HELLO
 		nPayload = trmm.CheckInNats{
-			Agentid: a.AgentID(),
+			Agentid: a.AgentID,
 			Version: a.Version,
 		}
 
 		/*payload = rmm.CheckIn{
 			Func:    "hello",
-			Agentid: a.AgentID(),
+			Agentid: a.AgentID,
 			Version: a.Version,
 		}*/
 
@@ -131,7 +133,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		// 	'getwinupdates' @ api/tacticalrmm/apiv3/views.py:90
 		payload = rmm.CheckIn{
 			Func:    "startup",
-			Agentid: a.AgentID(),
+			Agentid: a.AgentID,
 			Version: a.Version,
 		}
 
@@ -145,7 +147,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-agentinfo' @ natsapi/svc.go:70
 		nMode = NATS_MODE_OSINFO
 		nPayload = trmm.AgentInfoNats{
-			Agentid:      a.AgentID(),
+			Agentid:      a.AgentID,
 			Username:     a.LoggedOnUser(),
 			Hostname:     a.Hostname(),
 			OS:           osInfo,
@@ -158,7 +160,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		/*payload = rmm.CheckInOS{
 			CheckIn: rmm.CheckIn{
 				Func:    "osinfo",
-				Agentid: a.AgentID(),
+				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			Hostname:     a.Hostname,
@@ -173,14 +175,14 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-winsvc' @ natsapi/svc.go:117
 		nMode = NATS_MODE_WINSERVICES
 		nPayload = trmm.WinSvcNats{
-			Agentid: a.AgentID(),
+			Agentid: a.AgentID,
 			WinSvcs: a.GetServicesNATS(),
 		}
 
 		/*payload = rmm.CheckInWinServices{
 			CheckIn: rmm.CheckIn{
 				Func:    "winservices",
-				Agentid: a.AgentID(),
+				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			Services: a.GetServices(),
@@ -190,14 +192,14 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-publicip' @ natsapi/svc.go:56
 		nMode = NATS_MODE_PUBLICIP
 		nPayload = trmm.PublicIPNats{
-			Agentid:  a.AgentID(),
+			Agentid:  a.AgentID,
 			PublicIP: a.PublicIP(),
 		}
 
 		/*payload = rmm.CheckInPublicIP{
 			CheckIn: rmm.CheckIn{
 				Func:    "publicip",
-				Agentid: a.AgentID(),
+				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			PublicIP: a.PublicIP(),
@@ -207,14 +209,14 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		// 2022-01-01: 'agent-disks' @ natsapi/svc.go:97
 		nMode = NATS_MODE_DISKS
 		nPayload = trmm.WinDisksNats{
-			Agentid: a.AgentID(),
+			Agentid: a.AgentID,
 			Disks:   a.GetDisksNATS(),
 		}
 
 		/*payload = rmm.CheckInDisk{
 			CheckIn: rmm.CheckIn{
 				Func:    "disks",
-				Agentid: a.AgentID(),
+				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			Disks: a.GetDisks(),
@@ -226,7 +228,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		payload = rmm.CheckInLoggedUser{
 			CheckIn: rmm.CheckIn{
 				Func:    "loggedonuser",
-				Agentid: a.AgentID(),
+				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			Username: a.LoggedOnUser(),
@@ -237,7 +239,7 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		payload = rmm.CheckInSW{
 			CheckIn: rmm.CheckIn{
 				Func:    "software",
-				Agentid: a.AgentID(),
+				Agentid: a.AgentID,
 				Version: a.Version,
 			},
 			InstalledSW: a.GetInstalledSoftware(),
@@ -256,8 +258,8 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			var cPayload []byte
 			codec.NewEncoderBytes(&cPayload, new(codec.MsgpackHandle)).Encode(nPayload)
 			// todo: 2022-01-02: test
-			err = nc.PublishRequest(a.AgentID(), nMode, cPayload)
-			// was testing with: nc.Publish(a.AgentID(), cPayload)
+			err = nc.PublishRequest(a.AgentID, nMode, cPayload)
+			// was testing with: nc.Publish(a.AgentID, cPayload)
 		}
 		// mh.RawToString = true
 		// dec := codec.NewDecoderBytes(msg.Data, &mh)

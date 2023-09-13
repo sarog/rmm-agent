@@ -21,24 +21,22 @@ var (
 const (
 	AGENT_LOG_FILE = "agent.log"
 
-	AGENT_MODE_RPC           = "rpc"
-	AGENT_MODE_SVC           = "agentsvc"
-	AGENT_MODE_WINSVC        = "winagentsvc"
-	AGENT_MODE_CHECKRUNNER   = "checkrunner"
-	AGENT_MODE_CLEANUP       = "cleanup"
-	AGENT_MODE_INSTALL       = "install"
-	AGENT_MODE_PK            = "pk"
-	AGENT_MODE_PUBLICIP      = "publicip"
-	AGENT_MODE_RUNCHECKS     = "runchecks"
-	AGENT_MODE_MIGRATIONS    = "migrations"
-	AGENT_MODE_RUNMIGRATIONS = "runmigrations"
-	AGENT_MODE_SOFTWARE      = "software"
-	AGENT_MODE_SYNC          = "sync"
-	AGENT_MODE_SYSINFO       = "sysinfo"
-	AGENT_MODE_TASK          = "task"
-	AGENT_MODE_TASKRUNNER    = "taskrunner"
-	AGENT_MODE_UPDATE        = "update"
-	AGENT_MODE_WMI           = "wmi"
+	AGENT_MODE_RPC         = "rpc"
+	AGENT_MODE_SVC         = "agentsvc"
+	AGENT_MODE_WINSVC      = "winagentsvc"
+	AGENT_MODE_CHECKRUNNER = "checkrunner"
+	AGENT_MODE_CLEANUP     = "cleanup"
+	AGENT_MODE_INSTALL     = "install"
+	AGENT_MODE_SHOW_PK     = "pk"
+	AGENT_MODE_PUBLICIP    = "publicip"
+	AGENT_MODE_RUNCHECKS   = "runchecks"
+	AGENT_MODE_SOFTWARE    = "software"
+	AGENT_MODE_SYNC        = "sync"
+	AGENT_MODE_SYSINFO     = "sysinfo"
+	AGENT_MODE_TASK        = "task"
+	AGENT_MODE_TASKRUNNER  = "taskrunner"
+	AGENT_MODE_UPDATE      = "update"
+	AGENT_MODE_WMI         = "wmi"
 )
 
 func main() {
@@ -46,7 +44,8 @@ func main() {
 
 	// CLI
 	ver := flag.Bool("version", false, "Prints agent version and exits")
-	mode := flag.String("m", "", "The mode to run: install, update, rpc, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, wmi, pk, publicip, runmigrations, taskrunner, cleanup")
+	mode := flag.String("m", "", "The mode to run: "+
+		"install, update, rpc, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, wmi, pk, publicip, runmigrations, taskrunner, cleanup")
 
 	taskPK := flag.Int("p", 0, "Task PK")
 	logLevel := flag.String("log", "INFO", "Log level: INFO*, WARN, ERROR, DEBUG")
@@ -62,9 +61,9 @@ func main() {
 
 	// todo: remove the following:
 	// aType := flag.String("agent-type", "server", "Agent type: server or workstation")
-	power := flag.Bool("power", false, "Disable sleep and hibernate when set to True")
-	rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
-	ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
+	// power := flag.Bool("power", false, "Disable sleep and hibernate when set to True")
+	// rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
+	// ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
 
 	cert := flag.String("cert", "", "Path to the Certificate Authority's .pem")
 	updateurl := flag.String("updateurl", "", "Source URL to retrieve the update executable")
@@ -75,21 +74,24 @@ func main() {
 
 	flag.Parse()
 
+	// test:
+	var mAgent agent.Agent
+
 	if *ver {
-		agent.ShowVersionInfo(version)
+		showVersionInfo(version)
 		return
 	}
 
 	if len(os.Args) == 1 {
-		// todo:
-		agent.ShowStatus(version)
+		// agent.ShowStatus(version)
 		return
 	}
 
 	setupLogging(logLevel, logTo)
 	defer logFile.Close()
 
-	a := *windows.New(log, version)
+	// was: a := *windows.New(log, version)
+	a, _ := mAgent.New(log, version)
 
 	switch *mode {
 	case AGENT_MODE_RPC:
@@ -100,26 +102,22 @@ func main() {
 		a.RunChecks(true)
 	case AGENT_MODE_CHECKRUNNER:
 		a.RunChecks(false)
-	case AGENT_MODE_SYSINFO:
-		a.GetWMI()
+	case AGENT_MODE_SYSINFO, AGENT_MODE_WMI:
+		a.SysInfo()
 	case AGENT_MODE_SOFTWARE:
 		a.SendSoftware()
 	case AGENT_MODE_SYNC:
 		a.SyncInfo()
-	case AGENT_MODE_WMI:
-		a.GetWMI()
 	case AGENT_MODE_CLEANUP:
 		a.UninstallCleanup()
 	case AGENT_MODE_PUBLICIP:
 		fmt.Println(a.PublicIP())
-	case AGENT_MODE_RUNMIGRATIONS, AGENT_MODE_MIGRATIONS:
-		a.RunMigrations()
 	case AGENT_MODE_TASKRUNNER, AGENT_MODE_TASK:
 		if len(os.Args) < 5 || *taskPK == 0 {
 			return
 		}
 		a.RunTask(*taskPK)
-	case AGENT_MODE_PK:
+	case AGENT_MODE_SHOW_PK:
 		fmt.Println(a.AgentPK)
 	case AGENT_MODE_UPDATE:
 		if *updateurl == "" || *inno == "" || *updatever == "" {
@@ -133,22 +131,22 @@ func main() {
 			installUsage()
 			return
 		}
-		a.Install(&windows.Installer{
+		a.Install(&agent.Installer{
 			ServerURL:   *apiUrl,
 			ClientID:    *clientID,
 			SiteID:      *siteID,
 			Description: *aDesc,
 			// AgentType:    *aType,
-			DisableSleep: *power,
-			EnableRDP:    *rdp,
-			EnablePing:   *ping,
-			Token:        *token,
-			Cert:         *cert,
-			Timeout:      *timeout,
-			Silent:       *silent,
+			// DisableSleep: *power,
+			// EnableRDP:    *rdp,
+			// EnablePing:   *ping,
+			Token:   *token,
+			Cert:    *cert,
+			Timeout: *timeout,
+			Silent:  *silent,
 		})
 	default:
-		agent.ShowStatus(version)
+		a.ShowStatus(version)
 	}
 }
 
@@ -187,6 +185,19 @@ func installUsage() {
 }
 
 func updateUsage() {
-	u := `Usage: %s -m update -updateurl https://example.com/winagent-vX.X.X.exe -inno winagent-vX.X.X.exe -updatever 1.1.1`
-	fmt.Printf(u, windows.AGENT_FILENAME)
+	switch runtime.GOOS {
+	case "windows":
+		u := `Usage: %s -m update -updateurl https://example.com/winagent-vX.X.X.exe -inno winagent-vX.X.X.exe -updatever 1.1.1`
+		fmt.Printf(u, windows.AGENT_FILENAME)
+	}
+}
+
+// showVersionInfo prints basic debugging info
+func showVersionInfo(ver string) {
+	fmt.Println(agent.AGENT_NAME_LONG, ver, runtime.GOARCH, runtime.Version())
+	// fmt.Println("Arch: ", runtime.GOARCH)
+	// fmt.Println("Go version: ", runtime.Version())
+	// if runtime.GOOS == "windows" {
+	// 	fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER))
+	// }
 }
