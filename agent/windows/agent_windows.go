@@ -58,6 +58,47 @@ type WindowsAgent struct {
 	// rClient       *resty.Client
 }
 
+/*var winAgent agent.AgentInterface = &WindowsAgent{
+	Agent:       nil,
+	ProgramDir:  "",
+	AgentExe:    "",
+	SystemDrive: "",
+	Nssm:        "",
+}*/
+
+/*func NewAgent(agent *Agent) *WindowsAgent {
+	return &WindowsAgent{Agent: agent}
+}*/
+
+// test: Verification
+// var _ agent.Agent = WindowsAgent{}
+// var _ agent.Agent = (*WindowsAgent)(nil)
+
+// test: from go-service:
+/*type windowsSystem struct{}
+
+func (windowsSystem) Detect() bool {
+	return true
+}
+func (windowsSystem) New() (agent.AgentInterface, error) {
+	ws := &WindowsAgent{
+		Agent:       agent.Agent{},
+		ProgramDir:  "",
+		AgentExe:    "",
+		SystemDrive: "",
+		Nssm:        "",
+	}
+	return ws, nil
+}
+func init() {
+	agent.ChooseSystem(windowsSystem{})
+}*/
+
+// test
+func GetInstance(logger *logrus.Logger, version string) *WindowsAgent {
+	return &WindowsAgent{}
+}
+
 func (a *WindowsAgent) Hostname() string {
 	sysHost, _ := ps.Host()
 	return sysHost.Info().Hostname
@@ -133,7 +174,7 @@ func (a *WindowsAgent) New(logger *logrus.Logger, version string) *WindowsAgent 
 
 	return &WindowsAgent{
 		Agent: &agent.Agent{
-			AgentConfig: agent.AgentConfig{
+			AgentConfig: &agent.AgentConfig{
 				AgentID:  agentid,
 				AgentPK:  agentpk,
 				BaseURL:  baseurl,
@@ -601,7 +642,9 @@ func (a *WindowsAgent) installerMsg(msg, alert string, silent bool) {
 
 func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
 	time.Sleep(time.Duration(randRange(1, 15)) * time.Second)
+
 	a.CleanupAgentUpdates()
+
 	updater := filepath.Join(a.ProgramDir, inno)
 	a.Logger.Infof("Agent updating from %s to %s", a.Version, version)
 	a.Logger.Infoln("Downloading agent update from", url)

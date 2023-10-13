@@ -74,9 +74,6 @@ func main() {
 
 	flag.Parse()
 
-	// test:
-	var mAgent agent.Agent
-
 	if *ver {
 		showVersionInfo(version)
 		return
@@ -91,7 +88,7 @@ func main() {
 	defer logFile.Close()
 
 	// was: a := *windows.New(log, version)
-	a, _ := mAgent.New(log, version)
+	a, _ := agent.New(log, version)
 
 	switch *mode {
 	case AGENT_MODE_RPC:
@@ -131,20 +128,23 @@ func main() {
 			installUsage()
 			return
 		}
-		a.Install(&agent.Installer{
-			ServerURL:   *apiUrl,
-			ClientID:    *clientID,
-			SiteID:      *siteID,
-			Description: *aDesc,
-			// AgentType:    *aType,
-			// DisableSleep: *power,
-			// EnableRDP:    *rdp,
-			// EnablePing:   *ping,
-			Token:   *token,
-			Cert:    *cert,
-			Timeout: *timeout,
-			Silent:  *silent,
-		})
+		a.Install(
+			&agent.InstallInfo{
+				ServerURL:   *apiUrl,
+				ClientID:    *clientID,
+				SiteID:      *siteID,
+				Description: *aDesc,
+				// AgentType:    *aType,
+				// DisableSleep: *power,
+				// EnableRDP:    *rdp,
+				// EnablePing:   *ping,
+				Token:   *token,
+				Cert:    *cert,
+				Timeout: *timeout,
+				Silent:  *silent,
+			},
+			agent.GenerateAgentID(),
+		)
 	default:
 		a.ShowStatus(version)
 	}

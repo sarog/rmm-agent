@@ -103,14 +103,14 @@ func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 	}
 }
 
-func (a *WindowsAgent) Install(i *Installer) {
+func (a *WindowsAgent) Install(i *agent.InstallInfo, agentID string) {
 	a.checkExistingAndRemove(i.Silent)
 
 	i.Headers = map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": fmt.Sprintf("Token %s", i.Token),
 	}
-	a.AgentConfig.AgentID = agent.GenerateAgentID()
+	a.AgentID = agentID
 	a.Logger.Debugln("Agent ID:", a.AgentID)
 
 	u, err := url.Parse(i.ServerURL)
@@ -254,7 +254,7 @@ func (a *WindowsAgent) Install(i *Installer) {
 	a.Logger.Infoln("Installing services...")
 
 	svcCommands := [10][]string{
-		// rpc
+		// rpc // todo: remove/combine
 		{"install", SERVICE_NAME_RPC, a.AgentExe, "-m", AGENT_MODE_RPC},
 		{"set", SERVICE_NAME_RPC, "DisplayName", SERVICE_DESC_RPC},
 		{"set", SERVICE_NAME_RPC, "Description", SERVICE_DESC_RPC},

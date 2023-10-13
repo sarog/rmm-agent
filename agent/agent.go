@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"github.com/go-resty/resty/v2"
 	"github.com/sarog/rmmagent/shared"
 	"github.com/sarog/trmm-shared"
@@ -34,9 +35,10 @@ type AgentConfig struct {
 	Headers  map[string]string
 }
 
-type Installer struct {
-	// Headers     map[string]string
+type InstallInfo struct {
+	Headers     map[string]string
 	ServerURL   string // dupe?
+	ApiURL      string // dupe? temp
 	ClientID    int
 	SiteID      int
 	Description string
@@ -69,21 +71,21 @@ type TaskChecker interface {
 
 // todo
 type TaskRunner interface {
+	RunTask()
 }
 
 // todo
 type ServiceManager interface {
+	// new: Add(name string) error
 	// ControlService(name, action string) windows.WinSvcResp
 	// EditService(name, startupType string) windows.WinSvcResp
 }
 
-type Interface interface {
-	New(logger *logrus.Logger, version string) (Agent, error) // todo: move this?
-
-	// New(i Interface, c *AgentConfig) (Agent, error)
+type AgentInterface interface {
+	New(logger *logrus.Logger, version string) *Agent
 
 	// Setup
-	Install(i *Installer)
+	Install(i *InstallInfo, agentID string)
 	AgentUpdate(url, inno, version string)
 	AgentUninstall()
 	UninstallCleanup()
@@ -96,7 +98,7 @@ type Interface interface {
 	Hostname() string
 	ShowStatus(version string)
 
-	RunTask(int)
+	RunTask(int) error
 	RunChecks(force bool) error
 	RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error)
 	CheckIn(mode string)
@@ -121,12 +123,47 @@ type Interface interface {
 }
 
 type Agent struct {
-	Interface
-	AgentConfig
+	AgentInterface
+	*AgentConfig
 	InfoCollector
 	Logger  *logrus.Logger
 	RClient *resty.Client
-	// Logger *logrus.Logger
+}
+
+// test: from go-service:
+var (
+	system         System
+	systemRegistry []System
+)
+
+var ErrNoServiceSystemDetected = errors.New("No service system detected.")
+
+type System interface {
+	Detect() bool
+	New() (Agent, error)
+	// New(i AgentInterface) (Agent, error)
+}
+
+func newSystem() System {
+	for _, choice := range systemRegistry {
+		if choice.Detect() == false {
+			continue
+		}
+		return choice
+	}
+	return nil
+}
+
+func ChooseSystem(a ...System) {
+	systemRegistry = a
+	system = newSystem()
+}
+
+func New(logger *logrus.Logger, version string) (Agent, error) {
+	/*if system == nil {
+		return nil, ErrNoServiceSystemDetected
+	}*/
+	return system.New()
 }
 
 // GenerateAgentID creates and returns a unique agent ID
@@ -141,6 +178,6 @@ func GenerateAgentID() string {
 	return string(b)
 }
 
-func ShowStatus(a Agent, version string) {
+/*func ShowStatus(a Agent, version string) {
 	a.ShowStatus(version)
-}
+}*/
