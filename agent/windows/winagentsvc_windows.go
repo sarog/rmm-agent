@@ -1,7 +1,6 @@
 package windows
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -13,11 +12,9 @@ import (
 )
 
 const (
-	// Deprecated
-	// Since 1.7.0, replaced with NATS
+	// Deprecated since 1.7.0, replaced with NATS
 	API_URL_CHECKIN = "/api/v3/checkin/"
 
-	// CheckIn
 	CHECKIN_MODE_DISKS        = "disks"
 	CHECKIN_MODE_HELLO        = "hello"
 	CHECKIN_MODE_LOGGEDONUSER = "loggedonuser"
@@ -27,7 +24,6 @@ const (
 	CHECKIN_MODE_STARTUP      = "startup"
 	CHECKIN_MODE_WINSERVICES  = "winservices"
 
-	// nats service: natsapi/svc.go:16
 	NATS_MODE_DISKS       = "agent-disks"
 	NATS_MODE_HELLO       = "agent-hello"
 	NATS_MODE_OSINFO      = "agent-agentinfo"
@@ -36,22 +32,16 @@ const (
 	NATS_MODE_WMI         = "agent-wmi" // sysinfo?
 )
 
-// RunAgentService
-// Deprecated
-func (a *WindowsAgent) RunAgentService() {
+func (a *windowsAgent) RunAgentService(nc *nats.Conn) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go a.WinAgentSvc()
+	go a.WinAgentSvc(nc)
 	go a.CheckRunner()
 	wg.Wait()
 }
 
-// WinAgentSvc Windows nssm service startup
-// Deprecated
-func (a *WindowsAgent) WinAgentSvc() {
+func (a *windowsAgent) WinAgentSvc(nc *nats.Conn) {
 	a.Logger.Infoln("Agent service started")
-
-	// go a.GetPython(false)
 
 	a.CreateAgentTempDir()
 
@@ -63,14 +53,14 @@ func (a *WindowsAgent) WinAgentSvc() {
 
 	startup := []string{CHECKIN_MODE_HELLO, CHECKIN_MODE_OSINFO, CHECKIN_MODE_WINSERVICES, CHECKIN_MODE_DISKS, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_SOFTWARE, CHECKIN_MODE_LOGGEDONUSER}
 	for _, s := range startup {
-		a.CheckIn(s)
+		a.CheckIn(nc, s)
 		time.Sleep(time.Duration(randRange(300, 900)) * time.Millisecond)
 	}
 	time.Sleep(1 * time.Second)
 	a.CheckForRecovery()
 
 	time.Sleep(time.Duration(randRange(2, 7)) * time.Second)
-	a.CheckIn(CHECKIN_MODE_STARTUP)
+	a.CheckIn(nc, CHECKIN_MODE_STARTUP)
 
 	checkInTicker := time.NewTicker(time.Duration(randRange(40, 110)) * time.Second)
 	checkInOSTicker := time.NewTicker(time.Duration(randRange(250, 450)) * time.Second)
@@ -84,19 +74,19 @@ func (a *WindowsAgent) WinAgentSvc() {
 	for {
 		select {
 		case <-checkInTicker.C:
-			a.CheckIn(CHECKIN_MODE_HELLO)
+			a.CheckIn(nc, CHECKIN_MODE_HELLO)
 		case <-checkInOSTicker.C:
-			a.CheckIn(CHECKIN_MODE_OSINFO)
+			a.CheckIn(nc, CHECKIN_MODE_OSINFO)
 		case <-checkInWinSvcTicker.C:
-			a.CheckIn(CHECKIN_MODE_WINSERVICES)
+			a.CheckIn(nc, CHECKIN_MODE_WINSERVICES)
 		case <-checkInPubIPTicker.C:
-			a.CheckIn(CHECKIN_MODE_PUBLICIP)
+			a.CheckIn(nc, CHECKIN_MODE_PUBLICIP)
 		case <-checkInDisksTicker.C:
-			a.CheckIn(CHECKIN_MODE_DISKS)
+			a.CheckIn(nc, CHECKIN_MODE_DISKS)
 		case <-checkInLoggedUserTicker.C:
-			a.CheckIn(CHECKIN_MODE_LOGGEDONUSER)
+			a.CheckIn(nc, CHECKIN_MODE_LOGGEDONUSER)
 		case <-checkInSWTicker.C:
-			a.CheckIn(CHECKIN_MODE_SOFTWARE)
+			a.CheckIn(nc, CHECKIN_MODE_SOFTWARE)
 		case <-recoveryTicker.C:
 			a.CheckForRecovery()
 		}
@@ -104,33 +94,23 @@ func (a *WindowsAgent) WinAgentSvc() {
 }
 
 // CheckIn Check in with the server
-func (a *WindowsAgent) CheckIn(mode string) {
+func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 	var rerr error
 	var payload interface{}
-	var nPayload interface{}
 	var nMode string
 
 	// Outgoing payload to server
 	switch mode {
 	case CHECKIN_MODE_HELLO:
-		// 2022-01-01: 'agent-hello' @ natsapi/svc.go:36
 		nMode = NATS_MODE_HELLO
-		nPayload = trmm.CheckInNats{
+		payload = trmm.CheckInNats{
 			Agentid: a.AgentID,
 			Version: a.Version,
 		}
 
-		/*payload = rmm.CheckIn{
-			Func:    "hello",
-			Agentid: a.AgentID,
-			Version: a.Version,
-		}*/
-
 	case CHECKIN_MODE_STARTUP:
-		// 2022-01-01: relies on 'post' endpoint @ api/tacticalrmm/apiv3/views.py:84
 		// server will then request 2 calls via nats:
-		//  'installchoco' @ api/tacticalrmm/apiv3/views.py:87
-		// 	'getwinupdates' @ api/tacticalrmm/apiv3/views.py:90
+		//  'installchoco' and 'getwinupdates'
 		payload = rmm.CheckIn{
 			Func:    "startup",
 			Agentid: a.AgentID,
@@ -144,9 +124,8 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			reboot = false
 		}
 
-		// 2022-01-01: 'agent-agentinfo' @ natsapi/svc.go:70
 		nMode = NATS_MODE_OSINFO
-		nPayload = trmm.AgentInfoNats{
+		payload = trmm.AgentInfoNats{
 			Agentid:      a.AgentID,
 			Username:     a.LoggedOnUser(),
 			Hostname:     a.Hostname(),
@@ -157,74 +136,28 @@ func (a *WindowsAgent) CheckIn(mode string) {
 			RebootNeeded: reboot,
 		}
 
-		/*payload = rmm.CheckInOS{
-			CheckIn: rmm.CheckIn{
-				Func:    "osinfo",
-				Agentid: a.AgentID,
-				Version: a.Version,
-			},
-			Hostname:     a.Hostname,
-			OS:           osInfo,
-			Platform:     plat,
-			TotalRAM:     a.TotalRAM(),
-			BootTime:     a.BootTime(),
-			RebootNeeded: reboot,
-		}*/
-
 	case CHECKIN_MODE_WINSERVICES:
-		// 2022-01-01: 'agent-winsvc' @ natsapi/svc.go:117
 		nMode = NATS_MODE_WINSERVICES
-		nPayload = trmm.WinSvcNats{
+		payload = trmm.WinSvcNats{
 			Agentid: a.AgentID,
 			WinSvcs: a.GetServicesNATS(),
 		}
 
-		/*payload = rmm.CheckInWinServices{
-			CheckIn: rmm.CheckIn{
-				Func:    "winservices",
-				Agentid: a.AgentID,
-				Version: a.Version,
-			},
-			Services: a.GetServices(),
-		}*/
-
 	case CHECKIN_MODE_PUBLICIP:
-		// 2022-01-01: 'agent-publicip' @ natsapi/svc.go:56
 		nMode = NATS_MODE_PUBLICIP
-		nPayload = trmm.PublicIPNats{
+		payload = trmm.PublicIPNats{
 			Agentid:  a.AgentID,
 			PublicIP: a.PublicIP(),
 		}
 
-		/*payload = rmm.CheckInPublicIP{
-			CheckIn: rmm.CheckIn{
-				Func:    "publicip",
-				Agentid: a.AgentID,
-				Version: a.Version,
-			},
-			PublicIP: a.PublicIP(),
-		}*/
-
 	case CHECKIN_MODE_DISKS:
-		// 2022-01-01: 'agent-disks' @ natsapi/svc.go:97
 		nMode = NATS_MODE_DISKS
-		nPayload = trmm.WinDisksNats{
+		payload = trmm.WinDisksNats{
 			Agentid: a.AgentID,
 			Disks:   a.GetDisksNATS(),
 		}
 
-		/*payload = rmm.CheckInDisk{
-			CheckIn: rmm.CheckIn{
-				Func:    "disks",
-				Agentid: a.AgentID,
-				Version: a.Version,
-			},
-			Disks: a.GetDisks(),
-		}*/
-
 	case CHECKIN_MODE_LOGGEDONUSER:
-		// 2022-01-02: this is combined with 'agent-hello'
-		// 2022-01-01: api/tacticalrmm/apiv3/views.py:61
 		payload = rmm.CheckInLoggedUser{
 			CheckIn: rmm.CheckIn{
 				Func:    "loggedonuser",
@@ -235,7 +168,6 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		}
 
 	case CHECKIN_MODE_SOFTWARE:
-		// 2022-01-01: api/tacticalrmm/apiv3/views.py:67
 		payload = rmm.CheckInSW{
 			CheckIn: rmm.CheckIn{
 				Func:    "software",
@@ -246,42 +178,40 @@ func (a *WindowsAgent) CheckIn(mode string) {
 		}
 	}
 
-	// 2022-01-02
 	// todo: 2022-01-02: add error logging/handling
 	if len(nMode) > 0 {
-		opts := a.setupNatsOptions()
-		server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
-		nc, err := nats.Connect(server, opts...)
+		// opts := a.SetupNatsOptions()
+		// server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
+		// nc, err := nats.Connect(server, opts...)
+		// if err != nil {
+		// 	a.Logger.Errorln(err)
+		// } else {
+		var response []byte
+		err := codec.NewEncoderBytes(&response, new(codec.MsgpackHandle)).Encode(payload)
 		if err != nil {
-			a.Logger.Errorln(err)
-		} else {
-			var cPayload []byte
-			codec.NewEncoderBytes(&cPayload, new(codec.MsgpackHandle)).Encode(nPayload)
-			// todo: 2022-01-02: test
-			err = nc.PublishRequest(a.AgentID, nMode, cPayload)
-			// was testing with: nc.Publish(a.AgentID, cPayload)
+			return
 		}
+		nc.PublishRequest(a.AgentID, nMode, response)
+		// was testing with: nc.Publish(a.AgentID, cPayload)
+		// }
 		// mh.RawToString = true
 		// dec := codec.NewDecoderBytes(msg.Data, &mh)
 		// if err := dec.Decode(&payload); err != nil {
 		// 	a.Logger.Errorln(err)
 		// 	return
 		// }
-		nc.Flush()
-		nc.Close()
+		// nc.Flush()
+		// nc.Close()
 	} else {
 		// Deprecated endpoint
 		if mode == CHECKIN_MODE_HELLO {
-			// 2022-01-01: 'patch' was removed, endpoint deprecated
 			// _, rerr = a.RClient.R().SetBody(payload).Patch(API_URL_CHECKIN)
 			// a.CheckIn(CHECKIN_MODE_HELLO)
 			// time.Sleep(200 * time.Millisecond)
 		} else if mode == CHECKIN_MODE_STARTUP {
-			// 2022-01-01: api/tacticalrmm/apiv3/views.py:84
 			_, rerr = a.RClient.R().SetBody(payload).Post(API_URL_CHECKIN)
 		} else {
 			// 'put' is deprecated as of 1.7.0
-			// 2021-12-31: api/tacticalrmm/apiv3/views.py:30
 			_, rerr = a.RClient.R().SetBody(payload).Put(API_URL_CHECKIN)
 		}
 		if rerr != nil {

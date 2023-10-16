@@ -506,7 +506,7 @@ func GetWin32_VideoController() ([]interface{}, error) {
 }
 
 // SysInfo Retrieves (and sends) WMI data
-func (a *WindowsAgent) SysInfo() {
+func (a *windowsAgent) SysInfo() {
 	wmiInfo := make(map[string]interface{})
 
 	compSysProd, err := GetWin32_ComputerSystemProduct()
@@ -574,7 +574,6 @@ func (a *WindowsAgent) SysInfo() {
 		a.Logger.Debugln(err)
 	}
 
-	// 2022-01-01: api/tacticalrmm/agents/models.py:255
 	wmiInfo["comp_sys_prod"] = compSysProd
 	wmiInfo["comp_sys"] = compSys
 	wmiInfo["network_config"] = netAdaptConfig
@@ -589,13 +588,11 @@ func (a *WindowsAgent) SysInfo() {
 	wmiInfo["usb"] = usb
 	wmiInfo["graphics"] = graphics
 
-	// 2021-12-31: api/tacticalrmm/apiv3/views.py:358
 	payload := map[string]interface{}{
 		"agent_id": a.AgentID,
 		"sysinfo":  wmiInfo,
 	}
 
-	// 2021-12-31: api/tacticalrmm/apiv3/views.py:362
 	_, rerr := a.RClient.R().SetBody(payload).Patch(API_URL_SYSINFO)
 	if rerr != nil {
 		a.Logger.Debugln(rerr)

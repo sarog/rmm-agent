@@ -14,12 +14,10 @@ import (
 
 const TASK_PREFIX = "RMM_"
 
-func (a *WindowsAgent) RunTask(id int) error {
+func (a *windowsAgent) RunTask(id int) error {
 	data := rmm.AutomatedTask{}
-	// 2022-01-01: api/tacticalrmm/apiv3/views.py:306
 	url := fmt.Sprintf("/api/v3/%d/%s/taskrunner/", id, a.AgentID)
 
-	// 2022-01-01: api/tacticalrmm/apiv3/views.py:310
 	r1, gerr := a.RClient.R().Get(url)
 	if gerr != nil {
 		a.Logger.Debugln(gerr)
@@ -53,7 +51,6 @@ func (a *WindowsAgent) RunTask(id int) error {
 		ExecTime: time.Since(start).Seconds(),
 	}
 
-	// 2022-01-01: api/tacticalrmm/apiv3/views.py:315
 	_, perr := a.RClient.R().SetBody(payload).Patch(url)
 	if perr != nil {
 		a.Logger.Debugln(perr)
@@ -63,7 +60,7 @@ func (a *WindowsAgent) RunTask(id int) error {
 }
 
 // CreateInternalTask creates predefined RMM agent internal tasks
-func (a *WindowsAgent) CreateInternalTask(name, args, repeat string, start int) (bool, error) {
+func (a *windowsAgent) CreateInternalTask(name, args, repeat string, start int) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
 		return false, err
@@ -121,9 +118,6 @@ func (a *WindowsAgent) CreateInternalTask(name, args, repeat string, start int) 
 }
 
 // SchedTask Scheduled Task
-// 2021-12-31: used in:
-//
-//	api/tacticalrmm/agents/views.py:389
 type SchedTask struct {
 	PK                 int                  `json:"pk"`
 	Type               string               `json:"type"` // rmm, custom
@@ -143,17 +137,16 @@ type SchedTask struct {
 	Parallel           bool                 `json:"parallel"`
 	RunASAPAfterMissed bool                 `json:"run_asap_after_missed"`
 
-	// todo: 1.7.3+: OverwriteTask bool `json:"overwrite_task"` // 2022-01-01: via nats: api/tacticalrmm/autotasks/models.py:357
+	// todo: 1.7.3+: OverwriteTask bool `json:"overwrite_task"`
 	// todo: 1.7.3+: MultipleInstances int `json:"multiple_instances"`
 	// todo: 1.7.3+: DeletedExpiredAfter bool `json:"delete_expired_task_after"`
 	// todo: 1.7.3+: StartWhenAvailable bool `json:"start_when_available"`
 	// run_on_last_day_of_month, random_delay, repetition_interval, repetition_duration,
 	// days_of_week, days_of_month, weeks_of_month, months_of_year
-
 }
 
 // CreateSchedTask Create a Scheduled Task
-func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
+func (a *windowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 	conn, err := taskmaster.Connect()
 	if err != nil {
 		a.Logger.Errorln(err)
@@ -214,7 +207,6 @@ func (a *WindowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 		workdir = a.ProgramDir
 		args = fmt.Sprintf("-m taskrunner -p %d", st.PK)
 	case "schedreboot":
-		// 2022-01-01: via nats_cmd: api/tacticalrmm/agents/views.py:390
 		path = "shutdown.exe"
 		workdir = filepath.Join(os.Getenv("SYSTEMROOT"), "System32")
 		args = "/r /t 5 /f"
@@ -341,6 +333,7 @@ func ListSchedTasks() []string {
 	return ret
 }
 
+// getMonth todo: move
 func getMonth(month string) time.Month {
 	switch month {
 	case "January":

@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -69,14 +70,23 @@ const (
 )
 
 // RunRPCService handles incoming NATS payloads from server
-func (a *WindowsAgent) RunRPCService() {
+func (a *windowsAgent) RunRPCService() {
 	a.Logger.Infoln("RPC service started")
-	opts := a.setupNatsOptions()
+	opts := a.SetupNatsOptions()
 	server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
 	nc, err := nats.Connect(server, opts...)
 	if err != nil {
 		a.Logger.Fatalln(err)
 	}
+
+	go a.RunAgentService(nc)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// todo: 2023-10-17: JetStream
+	// Migration: https://natsbyexample.com/examples/jetstream/api-migration/go
+	// https://github.com/nats-io/nats.go#jetstream
+	// js, _ := jetstream.New(nc)
 
 	// Incoming payload from server
 	nc.Subscribe(a.AgentID, func(msg *nats.Msg) {
@@ -93,9 +103,6 @@ func (a *WindowsAgent) RunRPCService() {
 
 		switch payload.Func {
 		case NATS_CMD_PING:
-			// 2021-12-31:
-			//   api/tacticalrmm/agents/models.py:353
-			//   api/tacticalrmm/agents/views.py:279
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -105,9 +112,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_TASK_ADD:
-			// 2021-12-31: via nats:
-			//	"reboot later": api/tacticalrmm/agents/views.py:388
-			//  1.7.3+: api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -124,8 +128,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_TASK_DEL:
-			// 2022-01-01: via nats:
-			//	api/tacticalrmm/autotasks/tasks.py:87 (remove_orphaned_win_tasks)
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -140,8 +142,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_TASK_ENABLE:
-			// 2022-01-01: via nats:
-			// 	api/tacticalrmm/autotasks/models.py:543
 			//  1.7.3+: replaced with 'func: schedtask': api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
 			go func(p *NatsMsg) {
 				var resp []byte
@@ -157,8 +157,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_TASK_LIST:
-			// 2022-01-01: via nats:
-			// 	api/tacticalrmm/autotasks/tasks.py:60 (remove_orphaned_win_tasks)
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -169,7 +167,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_EVENTLOG:
-			// 2021-12-31: api/tacticalrmm/agents/views.py:300
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -181,7 +178,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_PROCS_LIST:
-			// 2022-01-02: api/tacticalrmm/agents/views.py:176
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -192,7 +188,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_PROCS_KILL:
-			// 2022-01-02: api/tacticalrmm/agents/views.py:185
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -207,7 +202,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_RAWCMD:
-			// 2021-12-31: api/tacticalrmm/agents/views.py:326
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -223,7 +217,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_WINSERVICES:
-			// 2022-01-01: api/tacticalrmm/services/views.py:24
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -234,7 +227,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_WINSVC_DETAIL:
-			// 2022-01-01: api/tacticalrmm/services/views.py:40
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -245,7 +237,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_WINSVC_ACTION:
-			// 2022-01-01: api/tacticalrmm/services/views.py:52
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -256,7 +247,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_WINSVC_EDIT:
-			// 2022-01-01: api/tacticalrmm/services/views.py:92
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -267,7 +257,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_SCRIPT_RUN:
-			// 2022-01-01: api/tacticalrmm/agents/models.py:339 (run_script)
 			go func(p *NatsMsg) {
 				var resp []byte
 				var retData string
@@ -285,7 +274,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_SCRIPT_RUN_FULL:
-			// 2022-01-01: api/tacticalrmm/agents/models.py:339 (run_script)
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -303,9 +291,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_RECOVER:
-			// 2022-01-01:
-			// 	api/tacticalrmm/agents/views.py:236
-			// 	api/tacticalrmm/agents/views.py:570
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -330,7 +315,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_SOFTWARE_LIST:
-			// 2022-01-01: api/tacticalrmm/software/views.py:75
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -341,9 +325,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_REBOOT_NOW:
-			// 2021-12-31: triggered from (via nats_cmd):
-			// 	 api/tacticalrmm/apiv3/views.py:138
-			// 	 api/tacticalrmm/agents/views.py:363
 			go func() {
 				a.Logger.Debugln("Scheduling immediate reboot")
 				var resp []byte
@@ -370,7 +351,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_SYSINFO:
-			// 2022-01-01: api/tacticalrmm/apiv3/views.py:358
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -378,7 +358,7 @@ func (a *WindowsAgent) RunRPCService() {
 
 				modes := []string{CHECKIN_MODE_OSINFO, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_DISKS}
 				for _, mode := range modes {
-					a.CheckIn(mode)
+					a.CheckIn(nc, mode)
 					time.Sleep(200 * time.Millisecond)
 				}
 				a.SysInfo()
@@ -435,7 +415,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_PUBLICIP:
-			// 2022-01-01: removed? or renamed to 'agent-publicip'?
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -444,11 +423,9 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_INSTALL_CHOCO:
-			// 2021-12-31: called by: api/tacticalrmm/apiv3/views.py:87
 			go a.InstallChoco()
 
 		case NATS_CMD_CHOCO_INSTALL:
-			// 2021-12-31: api/tacticalrmm/apiv3/views.py:492
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -461,11 +438,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_GETWINUPDATES:
-			// 2022-01-01:
-			//  api/tacticalrmm/winupdate/views.py:36 (ScanWindowsUpdates->post)
-			// 	api/tacticalrmm/winupdate/tasks.py:37 (auto_approve_updates_task)
-			//  api/tacticalrmm/winupdate/tasks.py:163 (bulk_check_for_updates_task)
-			//  api/tacticalrmm/apiv3/views.py:90 (CheckIn->post on startup)
 			go func() {
 				if !atomic.CompareAndSwapUint32(&getWinUpdateLocker, 0, 1) {
 					a.Logger.Debugln("Already checking for Windows Updates")
@@ -477,10 +449,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}()
 
 		case NATS_CMD_INSTALL_WINUPDATES:
-			// 2022-01-01: via nats:
-			//  api/tacticalrmm/winupdate/views.py:49 (InstallWindowsUpdates->post)
-			//  api/tacticalrmm/winupdate/tasks.py:126 (check_agent_update_schedule_task)
-			//  api/tacticalrmm/winupdate/tasks.py:147 (bulk_install_updates_task)
 			go func(p *NatsMsg) {
 				if !atomic.CompareAndSwapUint32(&installWinUpdateLocker, 0, 1) {
 					a.Logger.Debugln("Already installing Windows Updates")
@@ -492,7 +460,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_AGENT_UPDATE:
-			// 2022-01-01: api/tacticalrmm/agents/tasks.py:58 (agent_update)
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
@@ -512,7 +479,6 @@ func (a *WindowsAgent) RunRPCService() {
 			}(payload)
 
 		case NATS_CMD_AGENT_UNINSTALL:
-			// 2022-01-01: api/tacticalrmm/agents/views.py:158 (GetUpdateDeleteAgent->delete)
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))

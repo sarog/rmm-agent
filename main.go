@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kardianos/service"
 	"github.com/sarog/rmmagent/agent"
 	"github.com/sarog/rmmagent/agent/common"
 	"github.com/sarog/rmmagent/agent/windows"
@@ -24,7 +25,6 @@ const (
 
 	AGENT_MODE_RPC         = "rpc"
 	AGENT_MODE_SVC         = "agentsvc"
-	AGENT_MODE_WINSVC      = "winagentsvc"
 	AGENT_MODE_CHECKRUNNER = "checkrunner"
 	AGENT_MODE_CLEANUP     = "cleanup"
 	AGENT_MODE_INSTALL     = "install"
@@ -37,69 +37,128 @@ const (
 	AGENT_MODE_TASK        = "task"
 	AGENT_MODE_TASKRUNNER  = "taskrunner"
 	AGENT_MODE_UPDATE      = "update"
-	AGENT_MODE_WMI         = "wmi"
 )
+
+type program struct {
+	exit chan struct{}
+}
+
+var logger service.Logger
 
 func main() {
 	hostname, _ := os.Hostname()
 
+	help := "Missing sub-command" // todo
+
 	// CLI
 	ver := flag.Bool("version", false, "Prints agent version and exits")
+
+	// Install
+	installSet := flag.NewFlagSet("install", flag.ContinueOnError)
+	silent := installSet.Bool("silent", false, "Do not popup any message boxes during installation")
+	apiUrl := installSet.String("api", "", "API URL")
+	clientID := installSet.Int("client-id", 0, "Client ID")
+	siteID := installSet.Int("site-id", 0, "Site ID")
+	token := installSet.String("auth", "", "Agent's authorization token")
+	timeout := installSet.Duration("timeout", 1000, "Installer timeout in seconds")
+	aDesc := installSet.String("desc", hostname, "Agent's description to display on the RMM server")
+	cert := installSet.String("cert", "", "Path to the Root Certificate Authority's .pem")
+
+	// Update
+	updateSet := flag.NewFlagSet("update", flag.ContinueOnError)
+	updateurl := updateSet.String("updateurl", "", "Source URL to retrieve the update executable")
+	inno := updateSet.String("inno", "", "Inno setup filename")
+	updatever := updateSet.String("updatever", "", "Update version")
+
+	// modeSet :=
+	flag.NewFlagSet("mode", flag.ContinueOnError)
 	mode := flag.String("m", "", "The mode to run: "+
-		"install, update, rpc, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, wmi, pk, publicip, runmigrations, taskrunner, cleanup")
+		"install, update, rpc, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, pk, publicip, taskrunner, cleanup")
 
 	taskPK := flag.Int("p", 0, "Task PK")
+
+	// Logging
 	logLevel := flag.String("log", "INFO", "Log level: INFO*, WARN, ERROR, DEBUG")
 	logTo := flag.String("logto", "file", "Log destination: file, stdout")
 
-	apiUrl := flag.String("api", "", "API URL")
-	clientID := flag.Int("client-id", 0, "Client ID")
-	siteID := flag.Int("site-id", 0, "Site ID")
-	token := flag.String("auth", "", "Agent's authorization token")
+	// Agent Service management
+	svcFlag := flag.String("service", "", "Control the system service.")
 
-	timeout := flag.Duration("timeout", 1000, "Installer timeout in seconds")
-	aDesc := flag.String("desc", hostname, "Agent's description to display on the RMM server")
-
-	cert := flag.String("cert", "", "Path to the Certificate Authority's .pem")
-	updateurl := flag.String("updateurl", "", "Source URL to retrieve the update executable")
-	inno := flag.String("inno", "", "Inno setup filename")
-	updatever := flag.String("updatever", "", "Update version")
-
-	silent := flag.Bool("silent", false, "Do not popup any message boxes during installation")
-
-	flag.Parse()
+	// flag.Parse()
 
 	if *ver {
 		showVersionInfo(version)
 		return
 	}
 
-	if len(os.Args) == 1 {
-		// agent.ShowStatus(version)
-		return
-	}
-
 	setupLogging(logLevel, logTo)
 	defer logFile.Close()
 
-	// was: a := *windows.New(log, version)
-	// a, _ := agent.New(log, version)
+	var a = agent.GetAgent(log, version).(common.IAgent)
+	s, _ := service.New(a, a.GetServiceConfig())
 
-	type Agent struct {
+	if len(os.Args) == 1 {
+		// todo: a.ShowStatus(version)
+		fmt.Fprintln(os.Stderr, "didn't receive any arguments")
+		os.Exit(0)
+		// return
 	}
 
-	var a = agent.GetAgent(log, version).(common.IAgent)
+	switch os.Args[1] {
+	case "install":
+		if err := installSet.Parse(os.Args[2:]); err == nil {
+			fmt.Println("install", "silent=", *silent, "api=", *apiUrl, "client=", *clientID, "site=", *siteID, "token=", *token, "cert", "timeout", "desc")
+		}
+
+	case "update":
+		if err := updateSet.Parse(os.Args[2:]); err == nil {
+			fmt.Println("update")
+			updateSet.PrintDefaults()
+		}
+
+	case "mode":
+		// if err := modeSet.Parse(os.Args[2:]); err == nil {
+		// 	fmt.Println("mode", *silent)
+		// }
+
+	case "service":
+		fmt.Fprintln(os.Stderr, "case => service")
+		err := service.Control(s, *svcFlag)
+		if err != nil {
+			log.Printf("Valid actions: %q\n", service.ControlAction)
+			log.Fatal(err)
+		}
+
+	default:
+		fmt.Fprintln(os.Stderr, "case => default")
+		fmt.Fprintln(os.Stderr, help)
+		os.Exit(0)
+	}
+
+	if *svcFlag != "" {
+		if len(*svcFlag) != 0 {
+			err := service.Control(s, *svcFlag)
+			if err != nil {
+				log.Printf("Valid actions: %q\n", service.ControlAction)
+				log.Fatal(err)
+			}
+			return
+		}
+	}
 
 	switch *mode {
-	case AGENT_MODE_RPC:
-		a.RunRPCService()
-	case AGENT_MODE_WINSVC, AGENT_MODE_SVC:
-		a.RunAgentService()
+	// case AGENT_MODE_RPC:
+	// 	a.RunRPCService()
+	case AGENT_MODE_RPC, AGENT_MODE_SVC:
+
+		s.Run()
+		// a.RunRPCService()
+		// a.RunAgentService()
 	case AGENT_MODE_RUNCHECKS:
 		a.RunChecks(true)
 	case AGENT_MODE_CHECKRUNNER:
 		a.RunChecks(false)
-	case AGENT_MODE_SYSINFO, AGENT_MODE_WMI:
+	case AGENT_MODE_SYSINFO:
 		a.SysInfo()
 	case AGENT_MODE_SOFTWARE:
 		a.SendSoftware()
@@ -114,20 +173,24 @@ func main() {
 			return
 		}
 		a.RunTask(*taskPK)
-	case AGENT_MODE_SHOW_PK:
-		fmt.Println(a.AgentPK)
+	// todo:
+	// case AGENT_MODE_SHOW_PK:
+	// 	fmt.Println(a.AgentPK)
+
 	case AGENT_MODE_UPDATE:
 		if *updateurl == "" || *inno == "" || *updatever == "" {
 			updateUsage()
 			return
 		}
 		a.AgentUpdate(*updateurl, *inno, *updatever)
+
 	case AGENT_MODE_INSTALL:
 		log.SetOutput(os.Stdout)
 		if *apiUrl == "" || *clientID == 0 || *siteID == 0 || *token == "" {
 			installUsage()
 			return
 		}
+
 		a.Install(
 			&common.InstallInfo{
 				ServerURL:   *apiUrl,
@@ -135,7 +198,7 @@ func main() {
 				SiteID:      *siteID,
 				Description: *aDesc,
 				Token:       *token,
-				Cert:        *cert,
+				RootCert:    *cert,
 				Timeout:     *timeout,
 				Silent:      *silent,
 			},
@@ -158,12 +221,12 @@ func setupLogging(level, to *string) {
 	} else {
 		switch runtime.GOOS {
 		case "windows":
-			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), common.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), windows.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		case "freebsd":
 			logFile, _ = os.OpenFile(filepath.Join("/var/log", "rmm", AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
 		case "darwin":
 		case "linux":
-			// todo
+
 		}
 		log.SetOutput(logFile)
 	}

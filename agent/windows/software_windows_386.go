@@ -2,8 +2,8 @@ package windows
 
 import (
 	"fmt"
-	so "github.com/iamacarpet/go-win64api/shared"
-	wapf "github.com/sarog/go-win64api"
+	wapf "github.com/jetrmm/go-win64api"
+	so "github.com/jetrmm/go-win64api/shared"
 	"github.com/sarog/rmmagent/agent/common"
 	rmm "github.com/sarog/rmmagent/shared"
 )
@@ -17,7 +17,7 @@ func installedSoftwareList() ([]so.Software, error) {
 	return sw32, nil
 }
 
-func (a *WindowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
+func (a *windowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
 	ret := make([]rmm.SoftwareList, 0)
 
 	sw, err := installedSoftwareList()

@@ -10,8 +10,8 @@ type InstallInfo struct {
 	SiteID      int
 	Description string
 	// AgentType   string // Workstation, Server
-	Token   string // dupe?
-	Cert    string // dupe?
-	Timeout time.Duration
-	Silent  bool
+	Token    string // dupe?
+	RootCert string
+	Timeout  time.Duration
+	Silent   bool
 }

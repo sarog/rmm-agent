@@ -6,7 +6,7 @@ type IAgentConfig interface {
 }
 
 type AgentConfig struct {
-	AgentID  string
+	AgentID  string // Username
 	AgentPK  string
 	BaseURL  string // dupe?
 	ApiURL   string // dupe?

@@ -2,12 +2,12 @@ package windows
 
 import (
 	"fmt"
-	wapi "github.com/iamacarpet/go-win64api"
+	wapi "github.com/jetrmm/go-win64api"
 	"github.com/sarog/rmmagent/agent/common"
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
-func (a *WindowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
+func (a *windowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
 	ret := make([]rmm.SoftwareList, 0)
 
 	sw, err := wapi.InstalledSoftwareList()

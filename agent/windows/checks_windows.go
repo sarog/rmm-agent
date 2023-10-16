@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sarog/rmmagent/agent/common"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
@@ -38,7 +37,7 @@ const (
 	AGENT_MODE_CHECKRUNNER = "checkrunner"
 )
 
-func (a *WindowsAgent) CheckRunner() {
+func (a *windowsAgent) CheckRunner() {
 	a.Logger.Infoln("CheckRunner service started.")
 	sleepDelay := randRange(14, 22)
 	a.Logger.Debugf("Sleeping for %v seconds", sleepDelay)
@@ -56,7 +55,7 @@ func (a *WindowsAgent) CheckRunner() {
 	}
 }
 
-func (a *WindowsAgent) GetCheckInterval() (int, error) {
+func (a *windowsAgent) GetCheckInterval() (int, error) {
 	r, err := a.RClient.R().SetResult(&rmm.CheckInfo{}).Get(fmt.Sprintf("/api/v3/%s/checkinterval/", a.AgentID))
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -70,20 +69,15 @@ func (a *WindowsAgent) GetCheckInterval() (int, error) {
 	return interval, nil
 }
 
-func (a *WindowsAgent) RunChecks(force bool) error {
+func (a *windowsAgent) RunChecks(force bool) error {
 	data := rmm.AllChecks{}
 	var url string
 	if force {
-		// 2021-12-31: api/tacticalrmm/apiv3/views.py:229
 		url = fmt.Sprintf("/api/v3/%s/runchecks/", a.AgentID)
 	} else {
-		// 2021-12-31: api/tacticalrmm/apiv3/views.py:244
 		url = fmt.Sprintf("/api/v3/%s/checkrunner/", a.AgentID)
 	}
 
-	// 2021-12-31:
-	// 	api.tacticalrmm.apiv3.views.RunChecks.get
-	// 	api.tacticalrmm.apiv3.views.CheckRunner.get
 	r, err := a.RClient.R().Get(url)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -107,7 +101,6 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 	for _, check := range data.Checks {
 		switch check.CheckType {
 		case CHECK_TYPE_DISKSPACE:
-			// 2021-12-31: api/tacticalrmm/checks/models.py:340
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
@@ -115,7 +108,6 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 				a.DiskCheck(c, r)
 			}(check, &wg, a.RClient)
 		case CHECK_TYPE_CPULOAD:
-			// 2021-12-31: api/tacticalrmm/checks/models.py:315
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
@@ -129,7 +121,6 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 				a.MemCheck(c, r)
 			}(check, &wg, a.RClient)
 		case CHECK_TYPE_PING:
-			// 2021-12-31: api/tacticalrmm/checks/models.py:407
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
@@ -137,7 +128,6 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 				a.PingCheck(c, r)
 			}(check, &wg, a.RClient)
 		case CHECK_TYPE_SCRIPT:
-			// 2021-12-31: api/tacticalrmm/checks/models.py:368
 			wg.Add(1)
 			go func(c rmm.Check, wg *sync.WaitGroup, r *resty.Client) {
 				defer wg.Done()
@@ -145,10 +135,8 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 				a.ScriptCheck(c, r)
 			}(check, &wg, a.RClient)
 		case CHECK_TYPE_WINSVC:
-			// 2021-12-31: api/tacticalrmm/checks/models.py:417
 			winServiceChecks = append(winServiceChecks, check)
 		case CHECK_TYPE_EVENTLOG:
-			// 2021-12-31: api/tacticalrmm/checks/models.py:426
 			eventLogChecks = append(eventLogChecks, check)
 		default:
 			continue
@@ -178,7 +166,7 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 	return nil
 }
 
-func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
+func (a *windowsAgent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
 	content := []byte(code)
 
 	dir := filepath.Join(os.TempDir(), common.AGENT_TEMP_DIR)
@@ -203,7 +191,7 @@ func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeo
 		ext = "*.bat" // todo: .cmd?
 	}
 
-	tmpfn, err := ioutil.TempFile(dir, ext)
+	tmpfn, err := os.CreateTemp(dir, ext)
 	if err != nil {
 		a.Logger.Errorln(err)
 		return "", err.Error(), 85, err
@@ -290,11 +278,10 @@ func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeo
 
 // ScriptCheck Runs either a batch file, PowerShell or Python script,
 // and sends the results back to the server
-func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
+func (a *windowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 	start := time.Now()
 	stdout, stderr, retcode, _ := a.RunScript(data.Script.Code, data.Script.Shell, data.ScriptArgs, data.Timeout)
 
-	// 2021-12-31: api/tacticalrmm/checks/models.py:368
 	payload := map[string]interface{}{
 		"id":      data.CheckPK,
 		"stdout":  stdout,
@@ -303,7 +290,6 @@ func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 		"runtime": time.Since(start).Seconds(),
 	}
 
-	// 2021-12-31: api/tacticalrmm/apiv3/views.py:280
 	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -314,8 +300,7 @@ func (a *WindowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 }
 
 // DiskCheck checks disk usage
-// 2021-12-31: api/tacticalrmm/checks/models.py:340
-func (a *WindowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
+func (a *windowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 	var payload map[string]interface{}
 
 	usage, err := disk.Usage(data.Disk)
@@ -352,7 +337,7 @@ func (a *WindowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 }
 
 // CPULoadCheck Checks the average processor load
-func (a *WindowsAgent) CPULoadCheck(data rmm.Check, r *resty.Client) {
+func (a *windowsAgent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 	payload := map[string]interface{}{
 		"id":      data.CheckPK,
 		"percent": a.GetCPULoadAvg(),
@@ -368,7 +353,7 @@ func (a *WindowsAgent) CPULoadCheck(data rmm.Check, r *resty.Client) {
 }
 
 // MemCheck Checks memory usage percentage
-func (a *WindowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
+func (a *windowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
 	host, _ := ps.Host()
 	mem, _ := host.Memory()
 	percent := (float64(mem.Used) / float64(mem.Total)) * 100
@@ -388,7 +373,7 @@ func (a *WindowsAgent) MemCheck(data rmm.Check, r *resty.Client) {
 }
 
 // EventLogCheck Retrieve the Windows Event Logs
-func (a *WindowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
+func (a *windowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
 	evtLog := a.GetEventLog(data.LogName, data.SearchLastDays)
 
 	payload := map[string]interface{}{
@@ -406,7 +391,7 @@ func (a *WindowsAgent) EventLogCheck(data rmm.Check, r *resty.Client) {
 }
 
 // PingCheck Plays ping pong
-func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
+func (a *windowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 	cmdArgs := []string{data.IP}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(90)*time.Second)
 	defer cancel()
@@ -437,7 +422,6 @@ func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 	}
 
 	// todo: 2021-12-31: payload structure changed in later versions
-	// 2021-12-31: api/tacticalrmm/checks/models.py:407
 	payload := map[string]interface{}{
 		"id":         data.CheckPK,
 		"has_stdout": hasOut,
@@ -456,7 +440,7 @@ func (a *WindowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 }
 
 // WinSvcCheck Checks a Windows Service
-func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
+func (a *windowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 	var status string
 	exists := true
 
@@ -467,7 +451,6 @@ func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 		a.Logger.Debugln("Service", data.ServiceName, err)
 	}
 
-	// 2022-01-01: api/tacticalrmm/checks/models.py:417
 	payload := map[string]interface{}{
 		"id":     data.CheckPK,
 		"exists": exists,
@@ -483,7 +466,7 @@ func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-func (a *WindowsAgent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
+func (a *windowsAgent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
 	if len(tasks) > 0 && common.DjangoStringResp(status) == "failing" {
 		var wg sync.WaitGroup
 		for _, t := range tasks {

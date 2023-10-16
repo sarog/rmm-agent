@@ -15,7 +15,7 @@ type ProcessMsg struct {
 	CPU      string `json:"cpu_percent"`
 }
 
-func (a *WindowsAgent) GetProcsRPC() []ProcessMsg {
+func (a *windowsAgent) GetProcsRPC() []ProcessMsg {
 	ret := make([]ProcessMsg, 0)
 
 	procs, _ := ps.Processes()
@@ -50,7 +50,7 @@ func (a *WindowsAgent) GetProcsRPC() []ProcessMsg {
 
 // ChecksRunning prevents duplicate checks from running
 // Have to do it this way, can't use atomic because they can run from both rpc and rmmagent services
-func (a *WindowsAgent) ChecksRunning() bool {
+func (a *windowsAgent) ChecksRunning() bool {
 	running := false
 	procs, err := ps.Processes()
 	if err != nil {
