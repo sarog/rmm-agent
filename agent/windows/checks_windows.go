@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sarog/rmmagent/agent"
+	"github.com/sarog/rmmagent/agent/common"
 	"io/ioutil"
 	"math"
 	"os"
@@ -181,8 +181,8 @@ func (a *WindowsAgent) RunChecks(force bool) error {
 func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
 	content := []byte(code)
 
-	dir := filepath.Join(os.TempDir(), agent.AGENT_TEMP_DIR)
-	if !agent.FileExists(dir) {
+	dir := filepath.Join(os.TempDir(), common.AGENT_TEMP_DIR)
+	if !common.FileExists(dir) {
 		a.CreateAgentTempDir()
 	}
 
@@ -251,7 +251,7 @@ func (a *WindowsAgent) RunScript(code string, shell string, args []string, timeo
 	// the normal exec.CommandContext() doesn't work since it only kills the parent process
 	go func(p int32) {
 		<-ctx.Done()
-		_ = agent.KillProc(p)
+		_ = common.KillProc(p)
 		timedOut = true
 	}(pid)
 
@@ -484,7 +484,7 @@ func (a *WindowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 }
 
 func (a *WindowsAgent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
-	if len(tasks) > 0 && agent.DjangoStringResp(status) == "failing" {
+	if len(tasks) > 0 && common.DjangoStringResp(status) == "failing" {
 		var wg sync.WaitGroup
 		for _, t := range tasks {
 			if t.Enabled {

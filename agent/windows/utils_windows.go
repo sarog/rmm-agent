@@ -1,7 +1,7 @@
 package windows
 
 import (
-	"github.com/sarog/rmmagent/agent"
+	"github.com/sarog/rmmagent/agent/common"
 	"math"
 	"net"
 	"time"
@@ -26,8 +26,8 @@ func (a *WindowsAgent) PublicIP() string {
 			a.Logger.Debugln("PublicIP error", err)
 			continue
 		}
-		ip = agent.StripAll(r.String())
-		if !agent.IsValidIP(ip) {
+		ip = common.StripAll(r.String())
+		if !common.IsValidIP(ip) {
 			a.Logger.Debugln("PublicIP not valid", ip)
 			continue
 		}
@@ -37,8 +37,8 @@ func (a *WindowsAgent) PublicIP() string {
 			if err != nil {
 				return ip
 			}
-			ipv4 := agent.StripAll(r1.String())
-			if !agent.IsValidIP(ipv4) {
+			ipv4 := common.StripAll(r1.String())
+			if !common.IsValidIP(ipv4) {
 				continue
 			}
 			a.Logger.Debugln("Forcing IPv4:", ipv4)

@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/sarog/rmmagent/agent"
+	common "github.com/sarog/rmmagent/agent/common"
+	"github.com/sarog/rmmagent/agent/config"
 	"math"
 	"os"
 	"os/exec"
@@ -44,17 +45,17 @@ const (
 
 // WindowsAgent struct
 type WindowsAgent struct {
-	*agent.Agent
+	*config.AgentConfig
 
 	ProgramDir  string
 	AgentExe    string
 	SystemDrive string
 	// Deprecated
-	Nssm string
+	Nssm    string
+	Logger  *logrus.Logger
+	RClient *resty.Client
 
-	// Headers       map[string]string
-	// Logger        *logrus.Logger
-	// rClient       *resty.Client
+	// Headers map[string]string
 }
 
 func (a *WindowsAgent) Hostname() string {
@@ -62,10 +63,10 @@ func (a *WindowsAgent) Hostname() string {
 	return sysHost.Info().Hostname
 }
 
-func NewAgent(logger *logrus.Logger, version string) *agent.IAgent {
+func NewAgent(logger *logrus.Logger, version string) common.IAgent {
 	host, _ := ps.Host()
 	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER)
+	pd := filepath.Join(os.Getenv("ProgramFiles"), common.AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	sd := os.Getenv("SystemDrive")
 	nssm := ArchInfo(pd)
@@ -129,30 +130,38 @@ func NewAgent(logger *logrus.Logger, version string) *agent.IAgent {
 		restyC.SetRootCertificate(cert)
 	}
 
+	/*	return &WindowsAgent{
+		Config:      agent.AgentConfig{},
+		ProgramDir:  "",
+		AgentExe:    "",
+		SystemDrive: "",
+		Nssm:        "",
+		Logger:      nil,
+		RClient:     nil,
+	}*/
+
 	return &WindowsAgent{
-		Agent: &agent.Agent{
-			AgentConfig: &agent.AgentConfig{
-				AgentID:  agentid,
-				AgentPK:  agentpk,
-				BaseURL:  baseurl,
-				ApiURL:   apiurl,
-				ApiPort:  agent.NATS_DEFAULT_PORT,
-				Token:    token,
-				PK:       pk,
-				Cert:     cert,
-				Arch:     info.Architecture,
-				Hostname: info.Hostname,
-				Version:  version,
-				Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
-				Headers:  headers,
-			},
-			Logger:  logger,
-			RClient: restyC,
+		AgentConfig: &config.AgentConfig{
+			AgentID:  agentid,
+			AgentPK:  agentpk,
+			BaseURL:  baseurl,
+			ApiURL:   apiurl,
+			ApiPort:  common.NATS_DEFAULT_PORT,
+			Token:    token,
+			PK:       pk,
+			Cert:     cert,
+			Arch:     info.Architecture,
+			Hostname: info.Hostname,
+			Version:  version,
+			Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
+			Headers:  headers,
 		},
 		ProgramDir:  pd,
 		AgentExe:    exe,
 		SystemDrive: sd,
 		Nssm:        nssm,
+		Logger:      logger,
+		RClient:     restyC,
 	}
 
 }
@@ -161,7 +170,7 @@ func NewAgent(logger *logrus.Logger, version string) *agent.IAgent {
 func (a *WindowsAgent) New(logger *logrus.Logger, version string) *WindowsAgent {
 	host, _ := ps.Host()
 	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER)
+	pd := filepath.Join(os.Getenv("ProgramFiles"), common.AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	sd := os.Getenv("SystemDrive")
 	nssm := ArchInfo(pd)
@@ -226,25 +235,23 @@ func (a *WindowsAgent) New(logger *logrus.Logger, version string) *WindowsAgent 
 	}
 
 	return &WindowsAgent{
-		Agent: &agent.Agent{
-			AgentConfig: &agent.AgentConfig{
-				AgentID:  agentid,
-				AgentPK:  agentpk,
-				BaseURL:  baseurl,
-				ApiURL:   apiurl,
-				ApiPort:  agent.NATS_DEFAULT_PORT,
-				Token:    token,
-				PK:       pk,
-				Cert:     cert,
-				Arch:     info.Architecture,
-				Hostname: info.Hostname,
-				Version:  version,
-				Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
-				Headers:  headers,
-			},
-			Logger:  logger,
-			RClient: restyC,
+		AgentConfig: &config.AgentConfig{
+			AgentID:  agentid,
+			AgentPK:  agentpk,
+			BaseURL:  baseurl,
+			ApiURL:   apiurl,
+			ApiPort:  common.NATS_DEFAULT_PORT,
+			Token:    token,
+			PK:       pk,
+			Cert:     cert,
+			Arch:     info.Architecture,
+			Hostname: info.Hostname,
+			Version:  version,
+			Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
+			Headers:  headers,
 		},
+		Logger:      logger,
+		RClient:     restyC,
 		ProgramDir:  pd,
 		AgentExe:    exe,
 		SystemDrive: sd,
@@ -403,7 +410,7 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 
 	go func(p int32) {
 		<-ctx.Done()
-		_ = agent.KillProc(p)
+		_ = common.KillProc(p)
 		timedOut = true
 	}(pid)
 
@@ -506,11 +513,11 @@ func (a *WindowsAgent) GetCPULoadAvg() int {
 
 // RecoverAgent Recover the Agent; only called from the RPC service
 func (a *WindowsAgent) RecoverAgent() {
-	a.Logger.Debugln("Attempting ", agent.AGENT_NAME_LONG, " recovery on", a.Hostname)
+	a.Logger.Debugln("Attempting ", common.AGENT_NAME_LONG, " recovery on", a.Hostname)
 	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
 	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
 	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln(agent.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
+	a.Logger.Debugln(common.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
 }
 
 // RecoverRPC Recovers the NATS RPC service
@@ -614,7 +621,7 @@ func (a *WindowsAgent) installerMsg(msg, alert string, silent bool) {
 			flags = w32.MB_OK | w32.MB_ICONINFORMATION
 		}
 
-		w32.MessageBox(handle, msg, agent.AGENT_NAME_LONG, flags)
+		w32.MessageBox(handle, msg, common.AGENT_NAME_LONG, flags)
 	} else {
 		fmt.Println(msg)
 	}
@@ -669,7 +676,7 @@ func (a *WindowsAgent) AgentUpdate(url, inno, version string) {
 
 func (a *WindowsAgent) setupNatsOptions() []nats.Option {
 	opts := make([]nats.Option, 0)
-	opts = append(opts, nats.Name(agent.NATS_RMM_IDENTIFIER))
+	opts = append(opts, nats.Name(common.NATS_RMM_IDENTIFIER))
 	opts = append(opts, nats.UserInfo(a.AgentID, a.Token))
 	opts = append(opts, nats.ReconnectWait(time.Second*5))
 	opts = append(opts, nats.RetryOnFailedConnect(true))
@@ -722,7 +729,7 @@ func (a *WindowsAgent) CleanupAgentUpdates() {
 		a.Logger.Errorln(cderr)
 		return
 	}
-	folders, err := filepath.Glob(agent.RMM_SEARCH_PREFIX)
+	folders, err := filepath.Glob(common.RMM_SEARCH_PREFIX)
 	if err == nil {
 		for _, f := range folders {
 			os.RemoveAll(f)
@@ -763,8 +770,8 @@ func (a *WindowsAgent) CheckForRecovery() {
 // CreateAgentTempDir Create the temp directory for running scripts
 // This can be 'C:\Windows\Temp\trmm\' or '\AppData\Local\Temp\<rmm>' depending on context
 func (a *WindowsAgent) CreateAgentTempDir() {
-	dir := filepath.Join(os.TempDir(), agent.AGENT_TEMP_DIR)
-	if !agent.FileExists(dir) {
+	dir := filepath.Join(os.TempDir(), common.AGENT_TEMP_DIR)
+	if !common.FileExists(dir) {
 		// todo: 2021-12-31: verify permissions
 		err := os.Mkdir(dir, 0775)
 		if err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	so "github.com/iamacarpet/go-win64api/shared"
 	wapf "github.com/sarog/go-win64api"
-	"github.com/sarog/rmmagent/agent"
+	"github.com/sarog/rmmagent/agent/common"
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
@@ -32,7 +32,7 @@ func (a *WindowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
 			Version:     s.Version(),
 			Publisher:   s.Publisher,
 			InstallDate: fmt.Sprintf("%02d-%d-%02d", t.Year(), t.Month(), t.Day()),
-			Size:        agent.ByteCountSI(s.EstimatedSize * 1024),
+			Size:        common.ByteCountSI(s.EstimatedSize * 1024),
 			Source:      s.InstallSource,
 			Location:    s.InstallLocation,
 			Uninstall:   s.UninstallString,

@@ -2,6 +2,9 @@ package shared
 
 import "time"
 
+type Common struct {
+}
+
 // 2021-12-31: api/tacticalrmm/apiv3/views.py:524
 type RecoveryAction struct {
 	Mode     string `json:"mode"` // command, rpc
@@ -79,12 +82,6 @@ type Disk struct {
 	Used    uint64  `json:"used"`
 	Free    uint64  `json:"free"`
 	Percent float64 `json:"percent"`
-}
-
-type MeshNodeID struct {
-	Func    string `json:"func"`
-	Agentid string `json:"agent_id"`
-	NodeID  string `json:"nodeid"`
 }
 
 type AssignedTask struct {

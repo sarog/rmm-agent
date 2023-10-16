@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/sarog/rmmagent/agent"
+	"github.com/sarog/rmmagent/agent/common"
 	"github.com/sarog/rmmagent/agent/windows"
 	"os"
 	"path/filepath"
@@ -82,7 +83,12 @@ func main() {
 	defer logFile.Close()
 
 	// was: a := *windows.New(log, version)
-	a, _ := agent.New(log, version)
+	// a, _ := agent.New(log, version)
+
+	type Agent struct {
+	}
+
+	var a = agent.GetAgent(log, version).(common.IAgent)
 
 	switch *mode {
 	case AGENT_MODE_RPC:
@@ -123,7 +129,7 @@ func main() {
 			return
 		}
 		a.Install(
-			&agent.InstallInfo{
+			&common.InstallInfo{
 				ServerURL:   *apiUrl,
 				ClientID:    *clientID,
 				SiteID:      *siteID,
@@ -133,7 +139,7 @@ func main() {
 				Timeout:     *timeout,
 				Silent:      *silent,
 			},
-			agent.GenerateAgentID(),
+			common.GenerateAgentID(),
 		)
 	default:
 		a.ShowStatus(version)
@@ -152,7 +158,7 @@ func setupLogging(level, to *string) {
 	} else {
 		switch runtime.GOOS {
 		case "windows":
-			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), common.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		case "freebsd":
 			logFile, _ = os.OpenFile(filepath.Join("/var/log", "rmm", AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
 		case "darwin":
@@ -185,7 +191,7 @@ func updateUsage() {
 
 // showVersionInfo prints basic debugging info
 func showVersionInfo(ver string) {
-	fmt.Println(agent.AGENT_NAME_LONG, ver, runtime.GOARCH, runtime.Version())
+	fmt.Println(common.AGENT_NAME_LONG, ver, runtime.GOARCH, runtime.Version())
 	// if runtime.GOOS == "windows" {
 	// 	fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER))
 	// }

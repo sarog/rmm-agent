@@ -2,7 +2,7 @@ package windows
 
 import (
 	"fmt"
-	"github.com/sarog/rmmagent/agent"
+	"github.com/sarog/rmmagent/agent/common"
 	"log"
 	"net/url"
 	"os"
@@ -103,7 +103,7 @@ func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 	}
 }
 
-func (a *WindowsAgent) Install(i *agent.InstallInfo, agentID string) {
+func (a *WindowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.checkExistingAndRemove(i.Silent)
 
 	i.Headers = map[string]string{
@@ -136,7 +136,7 @@ func (a *WindowsAgent) Install(i *agent.InstallInfo, agentID string) {
 
 	a.Logger.Debugln("API URL:", i.ApiURL)
 
-	terr := agent.TestTCP(fmt.Sprintf("%s:4222", i.ApiURL))
+	terr := common.TestTCP(fmt.Sprintf("%s:4222", i.ApiURL))
 	if terr != nil {
 		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM server, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
 	}
@@ -167,7 +167,7 @@ func (a *WindowsAgent) Install(i *agent.InstallInfo, agentID string) {
 		a.installerMsg(ierr.Error(), "error", i.Silent)
 	}
 	if iVersion.StatusCode() != 200 {
-		a.installerMsg(agent.DjangoStringResp(iVersion.String()), "error", i.Silent)
+		a.installerMsg(common.DjangoStringResp(iVersion.String()), "error", i.Silent)
 	}
 
 	rClient := resty.New()
@@ -179,7 +179,7 @@ func (a *WindowsAgent) Install(i *agent.InstallInfo, agentID string) {
 
 	// Set local certificate if applicable
 	if len(i.Cert) > 0 {
-		if !agent.FileExists(i.Cert) {
+		if !common.FileExists(i.Cert) {
 			a.installerMsg(fmt.Sprintf("%s does not exist", i.Cert), "error", i.Silent)
 		}
 		rClient.SetRootCertificate(i.Cert)
@@ -306,7 +306,7 @@ func (a *WindowsAgent) checkExistingAndRemove(silent bool) {
 		if !silent && window != 0 {
 			var handle w32.HWND
 			msg := "Existing installation found\nClick OK to remove, then re-run the installer.\nClick Cancel to abort."
-			action := w32.MessageBox(handle, msg, agent.AGENT_NAME_LONG, w32.MB_OKCANCEL|w32.MB_ICONWARNING)
+			action := w32.MessageBox(handle, msg, common.AGENT_NAME_LONG, w32.MB_OKCANCEL|w32.MB_ICONWARNING)
 			if action == w32.IDOK {
 				a.AgentUninstall()
 			}

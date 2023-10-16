@@ -2,7 +2,7 @@ package windows
 
 import (
 	"fmt"
-	"github.com/sarog/rmmagent/agent"
+	"github.com/sarog/rmmagent/agent/common"
 	"os"
 	"runtime"
 	"strconv"
@@ -196,7 +196,7 @@ func (a *WindowsAgent) RunRPCService() {
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
-				err := agent.KillProc(p.ProcPID)
+				err := common.KillProc(p.ProcPID)
 				if err != nil {
 					ret.Encode(err.Error())
 					a.Logger.Debugln(err.Error())
