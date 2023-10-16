@@ -35,6 +35,16 @@ type AgentConfig struct {
 	Headers  map[string]string
 }
 
+type IAgentConfig interface {
+	setConfig(config *AgentConfig)
+	getConfig() *AgentConfig
+}
+
+type IAgentLogger interface {
+	setLogger(logger *logrus.Logger)
+	getLogger() *logrus.Logger
+}
+
 type InstallInfo struct {
 	Headers     map[string]string
 	ServerURL   string // dupe?
@@ -81,7 +91,7 @@ type ServiceManager interface {
 	// EditService(name, startupType string) windows.WinSvcResp
 }
 
-type AgentInterface interface {
+type Common interface {
 	New(logger *logrus.Logger, version string) *Agent
 
 	// Setup
@@ -122,8 +132,17 @@ type AgentInterface interface {
 	// CreateSchedTask(st windows.SchedTask) (bool, error)
 }
 
+type IAgent interface {
+	Common
+	IAgentConfig
+	IAgentLogger
+	InfoCollector
+	// *logrus.Logger
+	// *resty.Client
+}
+
 type Agent struct {
-	AgentInterface
+	Common
 	*AgentConfig
 	InfoCollector
 	Logger  *logrus.Logger
@@ -141,7 +160,7 @@ var ErrNoServiceSystemDetected = errors.New("No service system detected.")
 type System interface {
 	Detect() bool
 	New() (Agent, error)
-	// New(i AgentInterface) (Agent, error)
+	// New(i AgentCommon) (Agent, error)
 }
 
 func newSystem() System {

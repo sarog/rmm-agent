@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unsafe"
 
@@ -58,50 +57,104 @@ type WindowsAgent struct {
 	// rClient       *resty.Client
 }
 
-/*var winAgent agent.AgentInterface = &WindowsAgent{
-	Agent:       nil,
-	ProgramDir:  "",
-	AgentExe:    "",
-	SystemDrive: "",
-	Nssm:        "",
-}*/
-
-/*func NewAgent(agent *Agent) *WindowsAgent {
-	return &WindowsAgent{Agent: agent}
-}*/
-
-// test: Verification
-// var _ agent.Agent = WindowsAgent{}
-// var _ agent.Agent = (*WindowsAgent)(nil)
-
-// test: from go-service:
-/*type windowsSystem struct{}
-
-func (windowsSystem) Detect() bool {
-	return true
-}
-func (windowsSystem) New() (agent.AgentInterface, error) {
-	ws := &WindowsAgent{
-		Agent:       agent.Agent{},
-		ProgramDir:  "",
-		AgentExe:    "",
-		SystemDrive: "",
-		Nssm:        "",
-	}
-	return ws, nil
-}
-func init() {
-	agent.ChooseSystem(windowsSystem{})
-}*/
-
-// test
-func GetInstance(logger *logrus.Logger, version string) *WindowsAgent {
-	return &WindowsAgent{}
-}
-
 func (a *WindowsAgent) Hostname() string {
 	sysHost, _ := ps.Host()
 	return sysHost.Info().Hostname
+}
+
+func NewAgent(logger *logrus.Logger, version string) *agent.IAgent {
+	host, _ := ps.Host()
+	info := host.Info()
+	pd := filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER)
+	exe := filepath.Join(pd, AGENT_FILENAME)
+	sd := os.Getenv("SystemDrive")
+	nssm := ArchInfo(pd)
+
+	var (
+		baseurl string
+		agentid string
+		apiurl  string
+		token   string
+		agentpk string
+		pk      int
+		cert    string
+	)
+
+	// todo: 2021-12-31: migrate to DPAPI
+	key, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
+	if err == nil {
+		baseurl, _, err = key.GetStringValue(REG_RMM_BASEURL)
+		if err != nil {
+			logger.Fatalln("Unable to get BaseURL:", err)
+		}
+
+		agentid, _, err = key.GetStringValue(REG_RMM_AGENTID)
+		if err != nil {
+			logger.Fatalln("Unable to get AgentID:", err)
+		}
+
+		apiurl, _, err = key.GetStringValue(REG_RMM_APIURL)
+		if err != nil {
+			logger.Fatalln("Unable to get ApiURL:", err)
+		}
+
+		token, _, err = key.GetStringValue(REG_RMM_TOKEN)
+		if err != nil {
+			logger.Fatalln("Unable to get Token:", err)
+		}
+
+		agentpk, _, err = key.GetStringValue(REG_RMM_AGENTPK)
+		if err != nil {
+			logger.Fatalln("Unable to get AgentPK:", err)
+		}
+
+		pk, _ = strconv.Atoi(agentpk)
+
+		cert, _, _ = key.GetStringValue(REG_RMM_CERT)
+	}
+
+	headers := make(map[string]string)
+	if len(token) > 0 {
+		headers["Content-Type"] = "application/json"
+		headers["Authorization"] = fmt.Sprintf("Token %s", token)
+	}
+
+	restyC := resty.New()
+	restyC.SetBaseURL(baseurl)
+	restyC.SetCloseConnection(true)
+	restyC.SetHeaders(headers)
+	restyC.SetTimeout(15 * time.Second)
+	restyC.SetDebug(logger.IsLevelEnabled(logrus.DebugLevel))
+	if len(cert) > 0 {
+		restyC.SetRootCertificate(cert)
+	}
+
+	return &WindowsAgent{
+		Agent: &agent.Agent{
+			AgentConfig: &agent.AgentConfig{
+				AgentID:  agentid,
+				AgentPK:  agentpk,
+				BaseURL:  baseurl,
+				ApiURL:   apiurl,
+				ApiPort:  agent.NATS_DEFAULT_PORT,
+				Token:    token,
+				PK:       pk,
+				Cert:     cert,
+				Arch:     info.Architecture,
+				Hostname: info.Hostname,
+				Version:  version,
+				Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
+				Headers:  headers,
+			},
+			Logger:  logger,
+			RClient: restyC,
+		},
+		ProgramDir:  pd,
+		AgentExe:    exe,
+		SystemDrive: sd,
+		Nssm:        nssm,
+	}
+
 }
 
 // New Initializes a new WindowsAgent with logger
@@ -393,75 +446,6 @@ func CMD(exe string, args []string, timeout int, detached bool) (output [2]strin
 	return [2]string{outb.String(), errb.String()}, nil
 }
 
-// EnablePing modifies the Windows Firewall ruleset to allow incoming ICMPv4
-// todo: 2021-12-31: this may not always work, especially if enforced by a GPO (is this even needed?)
-// Deprecated
-func EnablePing() {
-	args := make([]string, 0)
-	cmd := `netsh advfirewall firewall add rule name="ICMP Allow incoming V4 echo request" protocol=icmpv4:8,any dir=in action=allow`
-	_, err := CMDShell("cmd", args, cmd, 10, false)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-// EnableRDP enables Remote Desktop
-// todo: 2021-12-31: this may not always work if enforced by a GPO
-// Deprecated
-func EnableRDP() {
-	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Terminal Server`, registry.ALL_ACCESS)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer k.Close()
-
-	err = k.SetDWordValue("fDenyTSConnections", 0)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	args := make([]string, 0)
-	cmd := `netsh advfirewall firewall set rule group="Remote Desktop" new enable=Yes`
-	_, cerr := CMDShell("cmd", args, cmd, 10, false)
-	if cerr != nil {
-		fmt.Println(cerr)
-	}
-}
-
-// DisableSleepHibernate disables sleep and hibernate
-// todo: 2023-04-17: see if the device is a laptop
-// Deprecated
-func DisableSleepHibernate() {
-	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Power`, registry.ALL_ACCESS)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer k.Close()
-
-	err = k.SetDWordValue("HiberbootEnabled", 0)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	args := make([]string, 0)
-
-	var wg sync.WaitGroup
-	currents := []string{"ac", "dc"}
-	for _, i := range currents {
-		wg.Add(1)
-		go func(c string) {
-			defer wg.Done()
-			_, _ = CMDShell("cmd", args, fmt.Sprintf("powercfg /set%svalueindex scheme_current sub_buttons lidaction 0", c), 5, false)
-			_, _ = CMDShell("cmd", args, fmt.Sprintf("powercfg /x -standby-timeout-%s 0", c), 5, false)
-			_, _ = CMDShell("cmd", args, fmt.Sprintf("powercfg /x -hibernate-timeout-%s 0", c), 5, false)
-			_, _ = CMDShell("cmd", args, fmt.Sprintf("powercfg /x -disk-timeout-%s 0", c), 5, false)
-			_, _ = CMDShell("cmd", args, fmt.Sprintf("powercfg /x -monitor-timeout-%s 0", c), 5, false)
-		}(i)
-	}
-	wg.Wait()
-	_, _ = CMDShell("cmd", args, "powercfg -S SCHEME_CURRENT", 5, false)
-}
-
 // LoggedOnUser returns the first logged on user it finds
 func (a *WindowsAgent) LoggedOnUser() string {
 
@@ -745,23 +729,6 @@ func (a *WindowsAgent) CleanupAgentUpdates() {
 		}
 	}
 }
-
-// Deprecated
-/*func (a *WindowsAgent) deleteOldAgentServices() {
-	services := []string{"checkrunner"}
-	for _, svc := range services {
-		if serviceExists(svc) {
-			_, _ = CMD(a.Nssm, []string{"stop", svc}, 30, false)
-			_, _ = CMD(a.Nssm, []string{"remove", svc, "confirm"}, 30, false)
-		}
-	}
-}*/
-
-// RunMigrations cleans up unused stuff from older agents
-/*func (a *WindowsAgent) RunMigrations() {
-	// a.deleteOldAgentServices()
-	// CMD("schtasks.exe", []string{"/delete", "/TN", "RMM_fixmesh", "/f"}, 10, false)
-}*/
 
 // CheckForRecovery Check for agent recovery
 // 2022-01-01: api/tacticalrmm/apiv3/urls.py:22

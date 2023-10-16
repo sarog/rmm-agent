@@ -59,12 +59,6 @@ func main() {
 	timeout := flag.Duration("timeout", 1000, "Installer timeout in seconds")
 	aDesc := flag.String("desc", hostname, "Agent's description to display on the RMM server")
 
-	// todo: remove the following:
-	// aType := flag.String("agent-type", "server", "Agent type: server or workstation")
-	// power := flag.Bool("power", false, "Disable sleep and hibernate when set to True")
-	// rdp := flag.Bool("rdp", false, "Enable Remote Desktop Protocol (RDP)")
-	// ping := flag.Bool("ping", false, "Enable ping and update the Windows Firewall ruleset")
-
 	cert := flag.String("cert", "", "Path to the Certificate Authority's .pem")
 	updateurl := flag.String("updateurl", "", "Source URL to retrieve the update executable")
 	inno := flag.String("inno", "", "Inno setup filename")
@@ -134,14 +128,10 @@ func main() {
 				ClientID:    *clientID,
 				SiteID:      *siteID,
 				Description: *aDesc,
-				// AgentType:    *aType,
-				// DisableSleep: *power,
-				// EnableRDP:    *rdp,
-				// EnablePing:   *ping,
-				Token:   *token,
-				Cert:    *cert,
-				Timeout: *timeout,
-				Silent:  *silent,
+				Token:       *token,
+				Cert:        *cert,
+				Timeout:     *timeout,
+				Silent:      *silent,
 			},
 			agent.GenerateAgentID(),
 		)
@@ -164,6 +154,7 @@ func setupLogging(level, to *string) {
 		case "windows":
 			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		case "freebsd":
+			logFile, _ = os.OpenFile(filepath.Join("/var/log", "rmm", AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
 		case "darwin":
 		case "linux":
 			// todo
@@ -195,8 +186,6 @@ func updateUsage() {
 // showVersionInfo prints basic debugging info
 func showVersionInfo(ver string) {
 	fmt.Println(agent.AGENT_NAME_LONG, ver, runtime.GOARCH, runtime.Version())
-	// fmt.Println("Arch: ", runtime.GOARCH)
-	// fmt.Println("Go version: ", runtime.Version())
 	// if runtime.GOOS == "windows" {
 	// 	fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER))
 	// }
