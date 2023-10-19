@@ -69,8 +69,8 @@ const (
 	NATS_CMD_WMI                = "wmi"
 )
 
-// RunRPCService handles incoming NATS payloads from server
-func (a *windowsAgent) RunRPCService() {
+// RunService handles incoming NATS payloads from server
+func (a *windowsAgent) RunService() {
 	a.Logger.Infoln("RPC service started")
 	opts := a.SetupNatsOptions()
 	server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)

@@ -7,11 +7,10 @@ import (
 	"github.com/sarog/rmmagent/agent"
 	"github.com/sarog/rmmagent/agent/common"
 	"github.com/sarog/rmmagent/agent/windows"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"runtime"
-
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -39,12 +38,6 @@ const (
 	AGENT_MODE_UPDATE      = "update"
 )
 
-type program struct {
-	exit chan struct{}
-}
-
-var logger service.Logger
-
 func main() {
 	hostname, _ := os.Hostname()
 
@@ -67,13 +60,12 @@ func main() {
 	// Update
 	updateSet := flag.NewFlagSet("update", flag.ContinueOnError)
 	updateurl := updateSet.String("updateurl", "", "Source URL to retrieve the update executable")
-	inno := updateSet.String("inno", "", "Inno setup filename")
+	inno := updateSet.String("inno", "", "Setup filename")
 	updatever := updateSet.String("updatever", "", "Update version")
 
-	// modeSet :=
-	flag.NewFlagSet("mode", flag.ContinueOnError)
-	mode := flag.String("m", "", "The mode to run: "+
-		"install, update, rpc, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, pk, publicip, taskrunner, cleanup")
+	modeSet := flag.NewFlagSet("mode", flag.ContinueOnError)
+	mode := modeSet.String("m", "", "The mode to run: "+
+		"install, update, agentsvc, runchecks, checkrunner, sysinfo, software, \n\t\tsync, pk, publicip, taskrunner, cleanup")
 
 	taskPK := flag.Int("p", 0, "Task PK")
 
@@ -85,6 +77,17 @@ func main() {
 	svcFlag := flag.String("service", "", "Control the system service.")
 
 	// flag.Parse()
+
+	// info, ok := debug.ReadBuildInfo()
+	// if !ok {
+	// 	fmt.Fprintln(os.Stderr, "build information not found")
+	// 	return
+	// }
+
+	// if *ver {
+	// 	printVersionInfo(info)
+	// 	return
+	// }
 
 	if *ver {
 		showVersionInfo(version)
@@ -98,28 +101,30 @@ func main() {
 	s, _ := service.New(a, a.GetServiceConfig())
 
 	if len(os.Args) == 1 {
-		// todo: a.ShowStatus(version)
+		a.ShowStatus(version)
 		fmt.Fprintln(os.Stderr, "didn't receive any arguments")
 		os.Exit(0)
-		// return
+		return
 	}
 
 	switch os.Args[1] {
 	case "install":
 		if err := installSet.Parse(os.Args[2:]); err == nil {
-			fmt.Println("install", "silent=", *silent, "api=", *apiUrl, "client=", *clientID, "site=", *siteID, "token=", *token, "cert", "timeout", "desc")
+			// fmt.Println("install", "silent=", *silent, "api=", *apiUrl, "client=", *clientID, "site=", *siteID, "token=", *token, "cert", "timeout", "desc")
+			installSet.PrintDefaults()
 		}
 
 	case "update":
 		if err := updateSet.Parse(os.Args[2:]); err == nil {
-			fmt.Println("update")
+			fmt.Println("Update the agent.")
 			updateSet.PrintDefaults()
 		}
 
 	case "mode":
-		// if err := modeSet.Parse(os.Args[2:]); err == nil {
-		// 	fmt.Println("mode", *silent)
-		// }
+		if err := modeSet.Parse(os.Args[2:]); err == nil {
+			fmt.Println("mode", *silent)
+			modeSet.PrintDefaults()
+		}
 
 	case "service":
 		fmt.Fprintln(os.Stderr, "case => service")
@@ -148,11 +153,11 @@ func main() {
 
 	switch *mode {
 	// case AGENT_MODE_RPC:
-	// 	a.RunRPCService()
+	// 	a.RunService()
 	case AGENT_MODE_RPC, AGENT_MODE_SVC:
 
 		s.Run()
-		// a.RunRPCService()
+		// a.RunService()
 		// a.RunAgentService()
 	case AGENT_MODE_RUNCHECKS:
 		a.RunChecks(true)

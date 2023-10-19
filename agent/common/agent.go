@@ -30,7 +30,7 @@ type InfoCollector interface {
 	GetInstalledSoftware() []shared.SoftwareList
 	OSInfo() (plat, osFullName string)
 	SysInfo()
-	GetDisksNATS() []trmm.Disk
+	GetStorage() []trmm.Disk
 	LoggedOnUser() string
 	GetCPULoadAvg() int
 }
@@ -41,6 +41,7 @@ type TaskChecker interface {
 	CPULoadCheck(data shared.Check, r *resty.Client)
 	MemCheck(data shared.Check, r *resty.Client)
 	PingCheck(data shared.Check, r *resty.Client)
+	// CheckService(data shared.X, r *resty.Client)
 }
 
 // todo
@@ -66,16 +67,16 @@ type BaseAgent interface {
 
 	// Setup
 	Install(i *InstallInfo, agentID string)
+	InstallService() error
 	AgentUpdate(url, inno, version string)
 	AgentUninstall()
 	UninstallCleanup()
 
 	// Agent Service
-	RunService() // new
 	RunAgentService(conn *nats.Conn)
-	RunRPCService()
+	RunService()
 
-	// Hostname() string
+	// GetHostname() string
 	ShowStatus(version string)
 
 	RunTask(int) error
@@ -127,7 +128,7 @@ func (a *Agent) Start(s service.Service) error {
 		a.Logger.Info("Running under service manager.")
 	}
 
-	go a.RunRPCService()
+	go a.RunService()
 	return nil
 }
 
@@ -136,7 +137,7 @@ func (a *Agent) Stop(s service.Service) error {
 	return nil
 }
 
-func (a *Agent) Hostname() string {
+func (a *Agent) GetHostname() string {
 	sysHost, _ := ps.Host()
 	return sysHost.Info().Hostname
 }
@@ -278,8 +279,4 @@ func (a *Agent) OSInfo() (plat, osFullName string) {
 	plat = osInfo.Platform
 	osFullName = fmt.Sprintf("%s, %s (build %s)", osInfo.Name, arch, osInfo.Build)
 	return
-}
-
-func (a *Agent) RunService() {
-
 }

@@ -129,7 +129,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 		payload = trmm.AgentInfoNats{
 			Agentid:      a.AgentID,
 			Username:     a.LoggedOnUser(),
-			Hostname:     a.Hostname(),
+			Hostname:     a.Hostname,
 			OS:           osInfo,
 			Platform:     plat,
 			TotalRAM:     a.TotalRAM(),
@@ -155,7 +155,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 		nMode = NATS_MODE_DISKS
 		payload = trmm.WinDisksNats{
 			Agentid: a.AgentID,
-			Disks:   a.GetDisksNATS(),
+			Disks:   a.GetStorage(),
 		}
 
 	case CHECKIN_MODE_LOGGEDONUSER:

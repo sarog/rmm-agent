@@ -36,7 +36,7 @@ func GetServiceStatus(name string) (string, error) {
 	return serviceStatusText(uint32(q.State)), nil
 }
 
-// ControlService Control a Windows Server
+// ControlService Control a Windows Service
 //
 //	Action = stop, start
 func (a *windowsAgent) ControlService(name, action string) WinSvcResp {

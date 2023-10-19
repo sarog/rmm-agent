@@ -7,11 +7,11 @@ type IAgentConfig interface {
 
 type AgentConfig struct {
 	AgentID  string // Username
-	AgentPK  string
-	BaseURL  string // dupe?
-	ApiURL   string // dupe?
-	ApiPort  int
-	Token    string
+	AgentPK  string // Agent PK on server
+	BaseURL  string // Server URL
+	ApiURL   string // NATS
+	ApiPort  int    // NATS Port (4222)
+	Token    string // Authorization token
 	PK       int
 	Cert     string
 	Arch     string // "x86_64", "x86"

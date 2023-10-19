@@ -2,6 +2,7 @@ package windows
 
 import (
 	"fmt"
+	"github.com/kardianos/service"
 	"github.com/sarog/rmmagent/agent/common"
 	"log"
 	"net/url"
@@ -30,8 +31,6 @@ type Installer struct {
 	ApiURL      string // was "SaltMaster"
 	Silent      bool
 
-	// Deprecated
-	// AgentType string
 	// Deprecated
 	DisableSleep bool
 	// Deprecated
@@ -91,25 +90,25 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.AgentID = agentID
 	a.Logger.Debugln("Agent ID:", a.AgentID)
 
-	u, err := url.Parse(i.ServerURL)
+	parsedUrl, err := url.Parse(i.ServerURL)
 	if err != nil {
 		a.installerMsg(err.Error(), "error", i.Silent)
 	}
 
-	if u.Scheme != "https" && u.Scheme != "http" {
+	if parsedUrl.Scheme != "https" && parsedUrl.Scheme != "http" {
 		a.installerMsg("Invalid URL: must begin with https or http", "error", i.Silent)
 	}
 
 	// This will match either IPv4 or IPv4:port
 	var ipPort = regexp.MustCompile(`[0-9]+(?:\.[0-9]+){3}(:[0-9]+)?`)
 
-	// if ipv4:port, strip the port to get ip for salt master
-	if ipPort.MatchString(u.Host) && strings.Contains(u.Host, ":") {
-		i.ApiURL = strings.Split(u.Host, ":")[0]
-	} else if strings.Contains(u.Host, ":") {
-		i.ApiURL = strings.Split(u.Host, ":")[0]
+	// if ipv4:port, strip the port to get ip for NATS
+	if ipPort.MatchString(parsedUrl.Host) && strings.Contains(parsedUrl.Host, ":") {
+		i.ApiURL = strings.Split(parsedUrl.Host, ":")[0]
+	} else if strings.Contains(parsedUrl.Host, ":") {
+		i.ApiURL = strings.Split(parsedUrl.Host, ":")[0]
 	} else {
-		i.ApiURL = u.Host
+		i.ApiURL = parsedUrl.Host
 	}
 
 	a.Logger.Debugln("API URL:", i.ApiURL)
@@ -119,7 +118,7 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM server, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
 	}
 
-	baseURL := u.Scheme + "://" + u.Host
+	baseURL := parsedUrl.Scheme + "://" + parsedUrl.Host
 	a.Logger.Debugln("Base URL:", baseURL)
 
 	iClient := resty.New()
@@ -142,14 +141,13 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 		a.installerMsg(ierr.Error(), "error", i.Silent)
 	}
 	if iVersion.StatusCode() != 200 {
-		a.installerMsg(common.DjangoStringResp(iVersion.String()), "error", i.Silent)
+		a.installerMsg(iVersion.String(), "error", i.Silent)
 	}
 
 	rClient := resty.New()
 	rClient.SetCloseConnection(true)
 	rClient.SetTimeout(i.Timeout * time.Second)
 	rClient.SetDebug(a.Debug)
-	// Set REST knox headers
 	rClient.SetHeaders(i.Headers)
 
 	// Set local certificate if applicable
@@ -170,7 +168,7 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 
 	agentPayload := map[string]interface{}{
 		"agent_id":    a.AgentID,
-		"hostname":    a.Hostname(),
+		"hostname":    a.Hostname,
 		"client":      i.ClientID,
 		"site":        i.SiteID,
 		"description": i.Description,
@@ -207,7 +205,7 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.Logger.Debugln("Getting system information with WMI")
 	a.SysInfo()
 
-	// Check in once via nats
+	// Check in once via NATS
 	opts := a.SetupNatsOptions()
 	server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
 
@@ -226,30 +224,24 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.Logger.Debugln("Creating temporary directory")
 	a.CreateAgentTempDir()
 
-	a.Logger.Infoln("Installing services...")
-
-	// todo
-	/*svcCommands := [10][]string{
-		// rpc // todo: remove/combine
-		{"install", SERVICE_NAME_RPC, a.AgentExe, "-m", AGENT_MODE_RPC},
-		{"set", SERVICE_NAME_RPC, "DisplayName", SERVICE_DESC_RPC},
-		{"set", SERVICE_NAME_RPC, "Description", SERVICE_DESC_RPC},
-		{"set", SERVICE_NAME_RPC, "AppRestartDelay", SERVICE_RESTART_DELAY},
-		{"start", SERVICE_NAME_RPC},
-		// winagentsvc
-		{"install", SERVICE_NAME_AGENT, a.AgentExe, "-m", AGENT_MODE_SVC},
-		{"set", SERVICE_NAME_AGENT, "DisplayName", SERVICE_DESC_AGENT},
-		{"set", SERVICE_NAME_AGENT, "Description", SERVICE_DESC_AGENT},
-		{"set", SERVICE_NAME_AGENT, "AppRestartDelay", SERVICE_RESTART_DELAY},
-		{"start", SERVICE_NAME_AGENT},
+	a.Logger.Infoln("Installing service...")
+	serr := a.InstallService()
+	if serr != nil {
+		return
 	}
 
-	for _, s := range svcCommands {
-		a.Logger.Debugln(a.Nssm, s)
-		_, _ = CMD(a.Nssm, s, 25, false)
-	}*/
-
 	a.installerMsg("Installation was successful!\nPlease allow a few minutes for the agent to show up in the RMM server", "info", i.Silent)
+}
+
+// InstallService todo: Installs the agent service
+func (a *windowsAgent) InstallService() error {
+	s, _ := service.New(a, a.GetServiceConfig())
+	err := s.Install()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // todo: add to Agent interface

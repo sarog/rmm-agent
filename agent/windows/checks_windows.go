@@ -148,7 +148,7 @@ func (a *windowsAgent) RunChecks(force bool) error {
 		go func(wg *sync.WaitGroup, r *resty.Client) {
 			for _, winSvcCheck := range winServiceChecks {
 				defer wg.Done()
-				a.WinSvcCheck(winSvcCheck, r)
+				a.CheckService(winSvcCheck, r)
 			}
 		}(&wg, a.RClient)
 	}
@@ -465,8 +465,8 @@ func (a *windowsAgent) PingCheck(data rmm.Check, r *resty.Client) {
 	a.handleAssignedTasks(resp.String(), data.AssignedTasks)
 }
 
-// WinSvcCheck Checks a Windows Service
-func (a *windowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
+// CheckService Checks a Windows Service
+func (a *windowsAgent) CheckService(data rmm.Check, r *resty.Client) {
 	var status string
 	exists := true
 
@@ -493,7 +493,7 @@ func (a *windowsAgent) WinSvcCheck(data rmm.Check, r *resty.Client) {
 }
 
 func (a *windowsAgent) handleAssignedTasks(status string, tasks []rmm.AssignedTask) {
-	if len(tasks) > 0 && common.DjangoStringResp(status) == "failing" {
+	if len(tasks) > 0 && status == "failing" {
 		var wg sync.WaitGroup
 		for _, t := range tasks {
 			if t.Enabled {

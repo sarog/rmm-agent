@@ -17,7 +17,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 	"unsafe"
 
@@ -257,8 +256,27 @@ func ArchInfo(programDir string) (nssm string) {
 	return
 }
 
-// GetDisksNATS returns a list of fixed disks
-func (a *windowsAgent) GetDisksNATS() []trmm.Disk {
+// OSInfo returns formatted OS names
+func (a *windowsAgent) OSInfo() (plat, osFullName string) {
+	host, _ := ps.Host()
+	info := host.Info()
+	osInfo := info.OS
+
+	var arch string
+	switch info.Architecture {
+	case "x86_64":
+		arch = "64 bit"
+	case "x86":
+		arch = "32 bit"
+	}
+
+	plat = osInfo.Platform
+	osFullName = fmt.Sprintf("%s, %s (build %s)", osInfo.Name, arch, osInfo.Build)
+	return
+}
+
+// GetStorage returns a list of fixed disks
+func (a *windowsAgent) GetStorage() []trmm.Disk {
 	ret := make([]trmm.Disk, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
@@ -341,7 +359,7 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	sysProcAttr := &windows.SysProcAttr{}
+	// sysProcAttr := &windows.SysProcAttr{}
 
 	if len(cmdArgs) > 0 && command == "" {
 		switch shell {
@@ -511,7 +529,7 @@ func (a *windowsAgent) RecoverRPC() {
 func (a *windowsAgent) RecoverCMD(command string) {
 	a.Logger.Infoln("Attempting shell recovery with command:", command)
 	// To prevent killing ourselves, prefix the command with 'cmd /C'
-	// so the parent process is now cmd.exe and not tacticalrmm.exe
+	// so the parent process is now cmd.exe and not rmmagent.exe
 	cmd := exec.Command("cmd.exe")
 	cmd.SysProcAttr = &windows.SysProcAttr{
 		CreationFlags: windows.DETACHED_PROCESS | windows.CREATE_NEW_PROCESS_GROUP,
@@ -553,16 +571,19 @@ func (a *windowsAgent) UninstallCleanup() {
 // Otherwise prints to the console
 func (a *windowsAgent) ShowStatus(version string) {
 	statusMap := make(map[string]string)
-	svcs := []string{SERVICE_NAME_AGENT, SERVICE_NAME_RPC}
+	svcs := []string{SERVICE_NAME_AGENT}
+	// was: svcs := []string{SERVICE_NAME_AGENT, SERVICE_NAME_RPC}
 
-	for _, service := range svcs {
-		status, err := GetServiceStatus(service)
+	for _, svc := range svcs {
+		status, err := GetServiceStatus(svc)
 		if err != nil {
-			statusMap[service] = "Not Installed"
+			statusMap[svc] = "Not Installed"
 			continue
 		}
-		statusMap[service] = status
+		statusMap[svc] = status
 	}
+
+	// todo: if service.Interactive()
 
 	window := w32.GetForegroundWindow()
 	if window != 0 {
@@ -571,14 +592,15 @@ func (a *windowsAgent) ShowStatus(version string) {
 			w32.ShowWindow(window, w32.SW_HIDE)
 		}
 		var handle w32.HWND
-		msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s",
-			statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC])
+		msg := fmt.Sprintf("Agent Service: %s", statusMap[SERVICE_NAME_AGENT])
 
-		w32.MessageBox(handle, msg, fmt.Sprintf("RMM Agent v%s", version), w32.MB_OK|w32.MB_ICONINFORMATION)
+		// was: msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s", statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC])
+
+		w32.MessageBox(handle, msg, fmt.Sprintf("%s v%s", common.AGENT_NAME_LONG, version), w32.MB_OK|w32.MB_ICONINFORMATION)
 	} else {
 		fmt.Println("Agent Version", version)
 		fmt.Println("Agent Service:", statusMap[SERVICE_NAME_AGENT])
-		fmt.Println("RPC Service:", statusMap[SERVICE_NAME_RPC])
+		// fmt.Println("RPC Service:", statusMap[SERVICE_NAME_RPC])
 	}
 }
 
@@ -704,7 +726,7 @@ func (a *windowsAgent) CleanupAgentUpdates() {
 	}
 }
 
-// CheckForRecovery Check for agent recovery
+// CheckForRecovery Check for agent recovery signal
 func (a *windowsAgent) CheckForRecovery() {
 	url := fmt.Sprintf("/api/v3/%s/recovery/", a.AgentID)
 	r, err := a.RClient.R().SetResult(&rmm.RecoveryAction{}).Get(url)
@@ -746,7 +768,7 @@ func (a *windowsAgent) GetServiceConfig() *service.Config {
 	}
 }
 
-func (a *windowsAgent) getToken(pid int) (syscall.Token, error) {
+/*func (a *windowsAgent) getToken(pid int) (syscall.Token, error) {
 	var err error
 	var token syscall.Token
 
@@ -787,4 +809,4 @@ func (a *windowsAgent) runAsUser(cmdPath string) (string, string) {
 	err = cmd.Run()
 
 	return stdout.String(), stderr.String()
-}
+}*/

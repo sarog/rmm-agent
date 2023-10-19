@@ -1,6 +1,5 @@
 package windows
 
-// todo: 2021-12-31: custom branding
 const (
 	SERVICE_NAME_RPC = "rpcagent"
 	SERVICE_DESC_RPC = "RMM RPC Service"

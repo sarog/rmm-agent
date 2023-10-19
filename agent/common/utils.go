@@ -55,12 +55,6 @@ func KillProc(pid int32) error {
 	return nil
 }
 
-// DjangoStringResp removes double quotes from a Django REST API response
-// Deprecated
-func DjangoStringResp(resp string) string {
-	return strings.Trim(resp, `"`)
-}
-
 func TestTCP(addr string) error {
 	conn, err := net.Dial("tcp4", addr)
 	if err != nil {
