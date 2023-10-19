@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	ps "github.com/elastic/go-sysinfo"
 	"github.com/go-resty/resty/v2"
 	"github.com/kardianos/service"
@@ -258,6 +259,25 @@ func (a *Agent) BootTime() int64 {
 	}
 	info := host.Info()
 	return info.BootTime.Unix()
+}
+
+// OSInfo returns formatted OS names
+func (a *Agent) OSInfo() (plat, osFullName string) {
+	host, _ := ps.Host()
+	info := host.Info()
+	osInfo := info.OS
+
+	var arch string
+	switch info.Architecture {
+	case "x86_64":
+		arch = "64 bit"
+	case "x86":
+		arch = "32 bit"
+	}
+
+	plat = osInfo.Platform
+	osFullName = fmt.Sprintf("%s, %s (build %s)", osInfo.Name, arch, osInfo.Build)
+	return
 }
 
 func (a *Agent) RunService() {

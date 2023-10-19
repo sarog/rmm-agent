@@ -224,7 +224,33 @@ func (a *windowsAgent) RunScript(code string, shell string, args []string, timeo
 	defer cancel()
 
 	var timedOut bool = false
+	// var token *wintoken.Token // for RunAsUser
+	// var envBlock *uint16      // for Environmental Variables
 	cmd := exec.Command(exe, cmdArgs...)
+
+	// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasusera
+	// https://github.com/gorpher/gowin32/blob/master/wrappers/userenv.go
+	// if runAsUser {
+	// 	token, err = wintoken.GetInteractiveToken(wintoken.TokenImpersonation)
+	// 	if err == nil {
+	// 		defer token.Close()
+	// 		cmd.SysProcAttr = &syscall.SysProcAttr{Token: syscall.Token(token.Token()), HideWindow: true}
+	//
+	// 		/*if usingEnvVars {
+	// 			envBlock, err = CreateEnvironmentBlock(syscall.Token(token.Token()))
+	// 			if err == nil {
+	// 				defer DestroyEnvironmentBlock(envBlock)
+	// 				userEnv := EnvironmentBlockToSlice(envBlock)
+	// 				cmd.Env = userEnv
+	// 			} else {
+	// 				cmd.Env = os.Environ()
+	// 			}
+	// 		}*/
+	// 	}
+	// } /*else if usingEnvVars {
+	// 	cmd.Env = os.Environ()
+	// }*/
+
 	cmd.Stdout = &outb
 	cmd.Stderr = &errb
 

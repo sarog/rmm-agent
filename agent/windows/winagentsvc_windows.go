@@ -56,6 +56,7 @@ func (a *windowsAgent) WinAgentSvc(nc *nats.Conn) {
 		a.CheckIn(nc, s)
 		time.Sleep(time.Duration(randRange(300, 900)) * time.Millisecond)
 	}
+
 	time.Sleep(1 * time.Second)
 	a.CheckForRecovery()
 

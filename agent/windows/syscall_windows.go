@@ -14,10 +14,17 @@ var (
 	modadvapi32 = windows.NewLazySystemDLL("advapi32.dll")
 	modkernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
+	userenv = windows.NewLazyDLL("userenv.dll") // for Environmental Variables + RunAsUser (https://learn.microsoft.com/en-us/windows/win32/api/userenv/nf-userenv-createenvironmentblock)
+
 	procFormatMessageW          = modkernel32.NewProc("FormatMessageW")
 	procGetOldestEventLogRecord = modadvapi32.NewProc("GetOldestEventLogRecord")
 	procLoadLibraryExW          = modkernel32.NewProc("LoadLibraryExW")
 	procReadEventLogW           = modadvapi32.NewProc("ReadEventLogW")
+
+	// https://github.com/fleetdm/fleet/blob/main/orbit/pkg/execuser/execuser_windows.go
+	procCreateEnvironmentBlock                    = userenv.NewProc("CreateEnvironmentBlock")  // for Environmental Variables + RunAsUser
+	procDestroyEnvironmentBlock                   = userenv.NewProc("DestroyEnvironmentBlock") // for Environmental Variables + RunAsUser
+	procCreateProcessAsUser     *windows.LazyProc = modadvapi32.NewProc("CreateProcessAsUserW")
 )
 
 // EventLogRecord
@@ -103,4 +110,47 @@ func ReadEventLog(eventLog w32.HANDLE, readFlags ReadFlag, recordOffset uint32, 
 		}
 	}
 	return
+}
+
+// for Environmental Variables + RunAsUser
+func CreateEnvironmentBlock(token syscall.Token) (*uint16, error) {
+	var envBlock *uint16
+
+	ret, _, err := procCreateEnvironmentBlock.Call(uintptr(unsafe.Pointer(&envBlock)), uintptr(token), 0)
+	if ret == 0 {
+		return nil, err
+	}
+
+	return envBlock, nil
+}
+
+// for Environmental Variables + RunAsUser
+func DestroyEnvironmentBlock(envBlock *uint16) error {
+	ret, _, err := procDestroyEnvironmentBlock.Call(uintptr(unsafe.Pointer(envBlock)))
+	if ret == 0 {
+		return err
+	}
+	return nil
+}
+
+// for Environmental Variables + RunAsUser
+func EnvironmentBlockToSlice(envBlock *uint16) []string {
+	var envs []string
+
+	for {
+		len := 0
+		for *(*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(envBlock)) + uintptr(len*2))) != 0 {
+			len++
+		}
+
+		if len == 0 {
+			break
+		}
+
+		env := syscall.UTF16ToString((*[1 << 29]uint16)(unsafe.Pointer(envBlock))[:len])
+		envs = append(envs, env)
+		envBlock = (*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(envBlock)) + uintptr((len+1)*2)))
+	}
+
+	return envs
 }

@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -256,25 +257,6 @@ func ArchInfo(programDir string) (nssm string) {
 	return
 }
 
-// OSInfo returns formatted OS names
-func (a *windowsAgent) OSInfo() (plat, osFullName string) {
-	host, _ := ps.Host()
-	info := host.Info()
-	osInfo := info.OS
-
-	var arch string
-	switch info.Architecture {
-	case "x86_64":
-		arch = "64 bit"
-	case "x86":
-		arch = "32 bit"
-	}
-
-	plat = osInfo.Platform
-	osFullName = fmt.Sprintf("%s, %s (build %s)", osInfo.Name, arch, osInfo.Build)
-	return
-}
-
 // GetDisksNATS returns a list of fixed disks
 func (a *windowsAgent) GetDisksNATS() []trmm.Disk {
 	ret := make([]trmm.Disk, 0)
@@ -348,7 +330,6 @@ func (a *windowsAgent) GetDisks() []rmm.Disk {
 	return ret
 }
 
-// CMDShell Mimics Python's `subprocess.run(shell=True)`
 func CMDShell(shell string, cmdArgs []string, command string, timeout int, detached bool) (output [2]string, e error) {
 	var (
 		outb     bytes.Buffer
@@ -359,6 +340,8 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
+
+	sysProcAttr := &windows.SysProcAttr{}
 
 	if len(cmdArgs) > 0 && command == "" {
 		switch shell {
@@ -387,6 +370,18 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 			CreationFlags: windows.DETACHED_PROCESS | windows.CREATE_NEW_PROCESS_GROUP,
 		}
 	}
+
+	// https://blog.davidvassallo.me/2022/06/17/golang-in-windows-execute-command-as-another-user/
+	/*if runAsUser {
+		token, err := wintoken.GetInteractiveToken(wintoken.TokenImpersonation)
+		if err != nil {
+			return [2]string{"", CleanString(err.Error())}, err
+		}
+		defer token.Close()
+		sysProcAttr.Token = syscall.Token(token.Token())
+		sysProcAttr.HideWindow = true
+	}*/
+
 	cmd.Stdout = &outb
 	cmd.Stderr = &errb
 	err := cmd.Start()
@@ -749,4 +744,47 @@ func (a *windowsAgent) GetServiceConfig() *service.Config {
 			"OnFailureDelayDuration": SERVICE_RESTART_DELAY,
 		},
 	}
+}
+
+func (a *windowsAgent) getToken(pid int) (syscall.Token, error) {
+	var err error
+	var token syscall.Token
+
+	handle, err := syscall.OpenProcess(syscall.PROCESS_QUERY_INFORMATION, false, uint32(pid))
+	if err != nil {
+		a.Logger.Warn("Token Process", "err", err)
+	}
+	defer syscall.CloseHandle(handle)
+
+	// Find process token via win32
+	err = syscall.OpenProcessToken(handle, syscall.TOKEN_ALL_ACCESS, &token)
+
+	if err != nil {
+		a.Logger.Warn("Open Token Process", "err", err)
+	}
+	return token, err
+}
+
+func (a *windowsAgent) runAsUser(cmdPath string) (string, string) {
+	token, err := a.getToken()
+	if err != nil {
+		a.Logger.Warn("Get Token", "err", err)
+	}
+
+	defer token.Close()
+
+	cmd := exec.Command(cmdPath)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Token: token,
+	}
+
+	err = cmd.Run()
+
+	return stdout.String(), stderr.String()
 }
