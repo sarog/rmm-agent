@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -48,8 +47,6 @@ type windowsAgent struct {
 	ProgramDir  string
 	AgentExe    string
 	SystemDrive string
-	// Deprecated
-	Nssm string
 	// Headers map[string]string
 }
 
@@ -59,7 +56,6 @@ func NewAgent(logger *logrus.Logger, version string) common.IAgent {
 	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	sd := os.Getenv("SystemDrive")
-	nssm := ArchInfo(pd)
 
 	var (
 		baseurl string
@@ -143,7 +139,6 @@ func NewAgent(logger *logrus.Logger, version string) common.IAgent {
 		ProgramDir:  pd,
 		AgentExe:    exe,
 		SystemDrive: sd,
-		Nssm:        nssm,
 	}
 }
 
@@ -156,7 +151,6 @@ func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent 
 	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	sd := os.Getenv("SystemDrive")
-	nssm := ArchInfo(pd)
 
 	var (
 		baseurl string
@@ -240,20 +234,7 @@ func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent 
 		ProgramDir:  pd,
 		AgentExe:    exe,
 		SystemDrive: sd,
-		Nssm:        nssm,
 	}
-}
-
-// ArchInfo returns architecture-specific filenames and URLs
-// Deprecated used for NSSM
-func ArchInfo(programDir string) (nssm string) {
-	switch runtime.GOARCH {
-	case "amd64":
-		nssm = filepath.Join(programDir, "nssm.exe")
-	case "386":
-		nssm = filepath.Join(programDir, "nssm-x86.exe")
-	}
-	return
 }
 
 // OSInfo returns formatted OS names
@@ -508,21 +489,21 @@ func (a *windowsAgent) GetCPULoadAvg() int {
 	return i
 }
 
-// RecoverAgent Recover the Agent; only called from the RPC service
+// RecoverAgent Recover the Agent
 func (a *windowsAgent) RecoverAgent() {
 	a.Logger.Debugln("Attempting ", common.AGENT_NAME_LONG, " recovery on", a.Hostname)
-	defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
-	_, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
-	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln(common.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
-}
 
-// RecoverRPC Recovers the NATS RPC service
-func (a *windowsAgent) RecoverRPC() {
-	a.Logger.Infoln("Attempting RPC service recovery")
+	// a.Logger.Infoln("Attempting agent service recovery")
 	_, _ = CMD("net", []string{"stop", SERVICE_NAME_RPC}, 90, false)
 	time.Sleep(2 * time.Second)
 	_, _ = CMD("net", []string{"start", SERVICE_NAME_RPC}, 90, false)
+
+	// todo? a.Restart()
+
+	// defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
+	// _, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
+	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
+	a.Logger.Debugln(common.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
 }
 
 // RecoverCMD runs a shell recovery command
@@ -745,7 +726,7 @@ func (a *windowsAgent) CheckForRecovery() {
 
 	switch mode {
 	case AGENT_MODE_RPC:
-		a.RecoverRPC()
+		a.RecoverAgent()
 	case AGENT_MODE_COMMAND:
 		a.RecoverCMD(command)
 	default:
