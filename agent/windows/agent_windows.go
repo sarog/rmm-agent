@@ -46,8 +46,7 @@ type windowsAgent struct {
 	common.Agent
 	ProgramDir  string
 	AgentExe    string
-	SystemDrive string
-	// Headers map[string]string
+	SystemDrive string // needed?
 }
 
 func NewAgent(logger *logrus.Logger, version string) common.IAgent {
@@ -293,7 +292,7 @@ func (a *windowsAgent) GetStorage() []trmm.Disk {
 }
 
 // GetDisks returns a list of fixed disks
-// Deprecated
+// Deprecated, use GetStorage()
 func (a *windowsAgent) GetDisks() []rmm.Disk {
 	ret := make([]rmm.Disk, 0)
 	partitions, err := disk.Partitions(false)
@@ -433,6 +432,7 @@ func CMD(exe string, args []string, timeout int, detached bool) (output [2]strin
 }
 
 // LoggedOnUser returns the first logged on user it finds
+// todo: return more than 1 user (e.g. RDS servers)
 func (a *windowsAgent) LoggedOnUser() string {
 	// 2022-01-02: Works in PowerShell 5.x and Core 7.x
 	cmd := "((Get-CimInstance -ClassName Win32_ComputerSystem).Username).Split('\\')[1]"
