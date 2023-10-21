@@ -196,6 +196,8 @@ func main() {
 			return
 		}
 
+		agentULID, _ := common.GenerateAgentID()
+
 		a.Install(
 			&common.InstallInfo{
 				ServerURL:   *apiUrl,
@@ -207,7 +209,7 @@ func main() {
 				Timeout:     *timeout,
 				Silent:      *silent,
 			},
-			common.GenerateAgentID(),
+			agentULID.String(),
 		)
 	default:
 		a.ShowStatus(version)

@@ -6,6 +6,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/kardianos/service"
 	"github.com/nats-io/nats.go"
+	"github.com/oklog/ulid/v2"
 	"github.com/sarog/rmmagent/agent/config"
 	"github.com/sarog/rmmagent/shared"
 	"github.com/sarog/trmm-shared"
@@ -142,16 +143,27 @@ func (a *Agent) GetHostname() string {
 	return sysHost.Info().Hostname
 }
 
-// GenerateAgentID creates and returns a unique agent ID
-// todo: what about UUIDs?
-func GenerateAgentID() string {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, 40)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
+// GenerateAgentID creates and returns a unique agent ULID
+func GenerateAgentID() (ulid.ULID, error) {
+	entropy := rand.New(rand.NewSource(time.Now().UnixNano()))
+	ms := ulid.Timestamp(time.Now())
+	// fmt.Println(ulid.New(ms, entropy))
+
+	// agentULID, err := ulid.New(ms, entropy)
+	// if err != nil {
+	// 	return , err
+	// }
+
+	// return agentULID, nil
+	return ulid.New(ms, entropy)
+
+	// rand.New(rand.NewSource(time.Now().UnixNano()))
+	// letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	// b := make([]rune, 40)
+	// for i := range b {
+	// 	b[i] = letters[rand.Intn(len(letters))]
+	// }
+	// return string(b)
 }
 
 // CreateAgentTempDir Create the temp directory for running scripts
