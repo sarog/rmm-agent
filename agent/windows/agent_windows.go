@@ -119,12 +119,11 @@ func NewAgent(logger *logrus.Logger, version string) common.IAgent {
 		Agent: common.Agent{
 			AgentConfig: &config.AgentConfig{
 				AgentID:  agentid,
-				AgentPK:  agentpk,
 				BaseURL:  baseurl,
 				ApiURL:   apiurl,
 				ApiPort:  common.NATS_DEFAULT_PORT,
 				Token:    token,
-				PK:       pk,
+				AgentPK:  pk,
 				Cert:     cert,
 				Arch:     info.Architecture,
 				Hostname: info.Hostname,
@@ -214,12 +213,11 @@ func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent 
 		Agent: common.Agent{
 			AgentConfig: &config.AgentConfig{
 				AgentID:  agentid,
-				AgentPK:  agentpk,
 				BaseURL:  baseurl,
 				ApiURL:   apiurl,
 				ApiPort:  common.NATS_DEFAULT_PORT,
 				Token:    token,
-				PK:       pk,
+				AgentPK:  pk,
 				Cert:     cert,
 				Arch:     info.Architecture,
 				Hostname: info.Hostname,
