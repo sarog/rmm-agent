@@ -2,7 +2,7 @@ package windows
 
 import (
 	"encoding/json"
-	"github.com/StackExchange/wmi"
+	"github.com/jetrmm/go-wmi"
 	rmm "github.com/sarog/rmmagent/shared"
 )
 
