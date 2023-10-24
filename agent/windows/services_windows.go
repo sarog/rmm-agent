@@ -1,10 +1,10 @@
 package windows
 
 import (
+	jrmm "github.com/jetrmm/rmm-shared"
 	"time"
 
 	rmm "github.com/sarog/rmmagent/shared"
-	"github.com/sarog/trmm-shared"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )
@@ -171,9 +171,9 @@ func (a *windowsAgent) GetServiceDetail(name string) rmm.WindowsService {
 	return ret
 }
 
-// GetServicesNATS returns a list of windows services
-func (a *windowsAgent) GetServicesNATS() []trmm.WindowsService {
-	ret := make([]trmm.WindowsService, 0)
+// GetServicesNATS returns a list of Windows services
+func (a *windowsAgent) GetServicesNATS() []jrmm.WindowsService {
+	ret := make([]jrmm.WindowsService, 0)
 
 	conn, err := mgr.Connect()
 	if err != nil {
@@ -209,7 +209,7 @@ func (a *windowsAgent) GetServicesNATS() []trmm.WindowsService {
 			continue
 		}
 
-		ret = append(ret, trmm.WindowsService{
+		ret = append(ret, jrmm.WindowsService{
 			Name:             s,
 			Status:           serviceStatusText(uint32(q.State)),
 			DisplayName:      conf.DisplayName,

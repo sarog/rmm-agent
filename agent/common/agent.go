@@ -4,12 +4,12 @@ import (
 	"fmt"
 	ps "github.com/elastic/go-sysinfo"
 	"github.com/go-resty/resty/v2"
+	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/kardianos/service"
 	"github.com/nats-io/nats.go"
 	"github.com/oklog/ulid/v2"
 	"github.com/sarog/rmmagent/agent/config"
 	"github.com/sarog/rmmagent/shared"
-	"github.com/sarog/trmm-shared"
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/rand"
@@ -31,7 +31,7 @@ type InfoCollector interface {
 	GetInstalledSoftware() []shared.SoftwareList
 	OSInfo() (plat, osFullName string)
 	SysInfo()
-	GetStorage() []trmm.Disk
+	GetStorage() []jrmm.Disk
 	LoggedOnUser() string
 	GetCPULoadAvg() int
 }
@@ -101,7 +101,7 @@ type BaseAgent interface {
 	// ControlService(name, action string) windows.WinSvcResp
 	// EditService(name, startupType string) windows.WinSvcResp
 	// GetServiceDetail(name string) shared.WindowsService
-	// GetServicesNATS() []trmm.WindowsService
+	// GetServicesNATS() []jrmm.WindowsService
 	// GetServices() []shared.WindowsService
 	// CreateSchedTask(st windows.SchedTask) (bool, error)
 }

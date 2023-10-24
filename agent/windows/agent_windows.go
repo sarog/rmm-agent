@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/gonutz/w32/v2"
+	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/kardianos/service"
 	"github.com/sarog/rmmagent/agent/common"
 	"github.com/sarog/rmmagent/agent/config"
-	"github.com/sarog/trmm-shared"
 	"math"
 	"os"
 	"os/exec"
@@ -254,8 +254,8 @@ func (a *windowsAgent) OSInfo() (plat, osFullName string) {
 }
 
 // GetStorage returns a list of fixed disks
-func (a *windowsAgent) GetStorage() []trmm.Disk {
-	ret := make([]trmm.Disk, 0)
+func (a *windowsAgent) GetStorage() []jrmm.Disk {
+	ret := make([]jrmm.Disk, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -276,7 +276,7 @@ func (a *windowsAgent) GetStorage() []trmm.Disk {
 			continue
 		}
 
-		d := trmm.Disk{
+		d := jrmm.Disk{
 			Device:  p.Device,
 			Fstype:  p.Fstype,
 			Total:   string(usage.Total),

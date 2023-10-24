@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/nats-io/nats.go"
 	rmm "github.com/sarog/rmmagent/shared"
-	trmm "github.com/sarog/trmm-shared"
 	"github.com/ugorji/go/codec"
 )
 
@@ -104,7 +104,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 	switch mode {
 	case CHECKIN_MODE_HELLO:
 		nMode = NATS_MODE_HELLO
-		payload = trmm.CheckInNats{
+		payload = jrmm.CheckInNats{
 			Agentid: a.AgentID,
 			Version: a.Version,
 		}
@@ -126,7 +126,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 		}
 
 		nMode = NATS_MODE_OSINFO
-		payload = trmm.AgentInfoNats{
+		payload = jrmm.AgentInfoNats{
 			Agentid:      a.AgentID,
 			Username:     a.LoggedOnUser(),
 			Hostname:     a.Hostname,
@@ -139,21 +139,21 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 
 	case CHECKIN_MODE_WINSERVICES:
 		nMode = NATS_MODE_WINSERVICES
-		payload = trmm.WinSvcNats{
+		payload = jrmm.WinSvcNats{
 			Agentid: a.AgentID,
 			WinSvcs: a.GetServicesNATS(),
 		}
 
 	case CHECKIN_MODE_PUBLICIP:
 		nMode = NATS_MODE_PUBLICIP
-		payload = trmm.PublicIPNats{
+		payload = jrmm.PublicIPNats{
 			Agentid:  a.AgentID,
 			PublicIP: a.PublicIP(),
 		}
 
 	case CHECKIN_MODE_DISKS:
 		nMode = NATS_MODE_DISKS
-		payload = trmm.WinDisksNats{
+		payload = jrmm.WinDisksNats{
 			Agentid: a.AgentID,
 			Disks:   a.GetStorage(),
 		}
