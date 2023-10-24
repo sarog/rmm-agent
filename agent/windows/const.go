@@ -17,9 +17,9 @@ const (
 	REG_RMM_PATH    = `SOFTWARE\RMMAgent`
 	REG_RMM_BASEURL = "BaseURL"
 	REG_RMM_AGENTID = "AgentID"
+	REG_RMM_AGENTPK = "AgentPK"
 	REG_RMM_APIURL  = "ApiURL"
 	REG_RMM_TOKEN   = "Token"
-	REG_RMM_AGENTPK = "AgentPK"
 	REG_RMM_CERT    = "RootCert"
 
 	AGENT_FOLDER      = "RMMAgent"

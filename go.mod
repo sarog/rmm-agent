@@ -13,7 +13,6 @@ require (
 	github.com/jetrmm/rmm-shared v0.0.0-20231024173931-0685b2c4b19c
 	github.com/kardianos/service v1.2.2
 	github.com/nats-io/nats.go v1.31.0
-	github.com/oklog/ulid/v2 v2.1.0
 	github.com/shirou/gopsutil/v3 v3.23.9
 	github.com/sirupsen/logrus v1.9.3
 	github.com/ugorji/go/codec v1.2.11
@@ -30,6 +29,8 @@ require (
 	github.com/nats-io/nkeys v0.4.6 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/oklog/ulid/v2 v2.1.0 // indirect
+	github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
@@ -49,3 +50,5 @@ require (
 )
 
 // replace github.com/yusufpapurcu/wmi => github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7
+// replace github.com/jetrmm/rmm-shared => ../rmm-shared
+// replace github.com/jetrmm/go-wmi => ../go-wmi
