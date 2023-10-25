@@ -1,5 +1,12 @@
 package shared
 
+// Deprecated (was "Checkin")
+type AgentHeader struct {
+	Func    string `json:"func"`
+	AgentId string `json:"agent_id"`
+	Version string `json:"version"`
+}
+
 type RecoveryAction struct {
 	Mode     string `json:"mode"` // command, rpc
 	ShellCMD string `json:"shellcmd"`
@@ -95,13 +102,6 @@ type SoftwareList struct {
 	Uninstall   string `json:"uninstall"`
 }
 
-// Deprecated (was "Checkin")
-type AgentHeader struct {
-	Func    string `json:"func"`
-	AgentId string `json:"agent_id"`
-	Version string `json:"version"`
-}
-
 type CheckInSW struct {
 	AgentHeader
 	InstalledSW []SoftwareList `json:"software"`
@@ -129,7 +129,7 @@ type CheckInPublicIP struct {
 // Deprecated
 type CheckInDisk struct {
 	AgentHeader
-	Storages []Storage `json:"storages"`
+	Drives []Storage `json:"drives"`
 }
 
 // Deprecated
