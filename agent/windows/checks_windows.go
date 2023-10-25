@@ -329,9 +329,9 @@ func (a *windowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 func (a *windowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 	var payload map[string]interface{}
 
-	usage, err := disk.Usage(data.Disk)
+	usage, err := disk.Usage(data.Storage)
 	if err != nil {
-		a.Logger.Debugln("Disk", data.Disk, err)
+		a.Logger.Debugln("Storage", data.Storage, err)
 
 		payload = map[string]interface{}{
 			"id":     data.CheckPK,

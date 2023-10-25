@@ -76,6 +76,8 @@ github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7 h1:oSaOyiCtHdA0V38m8
 github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7/go.mod h1:dai+D5FG3i5Mhh7leDYuOcN/NDv3XYaXDD45aSnUSAc=
 github.com/jetrmm/rmm-shared v0.0.0-20231024173931-0685b2c4b19c h1:FcBBGLWF2sDu42JfOgQ4VCDX9bAmyWaUS+fEiZmEPPk=
 github.com/jetrmm/rmm-shared v0.0.0-20231024173931-0685b2c4b19c/go.mod h1:aTz7gQI9uuPVmmA4fzTdRgVzCFSosl5XL+jtwPc/BuU=
+github.com/jetrmm/rmm-shared v0.0.0-20231024210503-d240b2c611e2 h1:M0GOF20NZ49ga1Eyw9B2MXwU3Iy8dkhYrrtMefjfeRU=
+github.com/jetrmm/rmm-shared v0.0.0-20231024210503-d240b2c611e2/go.mod h1:aTz7gQI9uuPVmmA4fzTdRgVzCFSosl5XL+jtwPc/BuU=
 github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 h1:rp+c0RAYOWj8l6qbCUTSiRLG/iKnW3K3/QfPPuSsBt4=
 github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901/go.mod h1:Z86h9688Y0wesXCyonoVr47MasHilkuLMqGhRZ4Hpak=
 github.com/kardianos/service v1.2.2 h1:ZvePhAHfvo0A7Mftk/tEzqEZ7Q4lgnR8sGz4xu1YX60=

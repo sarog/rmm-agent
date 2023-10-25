@@ -3,9 +3,7 @@
 #define MyAppPublisher "ACME"
 #define MyAppURL "https://example.com"
 #define MyAppExeName "rmmagent.exe"
-#define NSSM "nssm.exe"
-#define SERVICE_AGENT_NAME "rmmagent"
-#define SERVICE_RPC_NAME "rpcagent"
+#define SERVICE_AGENT_NAME "jetagent"
 
 [Setup]
 AppId={{0D34D278-5FAF-4159-A4A0-4E2D2C08139D}
@@ -50,8 +48,6 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 [UninstallRun]
 Filename: "{app}\{#NSSM}"; Parameters: "stop {#SERVICE_AGENT_NAME}"; RunOnceId: "stoprmmagent";
 Filename: "{app}\{#NSSM}"; Parameters: "remove {#SERVICE_AGENT_NAME} confirm"; RunOnceId: "removermmagent";
-Filename: "{app}\{#NSSM}"; Parameters: "stop {#SERVICE_RPC_NAME}"; RunOnceId: "stoprmmrpc";
-Filename: "{app}\{#NSSM}"; Parameters: "remove {#SERVICE_RPC_NAME} confirm"; RunOnceId: "removermmrpc";
 Filename: "{app}\{#MyAppExeName}"; Parameters: "-m cleanup"; RunOnceId: "cleanuprm";
 Filename: "{cmd}"; Parameters: "/c taskkill /F /IM {#MyAppExeName}"; RunOnceId: "killrmmagent";
 
@@ -66,8 +62,6 @@ begin
   Exec('cmd.exe', '/c net stop {#SERVICE_AGENT_NAME}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Log('Stopping RMM agent service: ' + IntToStr(ResultCode));
   Exec('cmd.exe', '/c net stop checkrunner', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec('cmd.exe', '/c net stop {#SERVICE_RPC_NAME}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Log('Stopping agent RPC service: ' + IntToStr(ResultCode));
   Exec('cmd.exe', '/c taskkill /F /IM {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Log('taskkill: ' + IntToStr(ResultCode));
 
@@ -80,7 +74,5 @@ var
 begin
   Exec('cmd.exe', '/c net start {#SERVICE_AGENT_NAME} && ping 127.0.0.1 -n 2', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Log('Starting RMM agent service: ' + IntToStr(ResultCode));
-  Exec('cmd.exe', '/c net start {#SERVICE_RPC_NAME}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Log('Starting agent RPC service: ' + IntToStr(ResultCode));
 end;
 

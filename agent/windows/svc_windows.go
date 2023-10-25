@@ -105,16 +105,16 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 	case CHECKIN_MODE_HELLO:
 		nMode = NATS_MODE_HELLO
 		payload = jrmm.CheckInNats{
-			Agentid: a.AgentID,
+			AgentId: a.AgentID,
 			Version: a.Version,
 		}
 
 	case CHECKIN_MODE_STARTUP:
 		// server will then request 2 calls via nats:
 		//  'installchoco' and 'getwinupdates'
-		payload = rmm.CheckIn{
+		payload = rmm.AgentHeader{
 			Func:    "startup",
-			Agentid: a.AgentID,
+			AgentId: a.AgentID,
 			Version: a.Version,
 		}
 
@@ -140,29 +140,29 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 	case CHECKIN_MODE_WINSERVICES:
 		nMode = NATS_MODE_WINSERVICES
 		payload = jrmm.WinSvcNats{
-			Agentid: a.AgentID,
+			AgentId: a.AgentID,
 			WinSvcs: a.GetServicesNATS(),
 		}
 
 	case CHECKIN_MODE_PUBLICIP:
 		nMode = NATS_MODE_PUBLICIP
 		payload = jrmm.PublicIPNats{
-			Agentid:  a.AgentID,
+			AgentId:  a.AgentID,
 			PublicIP: a.PublicIP(),
 		}
 
 	case CHECKIN_MODE_DISKS:
 		nMode = NATS_MODE_DISKS
 		payload = jrmm.WinDisksNats{
-			Agentid: a.AgentID,
+			AgentId: a.AgentID,
 			Disks:   a.GetStorage(),
 		}
 
 	case CHECKIN_MODE_LOGGEDONUSER:
 		payload = rmm.CheckInLoggedUser{
-			CheckIn: rmm.CheckIn{
+			AgentHeader: rmm.AgentHeader{
 				Func:    "loggedonuser",
-				Agentid: a.AgentID,
+				AgentId: a.AgentID,
 				Version: a.Version,
 			},
 			Username: a.LoggedOnUser(),
@@ -170,9 +170,9 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 
 	case CHECKIN_MODE_SOFTWARE:
 		payload = rmm.CheckInSW{
-			CheckIn: rmm.CheckIn{
+			AgentHeader: rmm.AgentHeader{
 				Func:    "software",
-				Agentid: a.AgentID,
+				AgentId: a.AgentID,
 				Version: a.Version,
 			},
 			InstalledSW: a.GetInstalledSoftware(),

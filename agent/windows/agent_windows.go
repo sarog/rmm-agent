@@ -291,8 +291,8 @@ func (a *windowsAgent) GetStorage() []jrmm.Disk {
 
 // GetDisks returns a list of fixed disks
 // Deprecated, use GetStorage()
-func (a *windowsAgent) GetDisks() []rmm.Disk {
-	ret := make([]rmm.Disk, 0)
+func (a *windowsAgent) GetDisks() []rmm.Storage {
+	ret := make([]rmm.Storage, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -313,7 +313,7 @@ func (a *windowsAgent) GetDisks() []rmm.Disk {
 			continue
 		}
 
-		d := rmm.Disk{
+		d := rmm.Storage{
 			Device:  p.Device,
 			Fstype:  p.Fstype,
 			Total:   usage.Total,

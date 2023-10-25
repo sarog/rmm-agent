@@ -10,7 +10,7 @@ require (
 	github.com/gonutz/w32/v2 v2.10.0
 	github.com/jetrmm/go-win64api v0.0.0-20231018151009-2fcff29af73c
 	github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7
-	github.com/jetrmm/rmm-shared v0.0.0-20231024173931-0685b2c4b19c
+	github.com/jetrmm/rmm-shared v0.0.0-20231024210503-d240b2c611e2
 	github.com/kardianos/service v1.2.2
 	github.com/nats-io/nats.go v1.31.0
 	github.com/shirou/gopsutil/v3 v3.23.9
