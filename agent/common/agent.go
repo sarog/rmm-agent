@@ -28,10 +28,10 @@ type InfoCollector interface {
 	PublicIP() string
 	TotalRAM() float64
 	BootTime() int64
-	GetInstalledSoftware() []shared.SoftwareList
+	GetInstalledSoftware() []shared.Software
 	OSInfo() (plat, osFullName string)
 	SysInfo()
-	GetStorage() []jrmm.Disk
+	GetStorage() []jrmm.StorageDrive
 	LoggedOnUser() string
 	GetCPULoadAvg() int
 }

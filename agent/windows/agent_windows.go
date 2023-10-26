@@ -254,8 +254,8 @@ func (a *windowsAgent) OSInfo() (plat, osFullName string) {
 }
 
 // GetStorage returns a list of fixed disks
-func (a *windowsAgent) GetStorage() []jrmm.Disk {
-	ret := make([]jrmm.Disk, 0)
+func (a *windowsAgent) GetStorage() []jrmm.StorageDrive {
+	ret := make([]jrmm.StorageDrive, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -276,7 +276,7 @@ func (a *windowsAgent) GetStorage() []jrmm.Disk {
 			continue
 		}
 
-		d := jrmm.Disk{
+		d := jrmm.StorageDrive{
 			Device:  p.Device,
 			Fstype:  p.Fstype,
 			Total:   string(usage.Total),

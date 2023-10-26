@@ -350,7 +350,7 @@ func (a *windowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 		"percent_used": usage.UsedPercent,
 		"total":        usage.Total,
 		"free":         usage.Free,
-		// todo: 2021-12-31: "more_info" ? api/tacticalrmm/checks/models.py:356
+		// todo: 2021-12-31: "more_info" ?
 	}
 
 	resp, err := r.R().SetBody(payload).Patch(API_URL_CHECKRUNNER)

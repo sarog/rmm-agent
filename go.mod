@@ -10,9 +10,10 @@ require (
 	github.com/gonutz/w32/v2 v2.10.0
 	github.com/jetrmm/go-win64api v0.0.0-20231018151009-2fcff29af73c
 	github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7
-	github.com/jetrmm/rmm-shared v0.0.0-20231024210503-d240b2c611e2
+	github.com/jetrmm/rmm-shared v0.0.0-20231025011130-4ff9ad23fce2
 	github.com/kardianos/service v1.2.2
 	github.com/nats-io/nats.go v1.31.0
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/shirou/gopsutil/v3 v3.23.9
 	github.com/sirupsen/logrus v1.9.3
 	github.com/ugorji/go/codec v1.2.11
@@ -21,6 +22,7 @@ require (
 
 require (
 	github.com/elastic/go-windows v1.0.1 // indirect
+	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/google/cabbie v1.0.5 // indirect
 	github.com/google/glazier v0.0.0-20230912201418-e61e8c721b6f // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
@@ -29,7 +31,6 @@ require (
 	github.com/nats-io/nkeys v0.4.6 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
-	github.com/oklog/ulid/v2 v2.1.0 // indirect
 	github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
@@ -50,5 +51,3 @@ require (
 )
 
 // replace github.com/yusufpapurcu/wmi => github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7
-// replace github.com/jetrmm/rmm-shared => ../rmm-shared
-// replace github.com/jetrmm/go-wmi => ../go-wmi

@@ -17,8 +17,8 @@ func installedSoftwareList() ([]so.Software, error) {
 	return sw32, nil
 }
 
-func (a *windowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
-	ret := make([]rmm.SoftwareList, 0)
+func (a *windowsAgent) GetInstalledSoftware() []rmm.Software {
+	ret := make([]rmm.Software, 0)
 
 	sw, err := installedSoftwareList()
 	if err != nil {
@@ -27,7 +27,7 @@ func (a *windowsAgent) GetInstalledSoftware() []rmm.SoftwareList {
 
 	for _, s := range sw {
 		t := s.InstallDate
-		ret = append(ret, rmm.SoftwareList{
+		ret = append(ret, rmm.Software{
 			Name:        s.Name(),
 			Version:     s.Version(),
 			Publisher:   s.Publisher,

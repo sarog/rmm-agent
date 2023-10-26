@@ -142,7 +142,7 @@ func (a *windowsAgent) RunService() {
 			}(payload)
 
 		case NATS_CMD_TASK_ENABLE:
-			//  1.7.3+: replaced with 'func: schedtask': api/tacticalrmm/autotasks/models.py:538 (modify_task_on_agent)
+			//  1.7.3+: replaced with 'func: schedtask': (modify_task_on_agent)
 			go func(p *NatsMsg) {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))

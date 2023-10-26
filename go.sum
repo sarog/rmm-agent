@@ -32,6 +32,8 @@ github.com/go-ole/go-ole v1.3.0 h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=
 github.com/go-ole/go-ole v1.3.0/go.mod h1:5LS6F96DhAwUc7C+1HLexzMXY1xGRSryjyPPKW6zv78=
 github.com/go-resty/resty/v2 v2.10.0 h1:Qla4W/+TMmv0fOeeRqzEpXPLfTUnR5HZ1+lGs+CkiCo=
 github.com/go-resty/resty/v2 v2.10.0/go.mod h1:iiP/OpA0CkcL3IGt1O0+/SIItFUbkkyw5BGXiVdTu+A=
+github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=
+github.com/go-sql-driver/mysql v1.7.1/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/godbus/dbus v4.1.0+incompatible/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
@@ -78,6 +80,8 @@ github.com/jetrmm/rmm-shared v0.0.0-20231024173931-0685b2c4b19c h1:FcBBGLWF2sDu4
 github.com/jetrmm/rmm-shared v0.0.0-20231024173931-0685b2c4b19c/go.mod h1:aTz7gQI9uuPVmmA4fzTdRgVzCFSosl5XL+jtwPc/BuU=
 github.com/jetrmm/rmm-shared v0.0.0-20231024210503-d240b2c611e2 h1:M0GOF20NZ49ga1Eyw9B2MXwU3Iy8dkhYrrtMefjfeRU=
 github.com/jetrmm/rmm-shared v0.0.0-20231024210503-d240b2c611e2/go.mod h1:aTz7gQI9uuPVmmA4fzTdRgVzCFSosl5XL+jtwPc/BuU=
+github.com/jetrmm/rmm-shared v0.0.0-20231025011130-4ff9ad23fce2 h1:rkOPID1AXx1HwPZoHUZgG1bQbkdMG3L4k+QU5Y55ZNk=
+github.com/jetrmm/rmm-shared v0.0.0-20231025011130-4ff9ad23fce2/go.mod h1:aTz7gQI9uuPVmmA4fzTdRgVzCFSosl5XL+jtwPc/BuU=
 github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 h1:rp+c0RAYOWj8l6qbCUTSiRLG/iKnW3K3/QfPPuSsBt4=
 github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901/go.mod h1:Z86h9688Y0wesXCyonoVr47MasHilkuLMqGhRZ4Hpak=
 github.com/kardianos/service v1.2.2 h1:ZvePhAHfvo0A7Mftk/tEzqEZ7Q4lgnR8sGz4xu1YX60=

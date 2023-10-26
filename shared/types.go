@@ -91,7 +91,7 @@ type EventLogMsg struct {
 	UID int `json:"uid"` // for vue
 }
 
-type SoftwareList struct {
+type Software struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`
 	Publisher   string `json:"publisher"`
@@ -104,7 +104,7 @@ type SoftwareList struct {
 
 type CheckInSW struct {
 	AgentHeader
-	InstalledSW []SoftwareList `json:"software"`
+	InstalledSW []Software `json:"software"`
 }
 
 // Deprecated

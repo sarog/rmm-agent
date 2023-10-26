@@ -127,7 +127,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 
 		nMode = NATS_MODE_OSINFO
 		payload = jrmm.AgentInfoNats{
-			Agentid:      a.AgentID,
+			AgentId:      a.AgentID,
 			Username:     a.LoggedOnUser(),
 			Hostname:     a.Hostname,
 			OS:           osInfo,
@@ -155,7 +155,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 		nMode = NATS_MODE_DISKS
 		payload = jrmm.WinDisksNats{
 			AgentId: a.AgentID,
-			Disks:   a.GetStorage(),
+			Drives:  a.GetStorage(),
 		}
 
 	case CHECKIN_MODE_LOGGEDONUSER:
