@@ -28,7 +28,7 @@ type InfoCollector interface {
 	PublicIP() string
 	TotalRAM() float64
 	BootTime() int64
-	GetInstalledSoftware() []shared.Software
+	GetInstalledSoftware() []jrmm.Software
 	OSInfo() (plat, osFullName string)
 	SysInfo()
 	GetStorage() []jrmm.StorageDrive
@@ -58,8 +58,8 @@ type ServiceManager interface {
 }
 
 // todo
-type Messenger interface {
-	SendMessage()
+type BackendComm interface {
+	SendMessage(any)
 	ReceiveMessage()
 }
 

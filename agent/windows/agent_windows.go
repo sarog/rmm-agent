@@ -279,9 +279,9 @@ func (a *windowsAgent) GetStorage() []jrmm.StorageDrive {
 		d := jrmm.StorageDrive{
 			Device:  p.Device,
 			Fstype:  p.Fstype,
-			Total:   string(usage.Total),
-			Used:    string(usage.Used),
-			Free:    string(usage.Free),
+			Total:   strconv.FormatUint(usage.Total, 10),
+			Used:    strconv.FormatUint(usage.Used, 10),
+			Free:    strconv.FormatUint(usage.Free, 10),
 			Percent: int(usage.UsedPercent),
 		}
 		ret = append(ret, d)
@@ -291,8 +291,8 @@ func (a *windowsAgent) GetStorage() []jrmm.StorageDrive {
 
 // GetDisks returns a list of fixed disks
 // Deprecated, use GetStorage()
-func (a *windowsAgent) GetDisks() []rmm.Storage {
-	ret := make([]rmm.Storage, 0)
+func (a *windowsAgent) GetDisks() []jrmm.StorageDrive {
+	ret := make([]jrmm.StorageDrive, 0)
 	partitions, err := disk.Partitions(false)
 	if err != nil {
 		a.Logger.Debugln(err)
@@ -313,20 +313,20 @@ func (a *windowsAgent) GetDisks() []rmm.Storage {
 			continue
 		}
 
-		d := rmm.Storage{
+		d := jrmm.StorageDrive{
 			Device:  p.Device,
 			Fstype:  p.Fstype,
-			Total:   usage.Total,
-			Used:    usage.Used,
-			Free:    usage.Free,
-			Percent: usage.UsedPercent,
+			Total:   strconv.FormatUint(usage.Total, 10),
+			Used:    strconv.FormatUint(usage.Used, 10),
+			Free:    strconv.FormatUint(usage.Free, 10),
+			Percent: int(usage.UsedPercent),
 		}
 		ret = append(ret, d)
 	}
 	return ret
 }
 
-func CMDShell(shell string, cmdArgs []string, command string, timeout int, detached bool) (output [2]string, e error) {
+func CMDShell(interpreter string, cmdArgs []string, command string, timeout int, detached bool) (output [2]string, e error) {
 	var (
 		outb     bytes.Buffer
 		errb     bytes.Buffer
@@ -340,7 +340,7 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 	// sysProcAttr := &windows.SysProcAttr{}
 
 	if len(cmdArgs) > 0 && command == "" {
-		switch shell {
+		switch interpreter {
 		case "cmd":
 			cmdArgs = append([]string{"/C"}, cmdArgs...)
 			cmd = exec.Command("cmd.exe", cmdArgs...)
@@ -349,7 +349,7 @@ func CMDShell(shell string, cmdArgs []string, command string, timeout int, detac
 			cmd = exec.Command("powershell.exe", cmdArgs...)
 		}
 	} else {
-		switch shell {
+		switch interpreter {
 		case "cmd":
 			cmd = exec.Command("cmd.exe")
 			cmd.SysProcAttr = &windows.SysProcAttr{

@@ -166,7 +166,7 @@ func (a *windowsAgent) RunChecks(force bool) error {
 	return nil
 }
 
-func (a *windowsAgent) RunScript(code string, shell string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
+func (a *windowsAgent) RunScript(code string, interpreter string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
 	content := []byte(code)
 
 	dir := filepath.Join(os.TempDir(), common.AGENT_TEMP_DIR)
@@ -184,7 +184,7 @@ func (a *windowsAgent) RunScript(code string, shell string, args []string, timeo
 		cmdArgs []string
 	)
 
-	switch shell {
+	switch interpreter {
 	case "powershell":
 		ext = "*.ps1"
 	case "cmd":
@@ -207,7 +207,7 @@ func (a *windowsAgent) RunScript(code string, shell string, args []string, timeo
 		return "", err.Error(), 85, err
 	}
 
-	switch shell {
+	switch interpreter {
 	case "powershell":
 		exe = "Powershell"
 		// todo: 2021-12-31: allow ExecutionPolicy to be chosen by the sysadmin
@@ -306,7 +306,7 @@ func (a *windowsAgent) RunScript(code string, shell string, args []string, timeo
 // and sends the results back to the server
 func (a *windowsAgent) ScriptCheck(data rmm.Check, r *resty.Client) {
 	start := time.Now()
-	stdout, stderr, retcode, _ := a.RunScript(data.Script.Code, data.Script.Shell, data.ScriptArgs, data.Timeout)
+	stdout, stderr, retcode, _ := a.RunScript(data.Script.Code, data.Script.Interpreter, data.ScriptArgs, data.Timeout)
 
 	payload := map[string]interface{}{
 		"id":      data.CheckPK,
@@ -331,7 +331,7 @@ func (a *windowsAgent) DiskCheck(data rmm.Check, r *resty.Client) {
 
 	usage, err := disk.Usage(data.Storage)
 	if err != nil {
-		a.Logger.Debugln("Storage", data.Storage, err)
+		a.Logger.Debugln("StorageDrive", data.Storage, err)
 
 		payload = map[string]interface{}{
 			"id":     data.CheckPK,

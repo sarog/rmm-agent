@@ -1,6 +1,7 @@
 package shared
 
-// Deprecated (was "Checkin")
+import jetrmm "github.com/jetrmm/rmm-shared"
+
 type AgentHeader struct {
 	Func    string `json:"func"`
 	AgentId string `json:"agent_id"`
@@ -17,25 +18,14 @@ type AgentNeedsReboot struct {
 	NeedsReboot bool   `json:"needs_reboot"`
 }
 
-// Storage holds physical disk info
-// Deprecated
-type Storage struct {
-	Device  string  `json:"device"`
-	Fstype  string  `json:"fstype"`
-	Total   uint64  `json:"total"`
-	Used    uint64  `json:"used"`
-	Free    uint64  `json:"free"`
-	Percent float64 `json:"percent"`
-}
-
 type AssignedTask struct {
 	TaskPK  int  `json:"id"`
 	Enabled bool `json:"enabled"`
 }
 
 type Script struct {
-	Shell string `json:"shell"`
-	Code  string `json:"code"`
+	Interpreter string `json:"interpreter"` // cmd, powershell, pwsh, sh, bash, tcsh, etc.
+	Code        string `json:"code"`        // base64-encoded
 }
 
 type CheckInfo struct {
@@ -81,17 +71,38 @@ type AutomatedTask struct {
 	Args       []string `json:"script_args"`
 }
 
-type EventLogMsg struct {
-	Source    string `json:"source"`
-	EventType string `json:"eventType"`
-	EventID   uint32 `json:"eventID"`
-	Message   string `json:"message"`
-	Time      string `json:"time"`
-	// Deprecated
-	UID int `json:"uid"` // for vue
+type CheckInSW struct {
+	AgentHeader
+	InstalledSW []jetrmm.Software `json:"software"`
 }
 
-type Software struct {
+type CheckInPublicIP struct {
+	AgentHeader
+	PublicIP string `json:"public_ip"`
+}
+
+type CheckInDisk struct {
+	AgentHeader
+	Drives []jetrmm.StorageDrive `json:"drives"`
+}
+
+type CheckInLoggedUser struct {
+	AgentHeader
+	Username string `json:"logged_in_username"`
+}
+
+// moved to rmm-shared
+/*type StorageDrive struct {
+	Device  string  `json:"device"`
+	Fstype  string  `json:"fstype"`
+	Total   uint64  `json:"total"`
+	Used    uint64  `json:"used"`
+	Free    uint64  `json:"free"`
+	Percent float64 `json:"percent"`
+}*/
+
+// moved to rmm-shared
+/*type Software struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`
 	Publisher   string `json:"publisher"`
@@ -100,15 +111,10 @@ type Software struct {
 	Source      string `json:"source"`
 	Location    string `json:"location"`
 	Uninstall   string `json:"uninstall"`
-}
+}*/
 
-type CheckInSW struct {
-	AgentHeader
-	InstalledSW []Software `json:"software"`
-}
-
-// Deprecated
-type CheckInOS struct {
+// unused
+/*type CheckInOS struct {
 	AgentHeader
 	Hostname     string  `json:"hostname"`
 	OS           string  `json:"operating_system"`
@@ -116,24 +122,5 @@ type CheckInOS struct {
 	TotalRAM     float64 `json:"total_ram"`
 	BootTime     int64   `json:"boot_time"`
 	RebootNeeded bool    `json:"needs_reboot"`
-	// todo: 2022-01-01: add: 'logged_in_username' ? natsapi/svc.go:77
-}
-
-// CheckInPublicIP
-// Deprecated
-type CheckInPublicIP struct {
-	AgentHeader
-	PublicIP string `json:"public_ip"`
-}
-
-// Deprecated
-type CheckInDisk struct {
-	AgentHeader
-	Drives []Storage `json:"drives"`
-}
-
-// Deprecated
-type CheckInLoggedUser struct {
-	AgentHeader
-	Username string `json:"logged_in_username"`
-}
+	LoggedInUser string  `json:"logged_in_username"`
+}*/

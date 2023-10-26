@@ -35,7 +35,7 @@ func (a *windowsAgent) RunTask(id int) error {
 	}
 
 	start := time.Now()
-	stdout, stderr, retcode, _ := a.RunScript(data.TaskScript.Code, data.TaskScript.Shell, data.Args, data.Timeout)
+	stdout, stderr, retcode, _ := a.RunScript(data.TaskScript.Code, data.TaskScript.Interpreter, data.Args, data.Timeout)
 
 	type TaskResult struct {
 		Stdout   string  `json:"stdout"`

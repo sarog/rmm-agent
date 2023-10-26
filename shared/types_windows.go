@@ -57,6 +57,16 @@ type CheckInWinServices struct {
 	Services []WindowsService `json:"services"`
 }
 
+type EventLogMsg struct {
+	Source    string `json:"source"`
+	EventType string `json:"eventType"`
+	EventID   uint32 `json:"eventID"`
+	Message   string `json:"message"`
+	Time      string `json:"time"`
+	// Deprecated
+	UID int `json:"uid"` // for vue
+}
+
 type Win32_ComputerSystemProduct struct {
 	Caption           string
 	Description       string

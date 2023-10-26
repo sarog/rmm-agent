@@ -296,7 +296,7 @@ func (a *windowsAgent) RunService() {
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
 
 				switch p.Data["mode"] {
-				case "tacagent":
+				case "jetagent":
 					a.Logger.Debugln("Recovering agent")
 					a.RecoverAgent()
 				}
