@@ -1,15 +1,15 @@
 {
     "FixedFileInfo": {
         "FileVersion": {
-            "Major": 1,
-            "Minor": 7,
-            "Patch": 2,
+            "Major": 0,
+            "Minor": 1,
+            "Patch": 0,
             "Build": 1000
         },
         "ProductVersion": {
-            "Major": 1,
-            "Minor": 7,
-            "Patch": 2,
+            "Major": 0,
+            "Minor": 1,
+            "Patch": 0,
             "Build": 1000
         },
         "FileFlagsMask": "3f",
@@ -20,16 +20,16 @@
     },
     "StringFileInfo": {
         "Comments": "",
-        "CompanyName": "ACME",
-        "FileDescription": "ACME RMM Agent OSS",
-        "FileVersion": "v1.7.2.1000",
+        "CompanyName": "JetRMM",
+        "FileDescription": "Jet RMM Agent OSS",
+        "FileVersion": "v0.1.0.1000",
         "InternalName": "rmmagent.exe",
-        "LegalCopyright": "Copyright (c) 2023 ACME",
+        "LegalCopyright": "Copyright (c) 2023 JetRMM",
         "LegalTrademarks": "",
         "OriginalFilename": "rmmagent.exe",
         "PrivateBuild": "",
-        "ProductName": "ACME RMM Agent",
-        "ProductVersion": "v1.7.2.1000",
+        "ProductName": "Jet RMM Agent",
+        "ProductVersion": "v0.1.0.1000",
         "SpecialBuild": ""
     },
     "VarFileInfo": {
