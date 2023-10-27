@@ -19,11 +19,6 @@ import (
 	"time"
 )
 
-type IAgentLogger interface {
-	setLogger(logger *logrus.Logger)
-	getLogger() *logrus.Logger
-}
-
 type InfoCollector interface {
 	PublicIP() string
 	TotalRAM() float64
@@ -57,10 +52,10 @@ type ServiceManager interface {
 	// EditService(name, startupType string) windows.WinSvcResp
 }
 
-// todo
-type BackendComm interface {
-	SendMessage(any)
-	ReceiveMessage()
+// Messenger is our communication interface (for RPC, JSON, etc.)
+type Messenger interface {
+	Send(any)
+	Receive(any)
 }
 
 type BaseAgent interface {

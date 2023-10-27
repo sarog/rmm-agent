@@ -19,26 +19,6 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-type Installer struct {
-	Headers     map[string]string
-	ServerURL   string
-	ClientID    int
-	SiteID      int
-	Description string
-	Token       string
-	Cert        string
-	Timeout     time.Duration
-	ApiURL      string // was "SaltMaster"
-	Silent      bool
-
-	// Deprecated
-	DisableSleep bool
-	// Deprecated
-	EnableRDP bool
-	// Deprecated
-	EnablePing bool
-}
-
 func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
 	// todo: 2021-12-31: migrate to DPAPI
 	key, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
