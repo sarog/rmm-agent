@@ -7,9 +7,10 @@ require (
 	github.com/go-ole/go-ole v1.3.0
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/gonutz/w32/v2 v2.10.0
-	github.com/jetrmm/go-win64api v0.0.0-20231018151009-2fcff29af73c
-	github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7
-	github.com/jetrmm/rmm-shared v0.0.0-20231025011130-4ff9ad23fce2
+	github.com/jetrmm/go-sysinfo v0.1.0
+	github.com/jetrmm/go-win64api v0.1.0
+	github.com/jetrmm/go-wmi v0.1.0
+	github.com/jetrmm/rmm-shared v0.0.0-20231026210319-d19a6850ab00
 	github.com/kardianos/service v1.2.2
 	github.com/nats-io/nats.go v1.31.0
 	github.com/oklog/ulid/v2 v2.1.0
@@ -23,7 +24,6 @@ require (
 	github.com/elastic/go-windows v1.0.1 // indirect
 	github.com/google/cabbie v1.0.5 // indirect
 	github.com/google/glazier v0.0.0-20230912201418-e61e8c721b6f // indirect
-	github.com/jetrmm/go-sysinfo v0.0.0-20231027010334-de66e2bdf0a1 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
