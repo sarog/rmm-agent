@@ -4,7 +4,6 @@ go 1.21.3
 
 require (
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
-	github.com/elastic/go-sysinfo v1.11.1
 	github.com/go-ole/go-ole v1.3.0
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/gonutz/w32/v2 v2.10.0
@@ -22,7 +21,6 @@ require (
 
 require (
 	github.com/elastic/go-windows v1.0.1 // indirect
-	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/google/cabbie v1.0.5 // indirect
 	github.com/google/glazier v0.0.0-20230912201418-e61e8c721b6f // indirect
 	github.com/jetrmm/go-sysinfo v0.0.0-20231027010334-de66e2bdf0a1 // indirect
