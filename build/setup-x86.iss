@@ -1,7 +1,7 @@
-#define MyAppName "RMM Agent"
+#define MyAppName "JetRMM Agent"
 #define MyAppVersion "0.1.0"
-#define MyAppPublisher "ACME"
-#define MyAppURL "https://example.com"
+#define MyAppPublisher "JetRMM"
+#define MyAppURL "https://jetrmm.com"
 #define MyAppExeName "rmmagent.exe"
 #define SERVICE_AGENT_NAME "jetagent"
 
@@ -14,7 +14,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName="{sd}\Program Files\RMMAgent"
+DefaultDirName="{sd}\Program Files\JetAgent"
 DisableDirPage=yes
 SetupLogging=yes
 DisableProgramGroupPage=yes
@@ -72,6 +72,6 @@ var
   ResultCode: Integer;
 begin
   Exec('cmd.exe', '/c net start {#SERVICE_AGENT_NAME} && ping 127.0.0.1 -n 2', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Log('Starting RMM agent service: ' + IntToStr(ResultCode));
+  Log('Starting JetRMM agent service: ' + IntToStr(ResultCode));
 end;
 
