@@ -2,7 +2,7 @@ package windows
 
 import (
 	"fmt"
-	ps "github.com/elastic/go-sysinfo"
+	ps "github.com/jetrmm/go-sysinfo"
 	gops "github.com/shirou/gopsutil/v3/process"
 )
 

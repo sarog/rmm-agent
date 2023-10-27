@@ -25,6 +25,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/google/cabbie v1.0.5 // indirect
 	github.com/google/glazier v0.0.0-20230912201418-e61e8c721b6f // indirect
+	github.com/jetrmm/go-sysinfo v0.0.0-20231027010334-de66e2bdf0a1 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect

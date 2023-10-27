@@ -2,8 +2,8 @@ package common
 
 import (
 	"fmt"
-	ps "github.com/elastic/go-sysinfo"
 	"github.com/go-resty/resty/v2"
+	ps "github.com/jetrmm/go-sysinfo"
 	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/kardianos/service"
 	"github.com/nats-io/nats.go"

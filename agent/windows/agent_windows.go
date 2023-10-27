@@ -19,7 +19,7 @@ import (
 	"time"
 	"unsafe"
 
-	ps "github.com/elastic/go-sysinfo"
+	ps "github.com/jetrmm/go-sysinfo"
 	wapf "github.com/jetrmm/go-win64api"
 	rmm "github.com/sarog/rmmagent/shared"
 	"github.com/shirou/gopsutil/v3/cpu"
