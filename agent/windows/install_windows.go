@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/kardianos/service"
 	"github.com/sarog/rmmagent/agent/common"
+	"github.com/sirupsen/logrus"
 	"log"
 	"net/url"
 	"os"
@@ -19,45 +20,14 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-func createRegKeys(baseurl, agentid, apiurl, token, agentpk, cert string) {
-	// todo: 2021-12-31: migrate to DPAPI
-	key, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
-	if err != nil {
-		log.Fatalln("Error creating registry key:", err)
-	}
-	defer key.Close()
-
-	err = key.SetStringValue(REG_RMM_BASEURL, baseurl)
-	if err != nil {
-		log.Fatalln("Error creating BaseURL registry key:", err)
-	}
-
-	err = key.SetStringValue(REG_RMM_AGENTID, agentid)
-	if err != nil {
-		log.Fatalln("Error creating AgentID registry key:", err)
-	}
-
-	err = key.SetStringValue(REG_RMM_APIURL, apiurl)
-	if err != nil {
-		log.Fatalln("Error creating ApiURL registry key:", err)
-	}
-
-	err = key.SetStringValue(REG_RMM_TOKEN, token)
-	if err != nil {
-		log.Fatalln("Error creating Token registry key:", err)
-	}
-
-	err = key.SetStringValue(REG_RMM_AGENTPK, agentpk)
-	if err != nil {
-		log.Fatalln("Error creating AgentPK registry key:", err)
-	}
-
-	if len(cert) > 0 {
-		err = key.SetStringValue(REG_RMM_CERT, cert)
-		if err != nil {
-			log.Fatalln("Error creating RootCert registry key:", err)
-		}
-	}
+type WinRegKeys struct {
+	baseUrl  string
+	agentId  string
+	apiUrl   string
+	token    string
+	agentPK  string
+	pk       int // int(agentPK)
+	rootCert string
 }
 
 func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
@@ -93,6 +63,7 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 
 	a.Logger.Debugln("API URL:", i.ApiURL)
 
+	// todo: port 443 and/or 4222
 	terr := common.TestTCP(fmt.Sprintf("%s:4222", i.ApiURL))
 	if terr != nil {
 		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM server, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
@@ -141,7 +112,7 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.Logger.Infoln("Adding agent to the dashboard")
 
 	type NewAgentResp struct {
-		AgentPK int `json:"pk"`
+		AgentPK int `json:"PK"`
 		// SaltID  string `json:"saltid"`
 		Token string `json:"token"`
 	}
@@ -169,7 +140,6 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.Logger.Debugln("Agent Token:", agentToken)
 	a.Logger.Debugln("Agent PK:", agentPK)
 
-	// todo: extract / move
 	createRegKeys(baseURL, a.AgentID, i.ApiURL, agentToken, strconv.Itoa(agentPK), i.RootCert)
 
 	// Refresh our agent with new values
@@ -232,8 +202,8 @@ func (a *windowsAgent) checkExistingAndRemove(silent bool) {
 		hasReg = true
 	}
 	if hasReg {
-		tacUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
-		tacUninstArgs := []string{tacUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
+		jetUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
+		jetUninstArgs := []string{jetUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 
 		window := w32.GetForegroundWindow()
 		if !silent && window != 0 {
@@ -246,8 +216,94 @@ func (a *windowsAgent) checkExistingAndRemove(silent bool) {
 		} else {
 			fmt.Println("Existing installation found and must be removed before attempting to reinstall.")
 			fmt.Println("Run the following command to uninstall, and then re-run this installer.")
-			fmt.Printf(`"%s" %s %s %s`, tacUninstArgs[0], tacUninstArgs[1], tacUninstArgs[2], tacUninstArgs[3])
+			fmt.Printf(`"%s" %s %s %s`, jetUninstArgs[0], jetUninstArgs[1], jetUninstArgs[2], jetUninstArgs[3])
 		}
 		os.Exit(0)
 	}
+}
+
+func createRegKeys(baseUrl, agentId, apiUrl, token, agentPK, rootCert string) {
+	// todo: 2021-12-31: migrate to DPAPI
+	key, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
+	if err != nil {
+		log.Fatalln("Error creating registry key:", err)
+	}
+	defer key.Close()
+
+	err = key.SetStringValue(REG_RMM_BASEURL, baseUrl)
+	if err != nil {
+		log.Fatalln("Error creating BaseURL registry key:", err)
+	}
+
+	err = key.SetStringValue(REG_RMM_AGENTID, agentId)
+	if err != nil {
+		log.Fatalln("Error creating AgentID registry key:", err)
+	}
+
+	err = key.SetStringValue(REG_RMM_APIURL, apiUrl)
+	if err != nil {
+		log.Fatalln("Error creating ApiURL registry key:", err)
+	}
+
+	err = key.SetStringValue(REG_RMM_TOKEN, token)
+	if err != nil {
+		log.Fatalln("Error creating Token registry key:", err)
+	}
+
+	err = key.SetStringValue(REG_RMM_AGENTPK, agentPK)
+	if err != nil {
+		log.Fatalln("Error creating AgentPK registry key:", err)
+	}
+
+	if len(rootCert) > 0 {
+		err = key.SetStringValue(REG_RMM_CERT, rootCert)
+		if err != nil {
+			log.Fatalln("Error creating RootCert registry key:", err)
+		}
+	}
+}
+
+func getRegKeys(logger *logrus.Logger) (*WinRegKeys, error) {
+	key, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.READ)
+	if err != nil {
+		return nil, err
+	}
+	baseUrl, _, err := key.GetStringValue(REG_RMM_BASEURL)
+	if err != nil {
+		logger.Fatalln("Unable to get BaseURL:", err)
+	}
+
+	agentId, _, err := key.GetStringValue(REG_RMM_AGENTID)
+	if err != nil {
+		logger.Fatalln("Unable to get AgentID:", err)
+	}
+
+	apiUrl, _, err := key.GetStringValue(REG_RMM_APIURL)
+	if err != nil {
+		logger.Fatalln("Unable to get ApiURL:", err)
+	}
+
+	token, _, err := key.GetStringValue(REG_RMM_TOKEN)
+	if err != nil {
+		logger.Fatalln("Unable to get Token:", err)
+	}
+
+	agentPK, _, err := key.GetStringValue(REG_RMM_AGENTPK)
+	if err != nil {
+		logger.Fatalln("Unable to get AgentPK:", err)
+	}
+
+	pk, _ := strconv.Atoi(agentPK)
+
+	rootCert, _, _ := key.GetStringValue(REG_RMM_CERT)
+
+	return &WinRegKeys{
+		baseUrl:  baseUrl,
+		agentId:  agentId,
+		apiUrl:   apiUrl,
+		token:    token,
+		agentPK:  agentPK,
+		pk:       pk,
+		rootCert: rootCert,
+	}, nil
 }

@@ -56,75 +56,38 @@ func NewAgent(logger *logrus.Logger, version string) common.IAgent {
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	sd := os.Getenv("SystemDrive")
 
-	var (
-		baseurl string
-		agentid string
-		apiurl  string
-		token   string
-		agentpk string
-		pk      int
-		cert    string
-	)
+	regKeys, err := getRegKeys(logger)
 
-	// todo: 2021-12-31: migrate to DPAPI
-	key, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
-	if err == nil {
-		baseurl, _, err = key.GetStringValue(REG_RMM_BASEURL)
-		if err != nil {
-			logger.Fatalln("Unable to get BaseURL:", err)
-		}
-
-		agentid, _, err = key.GetStringValue(REG_RMM_AGENTID)
-		if err != nil {
-			logger.Fatalln("Unable to get AgentID:", err)
-		}
-
-		apiurl, _, err = key.GetStringValue(REG_RMM_APIURL)
-		if err != nil {
-			logger.Fatalln("Unable to get ApiURL:", err)
-		}
-
-		token, _, err = key.GetStringValue(REG_RMM_TOKEN)
-		if err != nil {
-			logger.Fatalln("Unable to get Token:", err)
-		}
-
-		agentpk, _, err = key.GetStringValue(REG_RMM_AGENTPK)
-		if err != nil {
-			logger.Fatalln("Unable to get AgentPK:", err)
-		}
-
-		pk, _ = strconv.Atoi(agentpk)
-
-		cert, _, _ = key.GetStringValue(REG_RMM_CERT)
+	if err != nil {
+		// todo: handle this
 	}
 
 	headers := make(map[string]string)
-	if len(token) > 0 {
+	if len(regKeys.token) > 0 {
 		headers["Content-Type"] = "application/json"
-		headers["Authorization"] = fmt.Sprintf("Token %s", token)
+		headers["Authorization"] = fmt.Sprintf("Token %s", regKeys.token)
 	}
 
 	restyC := resty.New()
-	restyC.SetBaseURL(baseurl)
+	restyC.SetBaseURL(regKeys.baseUrl)
 	restyC.SetCloseConnection(true)
 	restyC.SetHeaders(headers)
 	restyC.SetTimeout(15 * time.Second)
 	restyC.SetDebug(logger.IsLevelEnabled(logrus.DebugLevel))
-	if len(cert) > 0 {
-		restyC.SetRootCertificate(cert)
+	if len(regKeys.rootCert) > 0 {
+		restyC.SetRootCertificate(regKeys.rootCert)
 	}
 
 	return &windowsAgent{
 		Agent: common.Agent{
 			AgentConfig: &config.AgentConfig{
-				AgentID:  agentid,
-				BaseURL:  baseurl,
-				ApiURL:   apiurl,
+				AgentID:  regKeys.agentId,
+				BaseURL:  regKeys.baseUrl,
+				ApiURL:   regKeys.apiUrl,
 				ApiPort:  common.NATS_DEFAULT_PORT,
-				Token:    token,
-				AgentPK:  pk,
-				Cert:     cert,
+				Token:    regKeys.token,
+				AgentPK:  regKeys.pk,
+				Cert:     regKeys.rootCert,
 				Arch:     info.Architecture,
 				Hostname: info.Hostname,
 				Version:  version,
@@ -150,75 +113,38 @@ func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent 
 	exe := filepath.Join(pd, AGENT_FILENAME)
 	sd := os.Getenv("SystemDrive")
 
-	var (
-		baseurl string
-		agentid string
-		apiurl  string
-		token   string
-		agentpk string
-		pk      int
-		cert    string
-	)
+	regKeys, err := getRegKeys(logger)
 
-	// todo: 2021-12-31: migrate to DPAPI
-	key, err := registry.OpenKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
-	if err == nil {
-		baseurl, _, err = key.GetStringValue(REG_RMM_BASEURL)
-		if err != nil {
-			logger.Fatalln("Unable to get BaseURL:", err)
-		}
-
-		agentid, _, err = key.GetStringValue(REG_RMM_AGENTID)
-		if err != nil {
-			logger.Fatalln("Unable to get AgentID:", err)
-		}
-
-		apiurl, _, err = key.GetStringValue(REG_RMM_APIURL)
-		if err != nil {
-			logger.Fatalln("Unable to get ApiURL:", err)
-		}
-
-		token, _, err = key.GetStringValue(REG_RMM_TOKEN)
-		if err != nil {
-			logger.Fatalln("Unable to get Token:", err)
-		}
-
-		agentpk, _, err = key.GetStringValue(REG_RMM_AGENTPK)
-		if err != nil {
-			logger.Fatalln("Unable to get AgentPK:", err)
-		}
-
-		pk, _ = strconv.Atoi(agentpk)
-
-		cert, _, _ = key.GetStringValue(REG_RMM_CERT)
+	if err != nil {
+		// todo: handle this
 	}
 
 	headers := make(map[string]string)
-	if len(token) > 0 {
+	if len(regKeys.token) > 0 {
 		headers["Content-Type"] = "application/json"
-		headers["Authorization"] = fmt.Sprintf("Token %s", token)
+		headers["Authorization"] = fmt.Sprintf("Token %s", regKeys.token)
 	}
 
 	restyC := resty.New()
-	restyC.SetBaseURL(baseurl)
+	restyC.SetBaseURL(regKeys.baseUrl)
 	restyC.SetCloseConnection(true)
 	restyC.SetHeaders(headers)
 	restyC.SetTimeout(15 * time.Second)
 	restyC.SetDebug(logger.IsLevelEnabled(logrus.DebugLevel))
-	if len(cert) > 0 {
-		restyC.SetRootCertificate(cert)
+	if len(regKeys.rootCert) > 0 {
+		restyC.SetRootCertificate(regKeys.rootCert)
 	}
 
 	return &windowsAgent{
 		Agent: common.Agent{
 			AgentConfig: &config.AgentConfig{
-				AgentID:  agentid,
-				BaseURL:  baseurl,
-				ApiURL:   apiurl,
+				AgentID:  regKeys.agentId,
+				BaseURL:  regKeys.baseUrl,
+				ApiURL:   regKeys.apiUrl,
 				ApiPort:  common.NATS_DEFAULT_PORT,
-				Token:    token,
-				AgentPK:  pk,
-				Cert:     cert,
+				Token:    regKeys.token,
+				AgentPK:  regKeys.pk,
+				Cert:     regKeys.rootCert,
 				Arch:     info.Architecture,
 				Hostname: info.Hostname,
 				Version:  version,
