@@ -2,6 +2,7 @@ package windows
 
 import (
 	"fmt"
+	"github.com/jetrmm/go-dpapi"
 	"github.com/kardianos/service"
 	"github.com/sarog/rmmagent/agent/common"
 	"github.com/sirupsen/logrus"
@@ -112,9 +113,8 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.Logger.Infoln("Adding agent to the dashboard")
 
 	type NewAgentResp struct {
-		AgentPK int `json:"PK"`
-		// SaltID  string `json:"saltid"`
-		Token string `json:"token"`
+		AgentPK int    `json:"pk"`
+		Token   string `json:"token"`
 	}
 
 	agentPayload := map[string]interface{}{
@@ -135,12 +135,12 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	}
 
 	agentPK := r.Result().(*NewAgentResp).AgentPK
-	agentToken := r.Result().(*NewAgentResp).Token
+	authToken := r.Result().(*NewAgentResp).Token
 
-	a.Logger.Debugln("Agent Token:", agentToken)
+	// a.Logger.Debugln("Agent Token:", authToken)
 	a.Logger.Debugln("Agent PK:", agentPK)
 
-	createRegKeys(baseURL, a.AgentID, i.ApiURL, agentToken, strconv.Itoa(agentPK), i.RootCert)
+	createRegKeys(baseURL, a.AgentID, i.ApiURL, authToken, strconv.Itoa(agentPK), i.RootCert)
 
 	// Refresh our agent with new values
 	a = a.New(a.Logger, a.Version)
@@ -245,6 +245,11 @@ func createRegKeys(baseUrl, agentId, apiUrl, token, agentPK, rootCert string) {
 		log.Fatalln("Error creating ApiURL registry key:", err)
 	}
 
+	token, err = dpapi.Encrypt(token)
+	if err != nil {
+		log.Fatalln("Unable to encrypt Token:", err)
+	}
+
 	err = key.SetStringValue(REG_RMM_TOKEN, token)
 	if err != nil {
 		log.Fatalln("Error creating Token registry key:", err)
@@ -286,6 +291,11 @@ func getRegKeys(logger *logrus.Logger) (*WinRegKeys, error) {
 	token, _, err := key.GetStringValue(REG_RMM_TOKEN)
 	if err != nil {
 		logger.Fatalln("Unable to get Token:", err)
+	}
+
+	token, err = dpapi.Decrypt(token)
+	if err != nil {
+		logger.Fatalln("Unable to decrypt Token:", err)
 	}
 
 	agentPK, _, err := key.GetStringValue(REG_RMM_AGENTPK)

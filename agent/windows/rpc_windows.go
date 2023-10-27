@@ -354,7 +354,7 @@ func (a *windowsAgent) RunService() {
 			go func() {
 				var resp []byte
 				ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
-				a.Logger.Debugln("Getting system info with WMI")
+				a.Logger.Debugln("Getting system info via WMI")
 
 				modes := []string{CHECKIN_MODE_OSINFO, CHECKIN_MODE_PUBLICIP, CHECKIN_MODE_DISKS}
 				for _, mode := range modes {
@@ -401,6 +401,7 @@ func (a *windowsAgent) RunService() {
 					ret.Encode("ok")
 					msg.Respond(resp)
 					a.Logger.Debugln("Running checks")
+					// todo: verify:
 					_, checkerr := CMD(a.AgentExe, []string{"-m", "runchecks"}, 600, false)
 					if checkerr != nil {
 						a.Logger.Errorln("RPC RunChecks", checkerr)

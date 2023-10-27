@@ -43,7 +43,7 @@ const (
 
 var wuaSession sync.Mutex
 
-// IUpdateSession
+//goland:noinspection GoUnnecessarilyExportedIdentifiers
 type IUpdateSession struct {
 	*ole.IDispatch
 }

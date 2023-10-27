@@ -104,7 +104,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 	switch mode {
 	case CHECKIN_MODE_HELLO:
 		nMode = NATS_MODE_HELLO
-		payload = jrmm.CheckInNats{
+		payload = jrmm.AgentHeaderNats{
 			AgentId: a.AgentID,
 			Version: a.Version,
 		}
