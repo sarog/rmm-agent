@@ -34,7 +34,7 @@ const (
 	CHECK_TYPE_EVENTLOG  = "eventlog"
 
 	// Agent Modes
-	AGENT_MODE_CHECKRUNNER = "checkrunner"
+	// AGENT_MODE_CHECKRUNNER = "checkrunner"
 )
 
 func (a *windowsAgent) CheckRunner() {
@@ -45,7 +45,7 @@ func (a *windowsAgent) CheckRunner() {
 	for {
 		interval, err := a.GetCheckInterval()
 		if err == nil && !a.ChecksRunning() {
-			_, err = CMD(a.AgentExe, []string{"-m", AGENT_MODE_CHECKRUNNER}, 600, false)
+			_, err = CMD(a.AgentExe, []string{"-m", "checkrunner"}, 600, false)
 			if err != nil {
 				a.Logger.Errorln("CheckRunner RunChecks", err)
 			}

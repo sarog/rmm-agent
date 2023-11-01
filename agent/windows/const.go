@@ -10,8 +10,8 @@ const (
 
 	SERVICE_RESTART_DELAY = "5s"
 
-	AGENT_MODE_RPC = "rpc"
-	AGENT_MODE_SVC = "agentsvc"
+	AGENT_RPC = "rpc"
+	AGENT_SVC = "agentsvc"
 
 	// Registry strings
 	REG_RMM_PATH    = `SOFTWARE\RMMAgent`

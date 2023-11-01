@@ -649,7 +649,7 @@ func (a *windowsAgent) CheckForRecovery() {
 	command := r.Result().(*rmm.RecoveryAction).ShellCMD
 
 	switch mode {
-	case AGENT_MODE_RPC:
+	case AGENT_RPC:
 		a.RecoverAgent()
 	case AGENT_MODE_COMMAND:
 		a.RecoverCMD(command)
@@ -664,7 +664,7 @@ func (a *windowsAgent) GetServiceConfig() *service.Config {
 		DisplayName: SERVICE_DISP_AGENT,
 		Description: SERVICE_DESC_AGENT,
 		Executable:  AGENT_FILENAME,
-		Arguments:   []string{"-m", AGENT_MODE_SVC},
+		Arguments:   []string{"-m", AGENT_SVC},
 		Option: service.KeyValue{
 			"StartType":              "automatic",
 			"OnFailure":              "restart",

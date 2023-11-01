@@ -4,9 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kardianos/service"
-	"github.com/sarog/rmmagent/agent"
 	"github.com/sarog/rmmagent/agent/common"
-	"github.com/sarog/rmmagent/agent/windows"
+	. "github.com/sarog/rmmagent/agent/windows"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -97,7 +96,8 @@ func main() {
 	setupLogging(logLevel, logTo)
 	defer logFile.Close()
 
-	var a = agent.GetAgent(log, version).(common.IAgent)
+	// var a = agent.GetAgent(log, version).(common.IAgent)
+	var a = NewAgent(log, version).(common.IAgent)
 	s, _ := service.New(a, a.GetServiceConfig())
 
 	if len(os.Args) == 1 {
@@ -152,7 +152,7 @@ func main() {
 	}
 
 	switch *mode {
-	// case AGENT_MODE_RPC:
+	// case AGENT_RPC:
 	// 	a.RunService()
 	case AGENT_MODE_RPC, AGENT_MODE_SVC:
 
@@ -228,7 +228,7 @@ func setupLogging(level, to *string) {
 	} else {
 		switch runtime.GOOS {
 		case "windows":
-			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), windows.AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+			logFile, _ = os.OpenFile(filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER, AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		case "freebsd":
 			logFile, _ = os.OpenFile(filepath.Join("/var/log", "rmm", AGENT_LOG_FILE), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
 		case "darwin":
@@ -243,7 +243,7 @@ func installUsage() {
 	switch runtime.GOOS {
 	case "windows":
 		u := `Usage: %s -m install -api <https://api.example.com> -client-id X -site-id X -auth <TOKEN>`
-		fmt.Printf(u, windows.AGENT_FILENAME)
+		fmt.Printf(u, AGENT_FILENAME)
 	case "freebsd":
 	case "darwin":
 	case "linux":
@@ -255,7 +255,7 @@ func updateUsage() {
 	switch runtime.GOOS {
 	case "windows":
 		u := `Usage: %s -m update -updateurl https://example.com/winagent-vX.X.X.exe -inno winagent-vX.X.X.exe -updatever 1.1.1`
-		fmt.Printf(u, windows.AGENT_FILENAME)
+		fmt.Printf(u, AGENT_FILENAME)
 	}
 }
 
