@@ -23,8 +23,8 @@ type NatsMsg struct {
 	TaskPK          int               `json:"taskpk"`
 	ScheduledTask   SchedTask         `json:"schedtaskpayload"`
 	RecoveryCommand string            `json:"recoverycommand"`
-	UpdateGUIDs     []string          `json:"guids"`
-	ChocoProgName   string            `json:"choco_prog_name"`
+	UpdateGUIDs     []string          `json:"guids"`           // todo: move
+	ChocoProgName   string            `json:"choco_prog_name"` // todo: move
 	PendingActionPK int               `json:"pending_action_pk"`
 }
 

@@ -210,15 +210,15 @@ func (a *windowsAgent) GetServicesNATS() []jrmm.WindowsService {
 		}
 
 		ret = append(ret, jrmm.WindowsService{
-			Name:             s,
-			Status:           serviceStatusText(uint32(q.State)),
-			DisplayName:      conf.DisplayName,
-			BinPath:          conf.BinaryPathName,
-			Description:      conf.Description,
-			Username:         conf.ServiceStartName,
-			PID:              q.ProcessId,
-			StartType:        serviceStartType(uint32(conf.StartType)),
-			DelayedAutoStart: conf.DelayedAutoStart,
+			Name:         s,
+			Status:       serviceStatusText(uint32(q.State)),
+			DisplayName:  conf.DisplayName,
+			BinPath:      conf.BinaryPathName,
+			Description:  conf.Description,
+			Username:     conf.ServiceStartName,
+			PID:          q.ProcessId,
+			StartType:    serviceStartType(uint32(conf.StartType)),
+			DelayedStart: conf.DelayedAutoStart,
 		})
 	}
 	return ret

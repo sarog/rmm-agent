@@ -153,7 +153,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 
 	case CHECKIN_MODE_DISKS:
 		nMode = NATS_MODE_DISKS
-		payload = jrmm.WinDisksNats{
+		payload = jrmm.StorageNats{
 			AgentId: a.AgentID,
 			Drives:  a.GetStorage(),
 		}

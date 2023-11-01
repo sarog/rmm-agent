@@ -213,6 +213,8 @@ func (a *Agent) PublicIP() string {
 	return ip
 }
 
+// todo: review authentication
+// https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/nkey_auth
 func (a *Agent) SetupNatsOptions() []nats.Option {
 	opts := make([]nats.Option, 0)
 	opts = append(opts, nats.Name(a.AgentID))
