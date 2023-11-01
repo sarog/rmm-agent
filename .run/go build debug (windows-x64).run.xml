@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go build debug (windows-x64)" type="GoApplicationRunConfiguration" factoryName="Go Application" activateToolWindowBeforeRun="false">
+    <module name="rmm-agent" />
+    <working_directory value="$PROJECT_DIR$" />
+    <go_parameters value="-o out\rmmagent.exe" />
+    <envs>
+      <env name="GOOS" value="windows" />
+      <env name="GOARCH" value="amd64" />
+    </envs>
+    <kind value="PACKAGE" />
+    <package value="github.com/sarog/rmmagent" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <output_directory value="out" />
+    <option name="run" value="false" />
+    <method v="2" />
+  </configuration>
+</component>
