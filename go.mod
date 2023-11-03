@@ -22,6 +22,7 @@ require (
 
 require (
 	github.com/elastic/go-windows v1.0.1 // indirect
+	github.com/fourcorelabs/wintoken v1.0.0 // indirect
 	github.com/google/cabbie v1.0.5 // indirect
 	github.com/google/glazier v0.0.0-20230912201418-e61e8c721b6f // indirect
 	github.com/jetrmm/go-dpapi v0.0.0-20231027145607-bd6a51f4e7f3 // indirect

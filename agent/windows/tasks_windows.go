@@ -103,7 +103,7 @@ func (a *windowsAgent) CreateInternalTask(name, args, repeat string, start int) 
 
 	if success {
 		// https://github.com/capnspacehook/taskmaster/issues/15
-		out, err := runExe("schtasks", []string{"/Change", "/TN", name, "/RI", repeat}, 10, false)
+		out, err := runExe("schtasks.exe", []string{"/Change", "/TN", name, "/RI", repeat}, 10, false)
 		if err != nil {
 			return false, err
 		}

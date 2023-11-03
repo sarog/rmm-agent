@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/fourcorelabs/wintoken"
 	"github.com/go-resty/resty/v2"
 	"github.com/gonutz/w32/v2"
 	jrmm "github.com/jetrmm/rmm-shared"
@@ -17,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -264,8 +266,8 @@ func InterpretCommand(interpreter string, args []string, command string, timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	// todo: for RunAsUser
-	// sysProcAttr := &windows.SysProcAttr{}
+	// for RunAsUser
+	sysProcAttr := &windows.SysProcAttr{}
 
 	if len(args) > 0 && command == "" {
 		switch interpreter {
@@ -301,15 +303,16 @@ func InterpretCommand(interpreter string, args []string, command string, timeout
 	}
 
 	// https://blog.davidvassallo.me/2022/06/17/golang-in-windows-execute-command-as-another-user/
-	/*if runAsUser {
+	// https://github.com/FourCoreLabs/wintoken
+	if runAsUser {
 		token, err := wintoken.GetInteractiveToken(wintoken.TokenImpersonation)
 		if err != nil {
-			return [2]string{"", CleanString(err.Error())}, err
+			return [2]string{"", err.Error()}, err
 		}
 		defer token.Close()
 		sysProcAttr.Token = syscall.Token(token.Token())
 		sysProcAttr.HideWindow = true
-	}*/
+	}
 
 	cmd.Stdout = &outb
 	cmd.Stderr = &errb
