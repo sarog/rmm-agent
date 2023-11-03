@@ -2,10 +2,11 @@ package shared
 
 import jetrmm "github.com/jetrmm/rmm-shared"
 
-type NatsMsg struct {
+// from NatsMsg
+type RpcPayload struct {
 	Func    string            `json:"func"`
-	Timeout int               `json:"timeout"`
 	Data    map[string]string `json:"payload"`
+	Timeout int               `json:"timeout"`
 	// ScriptArgs      []string          `json:"script_args"`
 	// ProcPID         int32             `json:"procpid"`
 	// TaskPK          int               `json:"taskpk"`

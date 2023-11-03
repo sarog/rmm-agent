@@ -182,7 +182,7 @@ func (a *windowsAgent) ProcessRpcMsg(nc *nats.Conn, msg *nats.Msg) {
 		go func(p *NatsMsg) {
 			var resp []byte
 			ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
-			out, _ := ExecCommand(p.Data["shell"], []string{}, p.Data["command"], p.Timeout, false)
+			out, _ := InterpretCommand(p.Data["shell"], []string{}, p.Data["command"], p.Timeout, false, false)
 			a.Logger.Debugln(out)
 			if out[1] != "" {
 				ret.Encode(out[1])
@@ -378,7 +378,7 @@ func (a *windowsAgent) ProcessRpcMsg(nc *nats.Conn, msg *nats.Msg) {
 				msg.Respond(resp)
 				a.Logger.Debugln("Running checks")
 				// todo: verify:
-				_, checkerr := CMD(a.AgentExe, []string{"-m", "runchecks"}, 600, false)
+				_, checkerr := runExe(a.AgentExe, []string{"-m", "runchecks"}, 600, false)
 				if checkerr != nil {
 					a.Logger.Errorln("RPC RunChecks", checkerr)
 				}

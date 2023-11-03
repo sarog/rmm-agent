@@ -97,7 +97,7 @@ func (a *windowsAgent) installChoco() {
 
 // installWithChoco install an application with Chocolatey
 func (a *windowsAgent) installWithChoco(name string) (string, error) {
-	out, err := CMD("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
+	out, err := runExe("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
 	if err != nil {
 		a.Logger.Errorln(err)
 		return err.Error(), err
@@ -110,7 +110,7 @@ func (a *windowsAgent) installWithChoco(name string) (string, error) {
 
 // todo
 func (a *windowsAgent) removeWithChoco(name string) (string, error) {
-	out, err := CMD("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
+	out, err := runExe("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
 	if err != nil {
 		a.Logger.Errorln(err)
 		return err.Error(), err
@@ -123,7 +123,7 @@ func (a *windowsAgent) removeWithChoco(name string) (string, error) {
 
 // todo
 func (a *windowsAgent) updateWithChoco(name string) (string, error) {
-	out, err := CMD("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
+	out, err := runExe("choco.exe", []string{"install", name, "--yes", "--force", "--force-dependencies"}, 1200, false)
 	if err != nil {
 		a.Logger.Errorln(err)
 		return err.Error(), err

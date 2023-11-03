@@ -253,7 +253,7 @@ func (a *windowsAgent) GetDisks() []jrmm.StorageDrive {
 	return ret
 }
 
-func ExecCommand(interpreter string, args []string, command string, timeout int, detached bool) (output [2]string, e error) {
+func InterpretCommand(interpreter string, args []string, command string, timeout int, detached bool, runAsUser bool) (output [2]string, e error) {
 	var (
 		outb     bytes.Buffer
 		errb     bytes.Buffer
@@ -275,6 +275,9 @@ func ExecCommand(interpreter string, args []string, command string, timeout int,
 		case "powershell":
 			args = append([]string{"-NonInteractive", "-NoProfile"}, args...)
 			cmd = exec.Command("powershell.exe", args...)
+		case "pwsh":
+			args = append([]string{"-NonInteractive", "-NoProfile"}, args...)
+			cmd = exec.Command("pwsh.exe", args...)
 		}
 	} else {
 		switch interpreter {
@@ -284,7 +287,9 @@ func ExecCommand(interpreter string, args []string, command string, timeout int,
 				CmdLine: fmt.Sprintf("cmd.exe /C %s", command),
 			}
 		case "powershell":
-			cmd = exec.Command("Powershell", "-NonInteractive", "-NoProfile", command)
+			cmd = exec.Command("powershell.exe", "-NonInteractive", "-NoProfile", command)
+		case "pwsh":
+			cmd = exec.Command("pwsh.exe", "-NonInteractive", "-NoProfile", command)
 		}
 	}
 
@@ -331,8 +336,8 @@ func ExecCommand(interpreter string, args []string, command string, timeout int,
 	return [2]string{outb.String(), errb.String()}, nil
 }
 
-// CMD runs a command with shell=False
-func CMD(exe string, args []string, timeout int, detached bool) (output [2]string, e error) {
+// runExe runs a binary without a shell
+func runExe(exe string, args []string, timeout int, detached bool) (output [2]string, e error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
@@ -420,15 +425,15 @@ func (a *windowsAgent) RecoverAgent() {
 	a.Logger.Debugln("Attempting ", common.AGENT_NAME_LONG, " recovery on", a.Hostname)
 
 	// a.Logger.Infoln("Attempting agent service recovery")
-	_, _ = CMD("net", []string{"stop", SERVICE_NAME_AGENT}, 90, false)
+	_, _ = runExe("net", []string{"stop", SERVICE_NAME_AGENT}, 90, false)
 	time.Sleep(2 * time.Second)
-	_, _ = CMD("net", []string{"start", SERVICE_NAME_AGENT}, 90, false)
+	_, _ = runExe("net", []string{"start", SERVICE_NAME_AGENT}, 90, false)
 
 	// todo? a.Restart()
 
-	// defer CMD(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
-	// _, _ = CMD(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
-	_, _ = CMD("ipconfig", []string{"/flushdns"}, 15, false)
+	// defer RunBin(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
+	// _, _ = RunBin(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
+	_, _ = runExe("ipconfig", []string{"/flushdns"}, 15, false)
 	a.Logger.Debugln(common.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
 }
 
@@ -527,19 +532,19 @@ func (a *windowsAgent) AgentUpdate(url, inno, version string) {
 	r, err := rClient.R().SetOutput(updater).Get(url)
 	if err != nil {
 		a.Logger.Errorln(err)
-		CMD("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
+		runExe("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
 		return
 	}
 	if r.IsError() {
 		a.Logger.Errorln("Download failed with status code", r.StatusCode())
-		CMD("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
+		runExe("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
 		return
 	}
 
 	dir, err := os.MkdirTemp("", INNO_SETUP_DIR)
 	if err != nil {
 		a.Logger.Errorln("AgentUpdate unable to create temporary directory:", err)
-		CMD("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
+		runExe("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
 		return
 	}
 
@@ -650,7 +655,7 @@ func (a *windowsAgent) GetServiceConfig() *service.Config {
 
 func (a *windowsAgent) RebootSystem() {
 	a.Logger.Debugln("Scheduling immediate reboot")
-	_, _ = CMD("shutdown.exe", []string{"/r", "/t", "5", "/f"}, 15, false)
+	_, _ = runExe("shutdown.exe", []string{"/r", "/t", "5", "/f"}, 15, false)
 }
 
 /*func (a *windowsAgent) getToken(pid int) (syscall.Token, error) {
