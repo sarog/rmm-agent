@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	// Deprecated since 1.7.0, replaced with NATS
 	API_URL_CHECKIN = "/api/v3/checkin/"
 
 	CHECKIN_MODE_DISKS        = "disks"
@@ -24,12 +23,13 @@ const (
 	CHECKIN_MODE_STARTUP      = "startup"
 	CHECKIN_MODE_WINSERVICES  = "winservices"
 
+	// todo: move these:
 	NATS_MODE_DISKS       = "agent-disks"
 	NATS_MODE_HELLO       = "agent-hello"
 	NATS_MODE_OSINFO      = "agent-agentinfo"
 	NATS_MODE_PUBLICIP    = "agent-publicip"
 	NATS_MODE_WINSERVICES = "agent-winsvc"
-	NATS_MODE_WMI         = "agent-wmi" // sysinfo?
+	NATS_MODE_SYSINFO     = "agent-sysinfo" // was "agent-wmi"
 )
 
 func (a *windowsAgent) RunAgentService(nc *nats.Conn) {
@@ -180,6 +180,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 	}
 
 	// todo: 2022-01-02: add error logging/handling
+	// Send via NATS
 	if len(nMode) > 0 {
 		// opts := a.SetupNatsOptions()
 		// server := fmt.Sprintf("tls://%s:%d", a.ApiURL, a.ApiPort)
@@ -204,6 +205,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 		// nc.Flush()
 		// nc.Close()
 	} else {
+		// Send via JSON
 		// Deprecated endpoint
 		if mode == CHECKIN_MODE_HELLO {
 			// _, rerr = a.RClient.R().SetBody(payload).Patch(API_URL_CHECKIN)

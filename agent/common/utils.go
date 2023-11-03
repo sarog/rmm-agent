@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func FileExists(path string) bool {
@@ -130,4 +131,35 @@ func ByteCountSI(b uint64) string {
 	}
 	return fmt.Sprintf("%.1f %cB",
 		float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+func GetMonth(month string) time.Month {
+	switch month {
+	case "January":
+		return time.January
+	case "February":
+		return time.February
+	case "March":
+		return time.March
+	case "April":
+		return time.April
+	case "May":
+		return time.May
+	case "June":
+		return time.June
+	case "July":
+		return time.July
+	case "August":
+		return time.August
+	case "September":
+		return time.September
+	case "October":
+		return time.October
+	case "November":
+		return time.November
+	case "December":
+		return time.December
+	default:
+		return time.January
+	}
 }

@@ -40,9 +40,22 @@ type TaskChecker interface {
 	// CheckService(data shared.X, r *resty.Client)
 }
 
-// todo
-type TaskRunner interface {
-	RunTask() // currently in BaseAgent
+type TaskScheduler interface {
+	RunTask(int) // currently in BaseAgent
+	CreateTask(task any) (bool, error)
+	DeleteTask(task string) error
+	EnableTask(task any) error
+	DisableTask(task any) error
+	CleanupTasks()
+	ListTasks() []string
+}
+
+type PackageManager interface {
+	InstallPkgMgr(mgr string)
+	RemovePkgMgr(mgr string)
+	InstallPackage(mgr string, name string) (string, error)
+	RemovePackage(mgr string, name string) (string, error)
+	UpdatePackage(mgr string, name string) (string, error)
 }
 
 // todo
@@ -54,8 +67,13 @@ type ServiceManager interface {
 
 // Messenger is our communication interface (for RPC, JSON, etc.)
 type Messenger interface {
+	RpcProcessor
 	Send(any)
 	Receive(any)
+}
+
+type RpcProcessor interface {
+	ProcessRpcMsg(conn *nats.Conn, msg *nats.Msg)
 }
 
 type BaseAgent interface {
@@ -91,6 +109,8 @@ type BaseAgent interface {
 
 	GetServiceConfig() *service.Config
 
+	RebootSystem()
+
 	// Windows-specific:
 	// InstallUpdates(guids []string)
 	// ControlService(name, action string) windows.WinSvcResp
@@ -98,12 +118,13 @@ type BaseAgent interface {
 	// GetServiceDetail(name string) shared.WindowsService
 	// GetServicesNATS() []jrmm.WindowsService
 	// GetServices() []shared.WindowsService
-	// CreateSchedTask(st windows.SchedTask) (bool, error)
 }
 
 type IAgent interface {
 	BaseAgent
 	InfoCollector
+	PackageManager
+	RpcProcessor // Messenger
 	service.Interface
 
 	// IAgentConfig
@@ -211,41 +232,6 @@ func (a *Agent) PublicIP() string {
 		break
 	}
 	return ip
-}
-
-// todo: review authentication
-// https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/nkey_auth
-func (a *Agent) SetupNatsOptions() []nats.Option {
-	opts := make([]nats.Option, 0)
-	opts = append(opts, nats.Name(a.AgentID))
-	opts = append(opts, nats.UserInfo(a.AgentID, a.Token))
-	opts = append(opts, nats.ReconnectWait(time.Second*5))
-	opts = append(opts, nats.RetryOnFailedConnect(true))
-	opts = append(opts, nats.MaxReconnects(-1))
-	opts = append(opts, nats.ReconnectBufSize(-1))
-	// opts = append(opts, nats.PingInterval(time.Duration(a.NatsPingInterval)*time.Second))
-	// opts = append(opts, nats.Compression(a.NatsWSCompression))
-	// opts = append(opts, nats.ProxyPath(a.NatsProxyPath))
-	// opts = append(opts, nats.ReconnectJitter(500*time.Millisecond, 4*time.Second))
-	// opts = append(opts, nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
-	// 	a.Logger.Debugln("NATS disconnected:", err)
-	// 	a.Logger.Debugf("%+v\n", nc.Statistics)
-	// }))
-	// opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
-	// 	a.Logger.Debugln("NATS reconnected")
-	// 	a.Logger.Debugf("%+v\n", nc.Statistics)
-	// }))
-	// opts = append(opts, nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-	// 	a.Logger.Errorln("NATS error:", err)
-	// 	a.Logger.Errorf("%+v\n", sub)
-	// }))
-	// if a.Insecure {
-	// 	insecureConf := &tls.Config{
-	// 		InsecureSkipVerify: true,
-	// 	}
-	// 	opts = append(opts, nats.Secure(insecureConf))
-	// }
-	return opts
 }
 
 // TotalRAM returns total RAM in GB

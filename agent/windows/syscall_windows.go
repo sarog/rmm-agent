@@ -14,7 +14,8 @@ var (
 	modadvapi32 = windows.NewLazySystemDLL("advapi32.dll")
 	modkernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
-	userenv = windows.NewLazyDLL("userenv.dll") // for Environmental Variables + RunAsUser (https://learn.microsoft.com/en-us/windows/win32/api/userenv/nf-userenv-createenvironmentblock)
+	// https://learn.microsoft.com/en-us/windows/win32/api/userenv/nf-userenv-createenvironmentblock
+	userenv = windows.NewLazyDLL("userenv.dll") // for Environmental Variables + RunAsUser
 
 	procFormatMessageW          = modkernel32.NewProc("FormatMessageW")
 	procGetOldestEventLogRecord = modadvapi32.NewProc("GetOldestEventLogRecord")
@@ -22,9 +23,9 @@ var (
 	procReadEventLogW           = modadvapi32.NewProc("ReadEventLogW")
 
 	// https://github.com/fleetdm/fleet/blob/main/orbit/pkg/execuser/execuser_windows.go
-	procCreateEnvironmentBlock                    = userenv.NewProc("CreateEnvironmentBlock")  // for Environmental Variables + RunAsUser
-	procDestroyEnvironmentBlock                   = userenv.NewProc("DestroyEnvironmentBlock") // for Environmental Variables + RunAsUser
-	procCreateProcessAsUser     *windows.LazyProc = modadvapi32.NewProc("CreateProcessAsUserW")
+	procCreateEnvironmentBlock  = userenv.NewProc("CreateEnvironmentBlock")  // for Environmental Variables + RunAsUser
+	procDestroyEnvironmentBlock = userenv.NewProc("DestroyEnvironmentBlock") // for Environmental Variables + RunAsUser
+	procCreateProcessAsUser     = modadvapi32.NewProc("CreateProcessAsUserW")
 )
 
 // EventLogRecord

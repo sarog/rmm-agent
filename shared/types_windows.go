@@ -33,9 +33,10 @@ type SupersededUpdate struct {
 	UpdateID string `json:"guid"`
 }
 
-type ChocoInstalled struct {
-	AgentID   string `json:"agent_id"`
-	Installed bool   `json:"installed"`
+type PkgMgrInstalled struct {
+	AgentID        string `json:"agent_id"`
+	Installed      bool   `json:"installed"`
+	PackageManager string `json:"package_manager"`
 }
 
 // WindowsService holds Windows service info

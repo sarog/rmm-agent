@@ -3,6 +3,7 @@ package windows
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/sarog/rmmagent/agent/common"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,8 +12,6 @@ import (
 	"github.com/capnspacehook/taskmaster"
 	rmm "github.com/sarog/rmmagent/shared"
 )
-
-const TASK_PREFIX = "RMM_"
 
 func (a *windowsAgent) RunTask(id int) error {
 	data := rmm.AutomatedTask{}
@@ -163,7 +162,7 @@ func (a *windowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 	switch st.Trigger {
 	case "once":
 		if st.DeleteAfter {
-			deleteAfterDate := time.Date(st.Year, getMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location())
+			deleteAfterDate := time.Date(st.Year, common.GetMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location())
 			trigger = taskmaster.TimeTrigger{
 				TaskTrigger: taskmaster.TaskTrigger{
 					Enabled:       true,
@@ -175,7 +174,7 @@ func (a *windowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 			trigger = taskmaster.TimeTrigger{
 				TaskTrigger: taskmaster.TaskTrigger{
 					Enabled:       true,
-					StartBoundary: time.Date(st.Year, getMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location()),
+					StartBoundary: time.Date(st.Year, common.GetMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location()),
 				},
 			}
 		}
@@ -305,7 +304,7 @@ func CleanupSchedTasks() {
 	}
 
 	for _, task := range tasks {
-		if strings.HasPrefix(task.Name, TASK_PREFIX) {
+		if strings.HasPrefix(task.Name, common.TASK_PREFIX) {
 			conn.DeleteTask(fmt.Sprintf("\\%s", task.Name))
 		}
 	}
@@ -331,36 +330,4 @@ func ListSchedTasks() []string {
 	}
 	tasks.Release()
 	return ret
-}
-
-// getMonth todo: move
-func getMonth(month string) time.Month {
-	switch month {
-	case "January":
-		return time.January
-	case "February":
-		return time.February
-	case "March":
-		return time.March
-	case "April":
-		return time.April
-	case "May":
-		return time.May
-	case "June":
-		return time.June
-	case "July":
-		return time.July
-	case "August":
-		return time.August
-	case "September":
-		return time.September
-	case "October":
-		return time.October
-	case "November":
-		return time.November
-	case "December":
-		return time.December
-	default:
-		return time.January
-	}
 }

@@ -3,6 +3,7 @@ package windows
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/gonutz/w32/v2"
@@ -252,7 +253,7 @@ func (a *windowsAgent) GetDisks() []jrmm.StorageDrive {
 	return ret
 }
 
-func CMDShell(interpreter string, cmdArgs []string, command string, timeout int, detached bool) (output [2]string, e error) {
+func ExecCommand(interpreter string, args []string, command string, timeout int, detached bool) (output [2]string, e error) {
 	var (
 		outb     bytes.Buffer
 		errb     bytes.Buffer
@@ -263,16 +264,17 @@ func CMDShell(interpreter string, cmdArgs []string, command string, timeout int,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
+	// todo: for RunAsUser
 	// sysProcAttr := &windows.SysProcAttr{}
 
-	if len(cmdArgs) > 0 && command == "" {
+	if len(args) > 0 && command == "" {
 		switch interpreter {
 		case "cmd":
-			cmdArgs = append([]string{"/C"}, cmdArgs...)
-			cmd = exec.Command("cmd.exe", cmdArgs...)
+			args = append([]string{"/C"}, args...)
+			cmd = exec.Command("cmd.exe", args...)
 		case "powershell":
-			cmdArgs = append([]string{"-NonInteractive", "-NoProfile"}, cmdArgs...)
-			cmd = exec.Command("powershell.exe", cmdArgs...)
+			args = append([]string{"-NonInteractive", "-NoProfile"}, args...)
+			cmd = exec.Command("powershell.exe", args...)
 		}
 	} else {
 		switch interpreter {
@@ -348,7 +350,7 @@ func CMD(exe string, args []string, timeout int, detached bool) (output [2]strin
 		return [2]string{"", ""}, fmt.Errorf("%s: %s", err, errb.String())
 	}
 
-	if ctx.Err() == context.DeadlineExceeded {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		return [2]string{"", ""}, ctx.Err()
 	}
 
@@ -644,6 +646,11 @@ func (a *windowsAgent) GetServiceConfig() *service.Config {
 			"OnFailureDelayDuration": SERVICE_RESTART_DELAY,
 		},
 	}
+}
+
+func (a *windowsAgent) RebootSystem() {
+	a.Logger.Debugln("Scheduling immediate reboot")
+	_, _ = CMD("shutdown.exe", []string{"/r", "/t", "5", "/f"}, 15, false)
 }
 
 /*func (a *windowsAgent) getToken(pid int) (syscall.Token, error) {

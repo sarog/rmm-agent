@@ -125,6 +125,7 @@ func (a *freebsdAgent) GetInstalledSoftware() []jrmm.Software {
 
 func (a *freebsdAgent) OSInfo() (plat, osFullName string) {
 	// TODO implement me
+	// uname -a
 	panic("implement me")
 }
 
@@ -135,11 +136,13 @@ func (a *freebsdAgent) SysInfo() {
 
 func (a *freebsdAgent) GetStorage() []jrmm.StorageDrive {
 	// TODO implement me
+	// df
 	panic("implement me")
 }
 
 func (a *freebsdAgent) LoggedOnUser() string {
 	// TODO implement me
+	// whoami
 	panic("implement me")
 }
 
@@ -155,5 +158,11 @@ func (a *freebsdAgent) Start(s service.Service) error {
 
 func (a *freebsdAgent) Stop(s service.Service) error {
 	// TODO implement me
+	panic("implement me")
+}
+
+func (a *freebsdAgent) RebootSystem() {
+	// TODO implement me
+	// shutdown -r now
 	panic("implement me")
 }

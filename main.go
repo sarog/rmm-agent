@@ -42,6 +42,8 @@ func main() {
 
 	help := "Missing sub-command" // todo
 
+	// flag.Usage()
+
 	// CLI
 	ver := flag.Bool("version", false, "Prints agent version and exits")
 
@@ -58,9 +60,9 @@ func main() {
 
 	// Update
 	updateSet := flag.NewFlagSet("update", flag.ContinueOnError)
-	updateurl := updateSet.String("updateurl", "", "Source URL to retrieve the update executable")
+	updateUrl := updateSet.String("updateurl", "", "Source URL to retrieve the update executable")
 	inno := updateSet.String("inno", "", "Setup filename") // todo: Windows only
-	updatever := updateSet.String("updatever", "", "Update version")
+	updateVer := updateSet.String("updatever", "", "Update version")
 
 	modeSet := flag.NewFlagSet("mode", flag.ContinueOnError)
 	mode := modeSet.String("m", "", "The mode to run: "+
@@ -155,7 +157,6 @@ func main() {
 	// case AGENT_RPC:
 	// 	a.RunService()
 	case AGENT_MODE_RPC, AGENT_MODE_SVC:
-
 		s.Run()
 		// a.RunService()
 		// a.RunAgentService()
@@ -183,11 +184,11 @@ func main() {
 	// 	fmt.Println(a.AgentPK)
 
 	case AGENT_MODE_UPDATE:
-		if *updateurl == "" || *inno == "" || *updatever == "" {
+		if *updateUrl == "" || *inno == "" || *updateVer == "" {
 			updateUsage()
 			return
 		}
-		a.AgentUpdate(*updateurl, *inno, *updatever)
+		a.AgentUpdate(*updateUrl, *inno, *updateVer)
 
 	case AGENT_MODE_INSTALL:
 		log.SetOutput(os.Stdout)

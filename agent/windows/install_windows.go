@@ -62,12 +62,13 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 		i.ApiURL = parsedUrl.Host
 	}
 
-	a.Logger.Debugln("API URL:", i.ApiURL)
+	a.Logger.Debugln("Agent API Endpoint:", i.ApiURL)
 
 	// todo: port 443 and/or 4222
 	terr := common.TestTCP(fmt.Sprintf("%s:4222", i.ApiURL))
 	if terr != nil {
-		a.installerMsg(fmt.Sprintf("ERROR: Either port 4222 TCP is not open on your RMM server, or nats.service is not running.\n\n%s", terr.Error()), "error", i.Silent)
+		a.installerMsg(fmt.Sprintf("ERROR: Either port %s TCP is not open on your RMM server, or the NATS service is not running.\n\n%s",
+			common.NATS_DEFAULT_PORT, terr.Error()), "error", i.Silent)
 	}
 
 	baseURL := parsedUrl.Scheme + "://" + parsedUrl.Host

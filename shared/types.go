@@ -2,6 +2,24 @@ package shared
 
 import jetrmm "github.com/jetrmm/rmm-shared"
 
+type NatsMsg struct {
+	Func    string            `json:"func"`
+	Timeout int               `json:"timeout"`
+	Data    map[string]string `json:"payload"`
+	// ScriptArgs      []string          `json:"script_args"`
+	// ProcPID         int32             `json:"procpid"`
+	// TaskPK          int               `json:"taskpk"`
+	// ScheduledTask   SchedTask         `json:"schedtaskpayload"`
+	// RecoveryCommand string            `json:"recoverycommand"`
+	// UpdateGUIDs     []string          `json:"guids"`           // todo: move
+	// ChocoProgName   string            `json:"choco_prog_name"` // todo: move
+	// PendingActionPK int               `json:"pending_action_pk"`
+}
+
+/*type ScheduledTaskMsg struct {
+	ScheduledTask SchedTask `json:"schedtaskpayload"`
+}*/
+
 type AgentHeader struct {
 	Func    string `json:"func"`
 	AgentId string `json:"agent_id"`
