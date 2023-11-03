@@ -1,16 +1,12 @@
 package windows
 
 const (
-	SERVICE_NAME_RPC = "rpcagent"
-	SERVICE_DESC_RPC = "RMM RPC Service"
-
 	SERVICE_NAME_AGENT = "jetagent"
 	SERVICE_DISP_AGENT = "JetRMM Agent Service"
 	SERVICE_DESC_AGENT = "JetRMM Agent Service"
 
 	SERVICE_RESTART_DELAY = "5s"
 
-	AGENT_RPC = "rpc"
 	AGENT_SVC = "agentsvc"
 
 	// Registry strings

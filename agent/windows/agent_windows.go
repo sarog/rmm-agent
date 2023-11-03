@@ -420,9 +420,9 @@ func (a *windowsAgent) RecoverAgent() {
 	a.Logger.Debugln("Attempting ", common.AGENT_NAME_LONG, " recovery on", a.Hostname)
 
 	// a.Logger.Infoln("Attempting agent service recovery")
-	_, _ = CMD("net", []string{"stop", SERVICE_NAME_RPC}, 90, false)
+	_, _ = CMD("net", []string{"stop", SERVICE_NAME_AGENT}, 90, false)
 	time.Sleep(2 * time.Second)
-	_, _ = CMD("net", []string{"start", SERVICE_NAME_RPC}, 90, false)
+	_, _ = CMD("net", []string{"start", SERVICE_NAME_AGENT}, 90, false)
 
 	// todo? a.Restart()
 
@@ -527,19 +527,19 @@ func (a *windowsAgent) AgentUpdate(url, inno, version string) {
 	r, err := rClient.R().SetOutput(updater).Get(url)
 	if err != nil {
 		a.Logger.Errorln(err)
-		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
+		CMD("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
 		return
 	}
 	if r.IsError() {
 		a.Logger.Errorln("Download failed with status code", r.StatusCode())
-		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
+		CMD("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
 		return
 	}
 
 	dir, err := os.MkdirTemp("", INNO_SETUP_DIR)
 	if err != nil {
 		a.Logger.Errorln("AgentUpdate unable to create temporary directory:", err)
-		CMD("net", []string{"start", SERVICE_NAME_RPC}, 10, false)
+		CMD("net", []string{"start", SERVICE_NAME_AGENT}, 10, false)
 		return
 	}
 
@@ -624,7 +624,7 @@ func (a *windowsAgent) CheckForRecovery() {
 	command := r.Result().(*rmm.RecoveryAction).ShellCMD
 
 	switch mode {
-	case AGENT_RPC:
+	case AGENT_SVC:
 		a.RecoverAgent()
 	case AGENT_MODE_COMMAND:
 		a.RecoverCMD(command)

@@ -158,7 +158,7 @@ func (a *windowsAgent) ProcessRpcMsg(nc *nats.Conn, msg *nats.Msg) {
 		go func() {
 			var resp []byte
 			ret := codec.NewEncoderBytes(&resp, new(codec.MsgpackHandle))
-			procs := a.GetProcsRPC()
+			procs := a.GetRunningProcesses()
 			a.Logger.Debugln(procs)
 			ret.Encode(procs)
 			msg.Respond(resp)

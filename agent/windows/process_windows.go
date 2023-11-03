@@ -15,7 +15,7 @@ type ProcessMsg struct {
 	CPU      string `json:"cpu_percent"`
 }
 
-func (a *windowsAgent) GetProcsRPC() []ProcessMsg {
+func (a *windowsAgent) GetRunningProcesses() []ProcessMsg {
 	ret := make([]ProcessMsg, 0)
 
 	procs, _ := ps.Processes()
