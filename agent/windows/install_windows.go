@@ -145,14 +145,13 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	// Refresh our agent with new values
 	a = a.New(a.Logger, a.Version)
 	// todo:
-	// a = agent.GetAgent(a.Logger, a.Version)
 	// a = NewAgent(a.Logger, a.Version)
 
 	// Set new headers. No longer knox auth; use agent auth
 	rClient.SetHeaders(a.Headers)
 
 	// Send WMI system information
-	a.Logger.Debugln("Getting system information with WMI")
+	a.Logger.Debugln("Getting system information via WMI")
 	a.SysInfo()
 
 	// Check in once via NATS
@@ -223,7 +222,6 @@ func (a *windowsAgent) checkExistingAndRemove(silent bool) {
 }
 
 func createRegKeys(baseUrl, agentId, apiUrl, token, agentPK, rootCert string) {
-	// todo: 2021-12-31: migrate to DPAPI
 	key, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REG_RMM_PATH, registry.ALL_ACCESS)
 	if err != nil {
 		log.Fatalln("Error creating registry key:", err)
@@ -245,7 +243,7 @@ func createRegKeys(baseUrl, agentId, apiUrl, token, agentPK, rootCert string) {
 		log.Fatalln("Error creating ApiURL registry key:", err)
 	}
 
-	token, err = dpapi.Encrypt(token)
+	token, err = dpapi.EncryptMachineLocal(token)
 	if err != nil {
 		log.Fatalln("Unable to encrypt Token:", err)
 	}
@@ -316,4 +314,31 @@ func getRegKeys(logger *logrus.Logger) (*WinRegKeys, error) {
 		pk:       pk,
 		rootCert: rootCert,
 	}, nil
+}
+
+func (a *windowsAgent) installerMsg(msg, alert string, silent bool) {
+	window := w32.GetForegroundWindow()
+	if !silent && window != 0 {
+		var (
+			handle w32.HWND
+			flags  uint
+		)
+
+		switch alert {
+		case "info":
+			flags = w32.MB_OK | w32.MB_ICONINFORMATION
+		case "error":
+			flags = w32.MB_OK | w32.MB_ICONERROR
+		default:
+			flags = w32.MB_OK | w32.MB_ICONINFORMATION
+		}
+
+		w32.MessageBox(handle, msg, common.AGENT_NAME_LONG, flags)
+	} else {
+		fmt.Println(msg)
+	}
+
+	if alert == "error" {
+		a.Logger.Fatalln(msg)
+	}
 }

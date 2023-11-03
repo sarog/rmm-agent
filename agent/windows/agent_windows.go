@@ -509,33 +509,6 @@ func (a *windowsAgent) ShowStatus(version string) {
 	}
 }
 
-func (a *windowsAgent) installerMsg(msg, alert string, silent bool) {
-	window := w32.GetForegroundWindow()
-	if !silent && window != 0 {
-		var (
-			handle w32.HWND
-			flags  uint
-		)
-
-		switch alert {
-		case "info":
-			flags = w32.MB_OK | w32.MB_ICONINFORMATION
-		case "error":
-			flags = w32.MB_OK | w32.MB_ICONERROR
-		default:
-			flags = w32.MB_OK | w32.MB_ICONINFORMATION
-		}
-
-		w32.MessageBox(handle, msg, common.AGENT_NAME_LONG, flags)
-	} else {
-		fmt.Println(msg)
-	}
-
-	if alert == "error" {
-		a.Logger.Fatalln(msg)
-	}
-}
-
 func (a *windowsAgent) AgentUpdate(url, inno, version string) {
 	time.Sleep(time.Duration(randRange(1, 15)) * time.Second)
 

@@ -59,7 +59,7 @@ func main() {
 	// Update
 	updateSet := flag.NewFlagSet("update", flag.ContinueOnError)
 	updateurl := updateSet.String("updateurl", "", "Source URL to retrieve the update executable")
-	inno := updateSet.String("inno", "", "Setup filename")
+	inno := updateSet.String("inno", "", "Setup filename") // todo: Windows only
 	updatever := updateSet.String("updatever", "", "Update version")
 
 	modeSet := flag.NewFlagSet("mode", flag.ContinueOnError)
