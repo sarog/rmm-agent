@@ -1,10 +1,8 @@
 # RMM Agent
 
-A generic Remote Monitoring & Management agent written in Go.
+A generic Remote Monitoring & Management agent written in Go for sysadmins, by sysadmins.
 
-This is a fork of [wh1te909/rmmagent](https://github.com/wh1te909/rmmagent) version `1.5.1`, the last MIT-licensed release before Amidaware's introduction of the _Tactical RMM License_.
-
-**Please note**: downloadable binaries (executables) will not be provided on this GitHub repository as they will be useless. Users are encouraged to [build](#building-the-windows-agent) and [sign](CODESIGN.md) their own executables to guarantee integrity.
+Downloadable Windows binaries will not be provided on this GitHub repository as they will be unusable due to false-positives from antivirus software. Users are encouraged to [build](#building-the-agent) and [sign](CODESIGN.md) their own executables to guarantee integrity.
 
 ## Project goals
 - Allow anyone to use and modify the agent for whatever they see fit.
@@ -19,29 +17,25 @@ Pre-requisites:
 ### Windows
 
 Clone the repository & download the dependencies. GoVersionInfo is used to generate the Windows file properties and icons.
-```
-git clone https://github.com/sarog/rmm-agent
+```shell
+git clone https://github.com/jetrmm/rmm-agent
 go mod download
 go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 ```
 
 Building the x64 agent:
-```
+```shell
 goversioninfo -64
 env CGO_ENABLED=0 GOARCH=amd64 go build -ldflags "-s -w" -o out\rmmagent.exe
 ```
 
 Building the x86 agent:
-```
+```shell
 goversioninfo
 env CGO_ENABLED=0 GOARCH=386 go build -ldflags "-s -w" -o out\rmmagent.exe
 ```
 
-## Signing the agent
-
-See [CODESIGN](CODESIGN.md) for more information.
-
-## Building the installer
+### Building the installer
  
 Creating an optional installer (setup) file requires [Inno Setup](https://jrsoftware.org/isdl.php) 6.2+ for packaging & distributing the agent
 
@@ -55,10 +49,14 @@ Packaging the x86 installer:
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\setup-x86.iss
 ```
 
-## Updating the agent
+## Signing the agent and installer
 
-This is currently unimplemented; auto-updating agents will be worked on at a later date.
+See [CODESIGN](CODESIGN.md) for more information.
 
 ## Branding the agent
 
-Take a look at the constants at the top of every file to change the displayed names.
+Take a look at `common/const.go` and the defined constants at the top of every file to change the strings.
+
+## Attribution
+
+The JetRMM agent is a hard-fork of [wh1te909/rmmagent](https://github.com/wh1te909/rmmagent) version `1.5.1` (specifically [3b070c3fadb1ae4dff8f20196fc721d99a760474](https://github.com/wh1te909/rmmagent/tree/3b070c3fadb1ae4dff8f20196fc721d99a760474)) which is considered the **last MIT-licensed release** before Amidaware's introduction of the _Tactical RMM License_. Additionally, code from versions 1.5.3 to 1.8.0 (all under the MIT License) may be referenced through reverse engineering.
