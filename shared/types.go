@@ -34,7 +34,7 @@ type RecoveryAction struct {
 
 type AgentNeedsReboot struct {
 	AgentID     string `json:"agent_id"`
-	NeedsReboot bool   `json:"needs_reboot"`
+	NeedsReboot bool   `json:"reboot_pending"`
 }
 
 type AssignedTask struct {
@@ -140,6 +140,6 @@ type CheckInLoggedUser struct {
 	Platform     string  `json:"plat"`
 	TotalRAM     float64 `json:"total_ram"`
 	BootTime     int64   `json:"boot_time"`
-	RebootNeeded bool    `json:"needs_reboot"`
+	RebootPending bool    `json:"reboot_pending"`
 	LoggedInUser string  `json:"logged_in_username"`
 }*/

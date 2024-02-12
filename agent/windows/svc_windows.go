@@ -1,6 +1,7 @@
 package windows
 
 import (
+	"github.com/ugorji/go/codec"
 	"math/rand"
 	"sync"
 	"time"
@@ -8,7 +9,6 @@ import (
 	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/nats-io/nats.go"
 	rmm "github.com/sarog/rmmagent/shared"
-	"github.com/ugorji/go/codec"
 )
 
 const (
@@ -127,14 +127,14 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 
 		nMode = NATS_MODE_OSINFO
 		payload = jrmm.AgentInfoNats{
-			AgentId:      a.AgentID,
-			Username:     a.LoggedOnUser(),
-			Hostname:     a.Hostname,
-			OS:           osInfo,
-			Platform:     plat,
-			TotalRAM:     a.TotalRAM(),
-			BootTime:     a.BootTime(),
-			RebootNeeded: reboot,
+			AgentId:       a.AgentID,
+			Username:      a.LoggedOnUser(),
+			Hostname:      a.Hostname,
+			OS:            osInfo,
+			Platform:      plat,
+			TotalRAM:      a.TotalRAM(),
+			BootTime:      a.BootTime(),
+			RebootPending: reboot,
 		}
 
 	case CHECKIN_MODE_WINSERVICES:
