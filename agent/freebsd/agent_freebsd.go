@@ -1,14 +1,21 @@
 package freebsd
 
+import (
+	"github.com/jetrmm/rmm-agent/agent"
+	jrmm "github.com/jetrmm/rmm-shared"
+	"github.com/kardianos/service"
+	"github.com/nats-io/nats.go"
+)
+
 type freebsdAgent struct {
 	agent.Agent
 }
 
-func NewAgent(logger *logrus.Logger, version string) common.IAgent {
+// func NewAgent(logger *logrus.Logger, version string) agent.IAgent {
+//
+// }
 
-}
-
-func (a *freebsdAgent) Install(i *common.InstallInfo, agentID string) {
+func (a *freebsdAgent) Install(i *agent.InstallInfo, agentID string) {
 	// TODO implement me
 	panic("implement me")
 }
@@ -103,31 +110,31 @@ func (a *freebsdAgent) GetServiceConfig() *service.Config {
 	panic("implement me")
 }
 
-func (a *freebsdAgent) PublicIP() string {
-	// TODO implement me
-	panic("implement me")
-}
+// func (a *freebsdAgent) PublicIP() string {
+// 	// TODO implement me
+// 	panic("implement me")
+// }
 
-func (a *freebsdAgent) TotalRAM() float64 {
-	// TODO implement me
-	panic("implement me")
-}
+// func (a *freebsdAgent) TotalRAM() float64 {
+// 	// TODO implement me
+// 	panic("implement me")
+// }
 
-func (a *freebsdAgent) BootTime() int64 {
-	// TODO implement me
-	panic("implement me")
-}
+// func (a *freebsdAgent) BootTime() int64 {
+// 	// TODO implement me
+// 	panic("implement me")
+// }
 
 func (a *freebsdAgent) GetInstalledSoftware() []jrmm.Software {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (a *freebsdAgent) OSInfo() (plat, osFullName string) {
-	// TODO implement me
-	// uname -a
-	panic("implement me")
-}
+// func (a *freebsdAgent) OSInfo() (plat, osFullName string) {
+// 	// TODO implement me
+// 	// uname -a
+// 	panic("implement me")
+// }
 
 func (a *freebsdAgent) SysInfo() {
 	// TODO implement me
@@ -151,15 +158,15 @@ func (a *freebsdAgent) GetCPULoadAvg() int {
 	panic("implement me")
 }
 
-func (a *freebsdAgent) Start(s service.Service) error {
-	// TODO implement me
-	panic("implement me")
-}
+// func (a *freebsdAgent) Start(s service.Service) error {
+// 	// TODO implement me
+// 	panic("implement me")
+// }
 
-func (a *freebsdAgent) Stop(s service.Service) error {
-	// TODO implement me
-	panic("implement me")
-}
+// func (a *freebsdAgent) Stop(s service.Service) error {
+// 	// TODO implement me
+// 	panic("implement me")
+// }
 
 func (a *freebsdAgent) RebootSystem() {
 	// TODO implement me

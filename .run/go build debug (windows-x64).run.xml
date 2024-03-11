@@ -8,7 +8,7 @@
       <env name="GOARCH" value="amd64" />
     </envs>
     <kind value="PACKAGE" />
-    <package value="github.com/jetrmm/rmmagent" />
+    <package value="github.com/jetrmm/rmm-agent" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <output_directory value="out" />
