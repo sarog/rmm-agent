@@ -2,8 +2,8 @@ package windows
 
 import (
 	"fmt"
+	. "github.com/jetrmm/rmm-agent/agent/common"
 	nats "github.com/nats-io/nats.go"
-	. "github.com/sarog/rmmagent/agent/common"
 	"github.com/ugorji/go/codec"
 	"os"
 	"runtime"

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
+	rmm "github.com/jetrmm/rmm-agent/shared"
 	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/nats-io/nats.go"
-	rmm "github.com/sarog/rmmagent/shared"
 )
 
 const (

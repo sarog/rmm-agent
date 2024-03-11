@@ -4,8 +4,8 @@ import (
 	"fmt"
 	wapf "github.com/jetrmm/go-win64api"
 	so "github.com/jetrmm/go-win64api/shared"
+	"github.com/jetrmm/rmm-agent/agent/common"
 	rmm "github.com/jetrmm/rmm-shared"
-	"github.com/sarog/rmmagent/agent/common"
 )
 
 func installedSoftwareList() ([]so.Software, error) {

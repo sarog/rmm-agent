@@ -10,7 +10,7 @@ import (
 
 	"github.com/gonutz/w32/v2"
 
-	rmm "github.com/sarog/rmmagent/shared"
+	rmm "github.com/jetrmm/rmm-agent/shared"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )

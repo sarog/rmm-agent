@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sarog/rmmagent/agent/common"
+	"github.com/jetrmm/rmm-agent/agent/common"
 	"math"
 	"os"
 	"os/exec"
@@ -16,7 +16,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	ps "github.com/jetrmm/go-sysinfo"
-	rmm "github.com/sarog/rmmagent/shared"
+	rmm "github.com/jetrmm/rmm-agent/shared"
 	"github.com/shirou/gopsutil/v3/disk"
 )
 

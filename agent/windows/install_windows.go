@@ -3,8 +3,8 @@ package windows
 import (
 	"fmt"
 	"github.com/jetrmm/go-dpapi"
+	"github.com/jetrmm/rmm-agent/agent/common"
 	"github.com/kardianos/service"
-	"github.com/sarog/rmmagent/agent/common"
 	"github.com/sirupsen/logrus"
 	"log"
 	"net/url"

@@ -1,4 +1,4 @@
-module github.com/sarog/rmmagent
+module github.com/jetrmm/rmm-agent
 
 go 1.21.3
 

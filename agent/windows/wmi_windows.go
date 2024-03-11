@@ -3,7 +3,7 @@ package windows
 import (
 	"encoding/json"
 	"github.com/jetrmm/go-wmi"
-	rmm "github.com/sarog/rmmagent/shared"
+	rmm "github.com/jetrmm/rmm-agent/shared"
 )
 
 func GetWin32_USBController() ([]interface{}, error) {

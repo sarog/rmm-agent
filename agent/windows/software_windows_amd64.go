@@ -3,8 +3,8 @@ package windows
 import (
 	"fmt"
 	wapi "github.com/jetrmm/go-win64api"
+	"github.com/jetrmm/rmm-agent/agent/common"
 	rmm "github.com/jetrmm/rmm-shared"
-	"github.com/sarog/rmmagent/agent/common"
 )
 
 func (a *windowsAgent) GetInstalledSoftware() []rmm.Software {

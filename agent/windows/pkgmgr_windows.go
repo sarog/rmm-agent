@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
-	rmm "github.com/sarog/rmmagent/shared"
+	rmm "github.com/jetrmm/rmm-agent/shared"
 )
 
 const API_URL_CHOCO = "/api/v3/choco/"

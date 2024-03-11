@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/jetrmm/rmm-agent/agent/common"
+	. "github.com/jetrmm/rmm-agent/agent/windows"
 	"github.com/kardianos/service"
-	"github.com/sarog/rmmagent/agent/common"
-	. "github.com/sarog/rmmagent/agent/windows"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"

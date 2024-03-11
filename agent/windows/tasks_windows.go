@@ -3,14 +3,14 @@ package windows
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sarog/rmmagent/agent/common"
+	"github.com/jetrmm/rmm-agent/agent/common"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/capnspacehook/taskmaster"
-	rmm "github.com/sarog/rmmagent/shared"
+	rmm "github.com/jetrmm/rmm-agent/shared"
 )
 
 func (a *windowsAgent) RunTask(id int) error {

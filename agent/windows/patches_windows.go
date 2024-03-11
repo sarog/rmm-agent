@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	rmm "github.com/sarog/rmmagent/shared"
+	rmm "github.com/jetrmm/rmm-agent/shared"
 )
 
 const (

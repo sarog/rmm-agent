@@ -7,7 +7,7 @@
       <env name="GOOS" value="windows GOARCH=386" />
     </envs>
     <kind value="PACKAGE" />
-    <package value="github.com/sarog/rmmagent" />
+    <package value="github.com/jetrmm/rmmagent" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <output_directory value="out" />

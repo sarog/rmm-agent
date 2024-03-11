@@ -4,7 +4,7 @@ import (
 	jrmm "github.com/jetrmm/rmm-shared"
 	"time"
 
-	rmm "github.com/sarog/rmmagent/shared"
+	rmm "github.com/jetrmm/rmm-agent/shared"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )
