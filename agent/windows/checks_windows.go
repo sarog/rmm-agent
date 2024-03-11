@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/jetrmm/rmm-agent/agent/common"
+	"github.com/jetrmm/rmm-agent/agent"
 	"math"
 	"os"
 	"os/exec"
@@ -169,8 +169,8 @@ func (a *windowsAgent) RunChecks(force bool) error {
 func (a *windowsAgent) RunScript(code string, interpreter string, args []string, timeout int) (stdout, stderr string, exitcode int, e error) {
 	content := []byte(code)
 
-	dir := filepath.Join(os.TempDir(), common.AGENT_TEMP_DIR)
-	if !common.FileExists(dir) {
+	dir := filepath.Join(os.TempDir(), agent.AGENT_TEMP_DIR)
+	if !agent.FileExists(dir) {
 		a.CreateAgentTempDir()
 	}
 
@@ -265,7 +265,7 @@ func (a *windowsAgent) RunScript(code string, interpreter string, args []string,
 	// the normal exec.CommandContext() doesn't work since it only kills the parent process
 	go func(p int32) {
 		<-ctx.Done()
-		_ = common.KillProc(p)
+		_ = agent.KillProc(p)
 		timedOut = true
 	}(pid)
 

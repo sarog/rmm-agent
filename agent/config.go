@@ -1,4 +1,4 @@
-package config
+package agent
 
 type IAgentConfig interface {
 	setConfig(config *AgentConfig)

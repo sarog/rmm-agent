@@ -8,8 +8,7 @@ import (
 	"github.com/fourcorelabs/wintoken"
 	"github.com/go-resty/resty/v2"
 	"github.com/gonutz/w32/v2"
-	"github.com/jetrmm/rmm-agent/agent/common"
-	"github.com/jetrmm/rmm-agent/agent/config"
+	"github.com/jetrmm/rmm-agent/agent"
 	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/kardianos/service"
 	"math"
@@ -46,13 +45,13 @@ const (
 )
 
 type windowsAgent struct {
-	common.Agent
+	agent.Agent
 	ProgramDir  string
 	AgentExe    string
 	SystemDrive string // needed?
 }
 
-func NewAgent(logger *logrus.Logger, version string) common.IAgent {
+func NewAgent(logger *logrus.Logger, version string) agent.IAgent {
 	host, _ := ps.Host()
 	info := host.Info()
 	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
@@ -82,12 +81,12 @@ func NewAgent(logger *logrus.Logger, version string) common.IAgent {
 	}
 
 	return &windowsAgent{
-		Agent: common.Agent{
-			AgentConfig: &config.AgentConfig{
+		Agent: agent.Agent{
+			AgentConfig: &agent.AgentConfig{
 				AgentID:  regKeys.agentId,
 				BaseURL:  regKeys.baseUrl,
 				ApiURL:   regKeys.apiUrl,
-				ApiPort:  common.NATS_DEFAULT_PORT,
+				ApiPort:  agent.NATS_DEFAULT_PORT,
 				Token:    regKeys.token,
 				AgentPK:  regKeys.pk,
 				Cert:     regKeys.rootCert,
@@ -139,12 +138,12 @@ func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent 
 	}
 
 	return &windowsAgent{
-		Agent: common.Agent{
-			AgentConfig: &config.AgentConfig{
+		Agent: agent.Agent{
+			AgentConfig: &agent.AgentConfig{
 				AgentID:  regKeys.agentId,
 				BaseURL:  regKeys.baseUrl,
 				ApiURL:   regKeys.apiUrl,
-				ApiPort:  common.NATS_DEFAULT_PORT,
+				ApiPort:  agent.NATS_DEFAULT_PORT,
 				Token:    regKeys.token,
 				AgentPK:  regKeys.pk,
 				Cert:     regKeys.rootCert,
@@ -322,7 +321,7 @@ func InterpretCommand(interpreter string, args []string, command string, timeout
 
 	go func(p int32) {
 		<-ctx.Done()
-		_ = common.KillProc(p)
+		_ = agent.KillProc(p)
 		timedOut = true
 	}(pid)
 
@@ -425,7 +424,7 @@ func (a *windowsAgent) GetCPULoadAvg() int {
 
 // RecoverAgent Recover the Agent
 func (a *windowsAgent) RecoverAgent() {
-	a.Logger.Debugln("Attempting ", common.AGENT_NAME_LONG, " recovery on", a.Hostname)
+	a.Logger.Debugln("Attempting ", agent.AGENT_NAME_LONG, " recovery on", a.Hostname)
 
 	// a.Logger.Infoln("Attempting agent service recovery")
 	_, _ = runExe("net", []string{"stop", SERVICE_NAME_AGENT}, 90, false)
@@ -437,7 +436,7 @@ func (a *windowsAgent) RecoverAgent() {
 	// defer RunBin(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
 	// _, _ = RunBin(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
 	_, _ = runExe("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln(common.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
+	a.Logger.Debugln(agent.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
 }
 
 // RecoverCMD runs a shell recovery command
@@ -511,7 +510,7 @@ func (a *windowsAgent) ShowStatus(version string) {
 
 		// was: msg := fmt.Sprintf("Agent: %s\n\nRPC Service: %s", statusMap[SERVICE_NAME_AGENT], statusMap[SERVICE_NAME_RPC])
 
-		w32.MessageBox(handle, msg, fmt.Sprintf("%s v%s", common.AGENT_NAME_LONG, version), w32.MB_OK|w32.MB_ICONINFORMATION)
+		w32.MessageBox(handle, msg, fmt.Sprintf("%s v%s", agent.AGENT_NAME_LONG, version), w32.MB_OK|w32.MB_ICONINFORMATION)
 	} else {
 		fmt.Println("Agent Version", version)
 		fmt.Println("Agent Service:", statusMap[SERVICE_NAME_AGENT])

@@ -1,7 +1,7 @@
 package freebsd
 
 type freebsdAgent struct {
-	common.Agent
+	agent.Agent
 }
 
 func NewAgent(logger *logrus.Logger, version string) common.IAgent {

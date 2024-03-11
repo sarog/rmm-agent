@@ -3,7 +3,7 @@ package windows
 import (
 	"fmt"
 	"github.com/jetrmm/go-dpapi"
-	"github.com/jetrmm/rmm-agent/agent/common"
+	"github.com/jetrmm/rmm-agent/agent"
 	"github.com/kardianos/service"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -31,7 +31,7 @@ type WinRegKeys struct {
 	rootCert string
 }
 
-func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
+func (a *windowsAgent) Install(i *agent.InstallInfo, agentID string) {
 	a.checkExistingAndRemove(i.Silent)
 
 	i.Headers = map[string]string{
@@ -65,10 +65,10 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 	a.Logger.Debugln("Agent API Endpoint:", i.ApiURL)
 
 	// todo: port 443 and/or 4222
-	terr := common.TestTCP(fmt.Sprintf("%s:4222", i.ApiURL))
+	terr := agent.TestTCP(fmt.Sprintf("%s:4222", i.ApiURL))
 	if terr != nil {
 		a.installerMsg(fmt.Sprintf("ERROR: Either port %s TCP is not open on your RMM server, or the NATS service is not running.\n\n%s",
-			common.NATS_DEFAULT_PORT, terr.Error()), "error", i.Silent)
+			agent.NATS_DEFAULT_PORT, terr.Error()), "error", i.Silent)
 	}
 
 	baseURL := parsedUrl.Scheme + "://" + parsedUrl.Host
@@ -105,7 +105,7 @@ func (a *windowsAgent) Install(i *common.InstallInfo, agentID string) {
 
 	// Set local certificate if applicable
 	if len(i.RootCert) > 0 {
-		if !common.FileExists(i.RootCert) {
+		if !agent.FileExists(i.RootCert) {
 			a.installerMsg(fmt.Sprintf("%s does not exist", i.RootCert), "error", i.Silent)
 		}
 		rClient.SetRootCertificate(i.RootCert)
@@ -209,7 +209,7 @@ func (a *windowsAgent) checkExistingAndRemove(silent bool) {
 		if !silent && window != 0 {
 			var handle w32.HWND
 			msg := "Existing installation found\nClick OK to remove, then re-run the installer.\nClick Cancel to abort."
-			action := w32.MessageBox(handle, msg, common.AGENT_NAME_LONG, w32.MB_OKCANCEL|w32.MB_ICONWARNING)
+			action := w32.MessageBox(handle, msg, agent.AGENT_NAME_LONG, w32.MB_OKCANCEL|w32.MB_ICONWARNING)
 			if action == w32.IDOK {
 				a.AgentUninstall()
 			}
@@ -334,7 +334,7 @@ func (a *windowsAgent) installerMsg(msg, alert string, silent bool) {
 			flags = w32.MB_OK | w32.MB_ICONINFORMATION
 		}
 
-		w32.MessageBox(handle, msg, common.AGENT_NAME_LONG, flags)
+		w32.MessageBox(handle, msg, agent.AGENT_NAME_LONG, flags)
 	} else {
 		fmt.Println(msg)
 	}

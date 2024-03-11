@@ -1,4 +1,4 @@
-package common
+package agent
 
 const (
 	AGENT_NAME_LONG   = "RMM Agent"

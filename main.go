@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jetrmm/rmm-agent/agent/common"
+	"github.com/jetrmm/rmm-agent/agent"
 	. "github.com/jetrmm/rmm-agent/agent/windows"
 	"github.com/kardianos/service"
 	"github.com/sirupsen/logrus"
@@ -99,7 +99,7 @@ func main() {
 	defer logFile.Close()
 
 	// var a = agent.GetAgent(log, version).(common.IAgent)
-	var a = NewAgent(log, version).(common.IAgent)
+	var a = NewAgent(log, version).(agent.IAgent)
 	s, _ := service.New(a, a.GetServiceConfig())
 
 	if len(os.Args) == 1 {
@@ -197,10 +197,10 @@ func main() {
 			return
 		}
 
-		agentULID, _ := common.GenerateAgentID()
+		agentULID, _ := agent.GenerateAgentID()
 
 		a.Install(
-			&common.InstallInfo{
+			&agent.InstallInfo{
 				ServerURL:   *apiUrl,
 				ClientID:    *clientID,
 				SiteID:      *siteID,
@@ -262,7 +262,7 @@ func updateUsage() {
 
 // showVersionInfo prints basic debugging info
 func showVersionInfo(ver string) {
-	fmt.Println(common.AGENT_NAME_LONG, ver, runtime.GOARCH, runtime.Version())
+	fmt.Println(agent.AGENT_NAME_LONG, ver, runtime.GOARCH, runtime.Version())
 	// if runtime.GOOS == "windows" {
 	// 	fmt.Println("Program Directory: ", filepath.Join(os.Getenv("ProgramFiles"), agent.AGENT_FOLDER))
 	// }

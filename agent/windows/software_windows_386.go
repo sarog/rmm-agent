@@ -4,7 +4,7 @@ import (
 	"fmt"
 	wapf "github.com/jetrmm/go-win64api"
 	so "github.com/jetrmm/go-win64api/shared"
-	"github.com/jetrmm/rmm-agent/agent/common"
+	"github.com/jetrmm/rmm-agent/agent"
 	rmm "github.com/jetrmm/rmm-shared"
 )
 
@@ -32,7 +32,7 @@ func (a *windowsAgent) GetInstalledSoftware() []rmm.Software {
 			Version:     s.Version(),
 			Publisher:   s.Publisher,
 			InstallDate: fmt.Sprintf("%02d-%d-%02d", t.Year(), t.Month(), t.Day()),
-			Size:        common.ByteCountSI(s.EstimatedSize * 1024),
+			Size:        agent.ByteCountSI(s.EstimatedSize * 1024),
 			Source:      s.InstallSource,
 			Location:    s.InstallLocation,
 			Uninstall:   s.UninstallString,

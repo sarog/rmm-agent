@@ -1,11 +1,10 @@
-package common
+package agent
 
 import (
 	"archive/zip"
 	"fmt"
 	"github.com/shirou/gopsutil/v3/process"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,19 +18,6 @@ func FileExists(path string) bool {
 		}
 	}
 	return true
-}
-
-// IsValidIP checks for a valid IPv4 or IPv6 address
-func IsValidIP(ip string) bool {
-	return net.ParseIP(ip) != nil
-}
-
-// StripAll strips all whitespace and newline chars
-func StripAll(s string) string {
-	s = strings.TrimSpace(s)
-	s = strings.Trim(s, "\n")
-	s = strings.Trim(s, "\r")
-	return s
 }
 
 // KillProc kills a process and its children
@@ -53,15 +39,6 @@ func KillProc(pid int32) error {
 	if err := p.Kill(); err != nil {
 		return err
 	}
-	return nil
-}
-
-func TestTCP(addr string) error {
-	conn, err := net.Dial("tcp4", addr)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
 	return nil
 }
 

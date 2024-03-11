@@ -3,7 +3,7 @@ package windows
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jetrmm/rmm-agent/agent/common"
+	"github.com/jetrmm/rmm-agent/agent"
 	"os"
 	"path/filepath"
 	"strings"
@@ -162,7 +162,7 @@ func (a *windowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 	switch st.Trigger {
 	case "once":
 		if st.DeleteAfter {
-			deleteAfterDate := time.Date(st.Year, common.GetMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location())
+			deleteAfterDate := time.Date(st.Year, agent.GetMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location())
 			trigger = taskmaster.TimeTrigger{
 				TaskTrigger: taskmaster.TaskTrigger{
 					Enabled:       true,
@@ -174,7 +174,7 @@ func (a *windowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 			trigger = taskmaster.TimeTrigger{
 				TaskTrigger: taskmaster.TaskTrigger{
 					Enabled:       true,
-					StartBoundary: time.Date(st.Year, common.GetMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location()),
+					StartBoundary: time.Date(st.Year, agent.GetMonth(st.Month), st.Day, st.Hour, st.Minute, 0, 0, now.Location()),
 				},
 			}
 		}
@@ -304,7 +304,7 @@ func CleanupSchedTasks() {
 	}
 
 	for _, task := range tasks {
-		if strings.HasPrefix(task.Name, common.TASK_PREFIX) {
+		if strings.HasPrefix(task.Name, agent.TASK_PREFIX) {
 			conn.DeleteTask(fmt.Sprintf("\\%s", task.Name))
 		}
 	}
