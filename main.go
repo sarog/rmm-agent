@@ -98,7 +98,7 @@ func main() {
 	setupLogging(logLevel, logTo)
 	defer logFile.Close()
 
-	// var a = agent.GetAgent(log, version).(common.IAgent)
+	// var a = agent.GetAgent(log, version).(agent.IAgent)
 	var a = NewAgent(log, version).(agent.IAgent)
 	s, _ := service.New(a, a.GetServiceConfig())
 

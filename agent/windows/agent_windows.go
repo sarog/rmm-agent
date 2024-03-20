@@ -9,6 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/gonutz/w32/v2"
 	"github.com/jetrmm/rmm-agent/agent"
+	registry2 "github.com/jetrmm/rmm-agent/internal/registry"
 	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/kardianos/service"
 	"math"
@@ -43,6 +44,10 @@ const (
 
 	API_URL_SOFTWARE = "/api/v3/software/"
 )
+
+func init() {
+	registry2.Register(windowsAgent{})
+}
 
 type windowsAgent struct {
 	agent.Agent

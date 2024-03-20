@@ -17,6 +17,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	// _ "github.com/jetrmm/rmm-agent/agent/darwin"
+	// _ "github.com/jetrmm/rmm-agent/agent/freebsd"
+	// _ "github.com/jetrmm/rmm-agent/agent/linux"
+	// _ "github.com/jetrmm/rmm-agent/agent/windows"
 )
 
 type InfoCollector interface {
