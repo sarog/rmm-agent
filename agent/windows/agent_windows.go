@@ -5,9 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/fourcorelabs/wintoken"
 	"github.com/go-resty/resty/v2"
 	"github.com/gonutz/w32/v2"
+	"github.com/jetrmm/go-wintoken"
 	"github.com/jetrmm/rmm-agent/agent"
 	registry2 "github.com/jetrmm/rmm-agent/internal/registry"
 	jrmm "github.com/jetrmm/rmm-shared"
@@ -307,7 +307,7 @@ func InterpretCommand(interpreter string, args []string, command string, timeout
 	}
 
 	// https://blog.davidvassallo.me/2022/06/17/golang-in-windows-execute-command-as-another-user/
-	// https://github.com/FourCoreLabs/wintoken
+	// https://github.com/jetrmm/go-wintoken
 	if runAsUser {
 		token, err := wintoken.GetInteractiveToken(wintoken.TokenImpersonation)
 		if err != nil {

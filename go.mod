@@ -4,11 +4,8 @@ go 1.21.3
 
 toolchain go1.22.1
 
-// toolchain go1.22.1
-
 require (
 	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
-	github.com/fourcorelabs/wintoken v1.0.0
 	github.com/go-ole/go-ole v1.3.0
 	github.com/go-resty/resty/v2 v2.12.0
 	github.com/gonutz/w32/v2 v2.11.1
@@ -53,6 +50,6 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-// github.com/fourcorelabs/wintoken v1.0.0
-// replace github.com/yusufpapurcu/wmi => github.com/jetrmm/go-wmi v0.0.0-20231024184724-2360e14cc5e7
-// replace github.com/elastic/go-sysinfo => github.com/jetrmm/go-sysinfo
+// replace github.com/fourcorelabs/wintoken => github.com/jetrmm/go-wintoken main
+// replace github.com/yusufpapurcu/wmi => github.com/jetrmm/go-wmi main
+// replace github.com/elastic/go-sysinfo => github.com/jetrmm/go-sysinfo main
