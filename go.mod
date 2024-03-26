@@ -5,11 +5,11 @@ go 1.21.3
 toolchain go1.22.1
 
 require (
-	github.com/capnspacehook/taskmaster v0.0.0-20210519235353-1629df7c85e9
+	github.com/jetrmm/go-taskmaster v0.1.0
 	github.com/go-ole/go-ole v1.3.0
 	github.com/go-resty/resty/v2 v2.12.0
 	github.com/gonutz/w32/v2 v2.11.1
-	github.com/jetrmm/go-dpapi v0.0.0-20231027145607-bd6a51f4e7f3
+	github.com/jetrmm/go-dpapi v0.1.0
 	github.com/jetrmm/go-sysinfo v0.1.0
 	github.com/jetrmm/go-win64api v0.1.0
 	github.com/jetrmm/go-wmi v0.1.0

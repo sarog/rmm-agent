@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/capnspacehook/taskmaster"
+	"github.com/jetrmm/go-taskmaster"
 	rmm "github.com/jetrmm/rmm-agent/shared"
 )
 
