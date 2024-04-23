@@ -9,7 +9,7 @@ require (
 	github.com/go-resty/resty/v2 v2.12.0
 	github.com/gonutz/w32/v2 v2.11.1
 	github.com/jetrmm/go-dpapi v0.1.0
-	github.com/jetrmm/go-sysinfo v0.1.0
+	github.com/jetrmm/go-sysinfo v0.1.1
 	github.com/jetrmm/go-taskmaster v0.1.0
 	github.com/jetrmm/go-win64api v0.1.0
 	github.com/jetrmm/go-wintoken v0.1.0
@@ -36,7 +36,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
-	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/rickb777/date v1.20.6 // indirect
 	github.com/rickb777/plural v1.4.1 // indirect
 	github.com/scjalliance/comshim v0.0.0-20230315213746-5e51f40bd3b9 // indirect
@@ -47,7 +47,7 @@ require (
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 // indirect
-	howett.net/plist v1.0.0 // indirect
+	howett.net/plist v1.0.1 // indirect
 )
 
 // replace github.com/fourcorelabs/wintoken => github.com/jetrmm/go-wintoken main
