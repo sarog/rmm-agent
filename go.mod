@@ -18,7 +18,7 @@ require (
 	github.com/kardianos/service v1.2.2
 	github.com/nats-io/nats.go v1.34.1
 	github.com/oklog/ulid/v2 v2.1.0
-	github.com/shirou/gopsutil/v3 v3.24.3
+	github.com/shirou/gopsutil/v3 v3.24.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/ugorji/go/codec v1.2.12
 	golang.org/x/sys v0.20.0
