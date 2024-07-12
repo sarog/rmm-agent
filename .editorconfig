@@ -37,3 +37,6 @@ ij_markdown_min_lines_between_paragraphs = 1
 
 [*.xml]
 indent_size = 2
+
+[*.yml]
+indent_size = 2
