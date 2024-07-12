@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jetrmm/rmm-agent/agent"
 	. "github.com/jetrmm/rmm-agent/agent/windows"
+	registry2 "github.com/jetrmm/rmm-agent/internal/registry"
 	"github.com/kardianos/service"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -98,9 +99,9 @@ func main() {
 	setupLogging(logLevel, logTo)
 	defer logFile.Close()
 
-	// var a = agent.GetAgent(log, version).(agent.IAgent)
+	// was: var a = NewAgent(log, version).(agent.IAgent)
 	var a = NewAgent(log, version).(agent.IAgent)
-	s, _ := service.New(a, a.GetServiceConfig())
+	// test: var a, _ = GetAgent(log, version)
 
 	if len(os.Args) == 1 {
 		a.ShowStatus(version)
@@ -108,6 +109,8 @@ func main() {
 		os.Exit(0)
 		return
 	}
+
+	s, _ := service.New(a, a.GetServiceConfig())
 
 	switch os.Args[1] {
 	case "install":
@@ -215,6 +218,14 @@ func main() {
 	default:
 		a.ShowStatus(version)
 	}
+}
+
+func GetAgent(logger *logrus.Logger, version string) (*agent.Agent, error) {
+	provider := registry2.GetAgentProvider()
+	if provider == nil {
+		return nil, fmt.Errorf("Unimplemented")
+	}
+	return provider.Agent(logger, version), nil
 }
 
 func setupLogging(level, to *string) {

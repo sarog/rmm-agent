@@ -51,9 +51,9 @@ func init() {
 
 type windowsAgent struct {
 	agent.Agent
-	ProgramDir  string
-	AgentExe    string
-	SystemDrive string // needed?
+	ProgramDir string
+	AgentExe   string
+	// SystemDrive string // needed?
 }
 
 func NewAgent(logger *logrus.Logger, version string) agent.IAgent {
@@ -61,7 +61,7 @@ func NewAgent(logger *logrus.Logger, version string) agent.IAgent {
 	info := host.Info()
 	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
-	sd := os.Getenv("SystemDrive")
+	// sd := os.Getenv("SystemDrive")
 
 	regKeys, err := getRegKeys(logger)
 
@@ -104,21 +104,19 @@ func NewAgent(logger *logrus.Logger, version string) agent.IAgent {
 			Logger:  logger,
 			RClient: restyC,
 		},
-		ProgramDir:  pd,
-		AgentExe:    exe,
-		SystemDrive: sd,
+		ProgramDir: pd,
+		AgentExe:   exe,
+		// SystemDrive: sd,
 	}
 }
 
 // New Initializes a new windowsAgent with logger
 func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent {
-	// return &NewAgent(logger, version)
-
 	host, _ := ps.Host()
 	info := host.Info()
 	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
 	exe := filepath.Join(pd, AGENT_FILENAME)
-	sd := os.Getenv("SystemDrive")
+	// sd := os.Getenv("SystemDrive")
 
 	regKeys, err := getRegKeys(logger)
 
@@ -161,9 +159,9 @@ func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent 
 			Logger:  logger,
 			RClient: restyC,
 		},
-		ProgramDir:  pd,
-		AgentExe:    exe,
-		SystemDrive: sd,
+		ProgramDir: pd,
+		AgentExe:   exe,
+		// SystemDrive: sd,
 	}
 }
 

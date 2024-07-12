@@ -9,7 +9,7 @@ type RpcPayload struct {
 	Timeout int               `json:"timeout"`
 	// ScriptArgs      []string          `json:"script_args"`
 	// ProcPID         int32             `json:"procpid"`
-	// TaskPK          int               `json:"taskpk"`
+	// TaskPK          int               `json:"taskpk"` // was: taskpk
 	// ScheduledTask   SchedTask         `json:"schedtaskpayload"`
 	// RecoveryCommand string            `json:"recoverycommand"`
 	// UpdateGUIDs     []string          `json:"guids"`           // todo: move

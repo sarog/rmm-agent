@@ -128,8 +128,8 @@ type IAgent interface {
 	baseAgent
 	InfoCollector
 	PackageManager
-	RpcProcessor // Messenger
-	service.Interface
+	RpcProcessor      // Messenger
+	service.Interface // Agent Service
 
 	// IAgentConfig
 	// IAgentLogger

@@ -3,6 +3,7 @@ package windows
 import (
 	"fmt"
 	. "github.com/jetrmm/rmm-agent/agent"
+	"github.com/jetrmm/rmm-agent/shared"
 	nats "github.com/nats-io/nats.go"
 	"github.com/ugorji/go/codec"
 	"os"
@@ -14,17 +15,18 @@ import (
 )
 
 type NatsMsg struct {
-	Func            string            `json:"func"`
-	Timeout         int               `json:"timeout"`
-	Data            map[string]string `json:"payload"`
-	ScriptArgs      []string          `json:"script_args"`
-	ProcPID         int32             `json:"procpid"`
-	TaskPK          int               `json:"taskpk"`
-	ScheduledTask   SchedTask         `json:"schedtaskpayload"`
-	RecoveryCommand string            `json:"recoverycommand"`
-	UpdateGUIDs     []string          `json:"guids"`           // todo: move
-	ChocoProgName   string            `json:"choco_prog_name"` // todo: move
-	PendingActionPK int               `json:"pending_action_pk"`
+	shared.RpcPayload
+	// Func            string            `json:"func"`
+	// Timeout         int               `json:"timeout"`
+	// Data            map[string]string `json:"payload"`
+	ScriptArgs      []string  `json:"script_args"`
+	ProcPID         int32     `json:"proc_pid"` // was: procpid
+	TaskId          int       `json:"task_id"`  // was: taskpk
+	ScheduledTask   SchedTask `json:"schedtaskpayload"`
+	RecoveryCommand string    `json:"recoverycommand"`
+	UpdateGUIDs     []string  `json:"guids"`           // todo: move
+	ChocoProgName   string    `json:"choco_prog_name"` // todo: move
+	PendingActionPK int       `json:"pending_action_pk"`
 }
 
 var (
@@ -388,7 +390,7 @@ func (a *windowsAgent) ProcessRpcMsg(nc *nats.Conn, msg *nats.Msg) {
 	case NATS_CMD_TASK_RUN:
 		go func(p *NatsMsg) {
 			a.Logger.Debugln("Running task")
-			a.RunTask(p.TaskPK)
+			a.RunTask(p.TaskId)
 		}(payload)
 
 	case NATS_CMD_PUBLICIP:

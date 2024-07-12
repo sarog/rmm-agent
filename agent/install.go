@@ -5,7 +5,7 @@ import "time"
 type InstallInfo struct {
 	Headers     map[string]string
 	ServerURL   string        // JSON endpoint URL
-	ApiURL      string        // RPC endpoint (NATS) URL
+	ApiURL      string        // RPC endpoint (NATS) URL as host:port
 	ClientID    int           // Client ID
 	SiteID      int           // Client Site ID
 	Description string        // Defaults to hostname
