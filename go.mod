@@ -6,7 +6,7 @@ toolchain go1.22.1
 
 require (
 	github.com/go-ole/go-ole v1.3.0
-	github.com/go-resty/resty/v2 v2.13.1
+	github.com/go-resty/resty/v2 v2.14.0
 	github.com/gonutz/w32/v2 v2.11.1
 	github.com/jetrmm/go-dpapi v0.1.0
 	github.com/jetrmm/go-sysinfo v0.1.1
@@ -44,8 +44,8 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/net v0.27.0 // indirect
 	gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 // indirect
 	howett.net/plist v1.0.1 // indirect
 )
