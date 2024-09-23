@@ -6,7 +6,7 @@ toolchain go1.22.1
 
 require (
 	github.com/go-ole/go-ole v1.3.0
-	github.com/go-resty/resty/v2 v2.14.0
+	github.com/go-resty/resty/v2 v2.15.2
 	github.com/gonutz/w32/v2 v2.11.1
 	github.com/jetrmm/go-dpapi v0.1.0
 	github.com/jetrmm/go-sysinfo v0.1.1
