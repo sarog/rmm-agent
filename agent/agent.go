@@ -158,9 +158,33 @@ func (a *Agent) Stop(s service.Service) error {
 	return nil
 }
 
+// GetHostname from go-sysinfo package
 func (a *Agent) GetHostname() string {
 	sysHost, _ := ps.Host()
 	return sysHost.Info().Hostname
+}
+
+// GetHostname2 from os package
+func (a *Agent) GetHostname2() string {
+	host, _ := os.Hostname()
+	return host
+}
+
+func (a *Agent) GetWorkingDir() string {
+	getwd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	return getwd
+}
+
+func (a *Agent) GetExePath() string {
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	return exPath
 }
 
 // GenerateAgentID creates and returns a unique agent ULID

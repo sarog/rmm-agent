@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/jetrmm/rmm-agent/agent"
 	. "github.com/jetrmm/rmm-agent/agent/windows"
-	registry2 "github.com/jetrmm/rmm-agent/internal/registry"
 	"github.com/kardianos/service"
 	"github.com/sirupsen/logrus"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 )
@@ -99,13 +99,21 @@ func main() {
 	setupLogging(logLevel, logTo)
 	defer logFile.Close()
 
+	// fmt.Println(checkForAdmin())
+
+	var isAdmin = checkForAdmin()
+	if !isAdmin {
+		fmt.Println("Need to run using administrative privileges")
+	}
+
 	// was: var a = NewAgent(log, version).(agent.IAgent)
-	var a = NewAgent(log, version).(agent.IAgent)
+	var a = NewAgent(log, version, isAdmin) // .(agent.IAgent)
 	// test: var a, _ = GetAgent(log, version)
 
 	if len(os.Args) == 1 {
 		a.ShowStatus(version)
 		fmt.Fprintln(os.Stderr, "didn't receive any arguments")
+		// show usage info
 		os.Exit(0)
 		return
 	}
@@ -220,12 +228,28 @@ func main() {
 	}
 }
 
-func GetAgent(logger *logrus.Logger, version string) (*agent.Agent, error) {
+/*func GetAgent(logger *logrus.Logger, version string) (*agent.Agent, error) {
 	provider := registry2.GetAgentProvider()
 	if provider == nil {
 		return nil, fmt.Errorf("Unimplemented")
 	}
 	return provider.Agent(logger, version), nil
+}*/
+
+func checkForAdmin() bool {
+	_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func isRoot() bool {
+	currentUser, err := user.Current()
+	if err != nil {
+		log.Fatalf("[isRoot] Unable to get current user: %s", err)
+	}
+	return currentUser.Username == "root"
 }
 
 func setupLogging(level, to *string) {

@@ -45,7 +45,7 @@ func (a *windowsAgent) CheckRunner() {
 	for {
 		interval, err := a.GetCheckInterval()
 		if err == nil && !a.ChecksRunning() {
-			_, err = runExe(a.AgentExe, []string{"-m", "checkrunner"}, 600, false)
+			_, err = runExe(a.GetExePath(), []string{"-m", "checkrunner"}, 600, false)
 			if err != nil {
 				a.Logger.Errorln("CheckRunner RunChecks", err)
 			}

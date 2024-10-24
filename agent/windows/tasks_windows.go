@@ -80,7 +80,7 @@ func (a *windowsAgent) CreateInternalTask(name, args, repeat string, start int) 
 
 	action := taskmaster.ExecAction{
 		Path:       AGENT_FILENAME,
-		WorkingDir: a.ProgramDir,
+		WorkingDir: a.GetWorkingDir(),
 		Args:       args,
 	}
 	def.AddAction(action)
@@ -203,7 +203,7 @@ func (a *windowsAgent) CreateSchedTask(st SchedTask) (bool, error) {
 	switch st.Type {
 	case "rmm":
 		path = AGENT_FILENAME
-		workdir = a.ProgramDir
+		workdir = a.GetWorkingDir()
 		args = fmt.Sprintf("-m taskrunner -p %d", st.PK)
 	case "schedreboot":
 		path = "shutdown.exe"

@@ -9,7 +9,6 @@ import (
 	"github.com/gonutz/w32/v2"
 	"github.com/jetrmm/go-wintoken"
 	"github.com/jetrmm/rmm-agent/agent"
-	registry2 "github.com/jetrmm/rmm-agent/internal/registry"
 	jrmm "github.com/jetrmm/rmm-shared"
 	"github.com/kardianos/service"
 	"math"
@@ -46,122 +45,121 @@ const (
 )
 
 func init() {
-	registry2.Register(windowsAgent{})
+	agent.Register(windowsAgent{})
 }
 
 type windowsAgent struct {
 	agent.Agent
-	ProgramDir string
-	AgentExe   string
-	// SystemDrive string // needed?
 }
 
-func NewAgent(logger *logrus.Logger, version string) agent.IAgent {
-	host, _ := ps.Host()
-	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
-	exe := filepath.Join(pd, AGENT_FILENAME)
-	// sd := os.Getenv("SystemDrive")
-
-	regKeys, err := getRegKeys(logger)
-
-	if err != nil {
-		// todo: handle this
+func NewAgent(logger *logrus.Logger, version string, isAdmin bool) agent.IAgent {
+	regKeys := WinRegKeys{
+		baseUrl:  "",
+		agentId:  "",
+		apiUrl:   "",
+		token:    "",
+		agentPK:  "",
+		pk:       0,
+		rootCert: "",
 	}
 
 	headers := make(map[string]string)
-	if len(regKeys.token) > 0 {
-		headers["Content-Type"] = "application/json"
-		headers["Authorization"] = fmt.Sprintf("Token %s", regKeys.token)
-	}
-
 	restyC := resty.New()
-	restyC.SetBaseURL(regKeys.baseUrl)
-	restyC.SetCloseConnection(true)
-	restyC.SetHeaders(headers)
-	restyC.SetTimeout(15 * time.Second)
-	restyC.SetDebug(logger.IsLevelEnabled(logrus.DebugLevel))
-	if len(regKeys.rootCert) > 0 {
-		restyC.SetRootCertificate(regKeys.rootCert)
+
+	if isAdmin {
+		regKeys, err := getRegKeys(logger)
+		if err != nil {
+			fmt.Println("Unable to retrieve registry keys (agent not installed?)", err)
+			logger.Debugln("Unable to retrieve registry keys (agent not installed?)")
+		} else {
+			if len(regKeys.token) > 0 {
+				headers["Content-Type"] = "application/json"
+				headers["Authorization"] = fmt.Sprintf("Token %s", regKeys.token)
+			}
+			restyC.SetBaseURL(regKeys.baseUrl)
+			restyC.SetCloseConnection(true)
+			restyC.SetHeaders(headers)
+			restyC.SetTimeout(15 * time.Second)
+			restyC.SetDebug(logger.IsLevelEnabled(logrus.DebugLevel))
+			if len(regKeys.rootCert) > 0 {
+				restyC.SetRootCertificate(regKeys.rootCert)
+			}
+		}
 	}
 
 	return &windowsAgent{
 		Agent: agent.Agent{
 			AgentConfig: &agent.AgentConfig{
-				AgentID:  regKeys.agentId,
-				BaseURL:  regKeys.baseUrl,
-				ApiURL:   regKeys.apiUrl,
-				ApiPort:  agent.NATS_DEFAULT_PORT,
-				Token:    regKeys.token,
-				AgentPK:  regKeys.pk,
-				Cert:     regKeys.rootCert,
-				Arch:     info.Architecture,
-				Hostname: info.Hostname,
-				Version:  version,
-				Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
-				Headers:  headers,
+				AgentID: regKeys.agentId,
+				BaseURL: regKeys.baseUrl,
+				ApiURL:  regKeys.apiUrl,
+				ApiPort: agent.NATS_DEFAULT_PORT,
+				Token:   regKeys.token,
+				AgentPK: regKeys.pk,
+				Cert:    regKeys.rootCert,
+				Version: version,
+				Debug:   logger.IsLevelEnabled(logrus.DebugLevel),
+				Headers: headers,
 			},
 			Logger:  logger,
 			RClient: restyC,
 		},
-		ProgramDir: pd,
-		AgentExe:   exe,
-		// SystemDrive: sd,
 	}
 }
 
 // New Initializes a new windowsAgent with logger
-func (a *windowsAgent) New(logger *logrus.Logger, version string) *windowsAgent {
-	host, _ := ps.Host()
-	info := host.Info()
-	pd := filepath.Join(os.Getenv("ProgramFiles"), AGENT_FOLDER)
-	exe := filepath.Join(pd, AGENT_FILENAME)
-	// sd := os.Getenv("SystemDrive")
-
-	regKeys, err := getRegKeys(logger)
-
-	if err != nil {
-		// todo: handle this
+func (a *windowsAgent) New(logger *logrus.Logger, version string, isAdmin bool) *windowsAgent {
+	regKeys := WinRegKeys{
+		baseUrl:  "",
+		agentId:  "",
+		apiUrl:   "",
+		token:    "",
+		agentPK:  "",
+		pk:       0,
+		rootCert: "",
 	}
 
 	headers := make(map[string]string)
-	if len(regKeys.token) > 0 {
-		headers["Content-Type"] = "application/json"
-		headers["Authorization"] = fmt.Sprintf("Token %s", regKeys.token)
-	}
-
 	restyC := resty.New()
-	restyC.SetBaseURL(regKeys.baseUrl)
-	restyC.SetCloseConnection(true)
-	restyC.SetHeaders(headers)
-	restyC.SetTimeout(15 * time.Second)
-	restyC.SetDebug(logger.IsLevelEnabled(logrus.DebugLevel))
-	if len(regKeys.rootCert) > 0 {
-		restyC.SetRootCertificate(regKeys.rootCert)
+
+	if isAdmin {
+		regKeys, err := getRegKeys(logger)
+		if err != nil {
+			fmt.Println("Unable to retrieve registry keys (agent not installed?)", err)
+			logger.Debugln("Unable to retrieve registry keys (agent not installed?)")
+		} else {
+			if len(regKeys.token) > 0 {
+				headers["Content-Type"] = "application/json"
+				headers["Authorization"] = fmt.Sprintf("Token %s", regKeys.token)
+			}
+			restyC.SetBaseURL(regKeys.baseUrl)
+			restyC.SetCloseConnection(true)
+			restyC.SetHeaders(headers)
+			restyC.SetTimeout(15 * time.Second)
+			restyC.SetDebug(logger.IsLevelEnabled(logrus.DebugLevel))
+			if len(regKeys.rootCert) > 0 {
+				restyC.SetRootCertificate(regKeys.rootCert)
+			}
+		}
 	}
 
 	return &windowsAgent{
 		Agent: agent.Agent{
 			AgentConfig: &agent.AgentConfig{
-				AgentID:  regKeys.agentId,
-				BaseURL:  regKeys.baseUrl,
-				ApiURL:   regKeys.apiUrl,
-				ApiPort:  agent.NATS_DEFAULT_PORT,
-				Token:    regKeys.token,
-				AgentPK:  regKeys.pk,
-				Cert:     regKeys.rootCert,
-				Arch:     info.Architecture,
-				Hostname: info.Hostname,
-				Version:  version,
-				Debug:    logger.IsLevelEnabled(logrus.DebugLevel),
-				Headers:  headers,
+				AgentID: regKeys.agentId,
+				BaseURL: regKeys.baseUrl,
+				ApiURL:  regKeys.apiUrl,
+				ApiPort: agent.NATS_DEFAULT_PORT,
+				Token:   regKeys.token,
+				AgentPK: regKeys.pk,
+				Cert:    regKeys.rootCert,
+				Version: version,
+				Debug:   logger.IsLevelEnabled(logrus.DebugLevel),
+				Headers: headers,
 			},
 			Logger:  logger,
 			RClient: restyC,
 		},
-		ProgramDir: pd,
-		AgentExe:   exe,
-		// SystemDrive: sd,
 	}
 }
 
@@ -427,7 +425,7 @@ func (a *windowsAgent) GetCPULoadAvg() int {
 
 // RecoverAgent Recover the Agent
 func (a *windowsAgent) RecoverAgent() {
-	a.Logger.Debugln("Attempting ", agent.AGENT_NAME_LONG, " recovery on", a.Hostname)
+	a.Logger.Debugln("Attempting ", agent.AGENT_NAME_LONG, " recovery on", a.GetHostname())
 
 	// a.Logger.Infoln("Attempting agent service recovery")
 	_, _ = runExe("net", []string{"stop", SERVICE_NAME_AGENT}, 90, false)
@@ -439,7 +437,7 @@ func (a *windowsAgent) RecoverAgent() {
 	// defer RunBin(a.Nssm, []string{"start", SERVICE_NAME_AGENT}, 60, false)
 	// _, _ = RunBin(a.Nssm, []string{"stop", SERVICE_NAME_AGENT}, 120, false)
 	_, _ = runExe("ipconfig", []string{"/flushdns"}, 15, false)
-	a.Logger.Debugln(agent.AGENT_NAME_LONG, " recovery completed on", a.Hostname)
+	a.Logger.Debugln(agent.AGENT_NAME_LONG, " recovery completed on", a.GetHostname())
 }
 
 // RecoverCMD runs a shell recovery command
@@ -478,7 +476,10 @@ func (a *windowsAgent) SendSoftware() {
 }
 
 func (a *windowsAgent) UninstallCleanup() {
-	registry.DeleteKey(registry.LOCAL_MACHINE, REG_RMM_PATH)
+	err := registry.DeleteKey(registry.LOCAL_MACHINE, REG_RMM_PATH)
+	if err != nil {
+		return
+	}
 	a.CleanupAgentUpdates()
 	CleanupSchedTasks()
 }
@@ -526,7 +527,7 @@ func (a *windowsAgent) AgentUpdate(url, inno, version string) {
 
 	a.CleanupAgentUpdates()
 
-	updater := filepath.Join(a.ProgramDir, inno)
+	updater := filepath.Join(a.GetWorkingDir(), inno)
 	a.Logger.Infof("Agent updating from %s to %s", a.Version, version)
 	a.Logger.Infoln("Downloading agent update from", url)
 
@@ -565,7 +566,7 @@ func (a *windowsAgent) AgentUpdate(url, inno, version string) {
 }
 
 func (a *windowsAgent) GetUninstallExe() string {
-	cderr := os.Chdir(a.ProgramDir)
+	cderr := os.Chdir(a.GetWorkingDir())
 	if cderr == nil {
 		files, err := filepath.Glob("unins*.exe")
 		if err == nil {
@@ -580,7 +581,7 @@ func (a *windowsAgent) GetUninstallExe() string {
 }
 
 func (a *windowsAgent) AgentUninstall() {
-	agentUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
+	agentUninst := filepath.Join(a.GetWorkingDir(), a.GetUninstallExe())
 	args := []string{"/C", agentUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 	cmd := exec.Command("cmd.exe", args...)
 	cmd.SysProcAttr = &windows.SysProcAttr{
@@ -590,7 +591,7 @@ func (a *windowsAgent) AgentUninstall() {
 }
 
 func (a *windowsAgent) CleanupAgentUpdates() {
-	cderr := os.Chdir(a.ProgramDir)
+	cderr := os.Chdir(a.GetWorkingDir())
 	if cderr != nil {
 		a.Logger.Errorln(cderr)
 		return

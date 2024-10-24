@@ -1,8 +1,7 @@
-package registry
+package agent
 
 import (
 	"fmt"
-	"github.com/jetrmm/rmm-agent/agent"
 	"github.com/sirupsen/logrus"
 )
 
@@ -11,7 +10,7 @@ var (
 )
 
 type AgentProvider interface {
-	Agent(logger *logrus.Logger, version string) *agent.IAgent
+	Agent(logger *logrus.Logger, version string) *IAgent
 }
 
 func Register(provider interface{}) {

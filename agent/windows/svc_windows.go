@@ -129,7 +129,7 @@ func (a *windowsAgent) CheckIn(nc *nats.Conn, mode string) {
 		payload = jrmm.AgentInfoNats{
 			AgentId:       a.AgentID,
 			Username:      a.LoggedOnUser(),
-			Hostname:      a.Hostname,
+			Hostname:      a.GetHostname(),
 			OS:            osInfo,
 			Platform:      plat,
 			TotalRAM:      a.TotalRAM(),

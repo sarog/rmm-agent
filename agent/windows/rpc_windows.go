@@ -380,7 +380,7 @@ func (a *windowsAgent) ProcessRpcMsg(nc *nats.Conn, msg *nats.Msg) {
 				msg.Respond(resp)
 				a.Logger.Debugln("Running checks")
 				// todo: verify:
-				_, checkerr := runExe(a.AgentExe, []string{"-m", "runchecks"}, 600, false)
+				_, checkerr := runExe(a.GetExePath(), []string{"-m", "runchecks"}, 600, false)
 				if checkerr != nil {
 					a.Logger.Errorln("RPC RunChecks", checkerr)
 				}

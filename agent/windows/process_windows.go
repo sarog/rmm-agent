@@ -66,7 +66,7 @@ Out:
 		if p.PID == 0 {
 			continue
 		}
-		if p.Exe != a.AgentExe {
+		if p.Exe != a.GetExePath() {
 			continue
 		}
 

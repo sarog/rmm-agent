@@ -120,7 +120,7 @@ func (a *windowsAgent) Install(i *agent.InstallInfo, agentID string) {
 
 	agentPayload := map[string]interface{}{
 		"agent_id":    a.AgentID,
-		"hostname":    a.Hostname,
+		"hostname":    a.GetHostname(),
 		"client":      i.ClientID,
 		"site":        i.SiteID,
 		"description": i.Description,
@@ -144,7 +144,7 @@ func (a *windowsAgent) Install(i *agent.InstallInfo, agentID string) {
 	createRegKeys(baseURL, a.AgentID, i.ApiURL, authToken, strconv.Itoa(agentPK), i.RootCert)
 
 	// Refresh our agent with new values
-	a = a.New(a.Logger, a.Version)
+	a = a.New(a.Logger, a.Version, true)
 	// todo:
 	// a = NewAgent(a.Logger, a.Version)
 
@@ -202,7 +202,7 @@ func (a *windowsAgent) checkExistingAndRemove(silent bool) {
 		hasReg = true
 	}
 	if hasReg {
-		jetUninst := filepath.Join(a.ProgramDir, a.GetUninstallExe())
+		jetUninst := filepath.Join(a.GetWorkingDir(), a.GetUninstallExe())
 		jetUninstArgs := []string{jetUninst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS"}
 
 		window := w32.GetForegroundWindow()
@@ -272,6 +272,7 @@ func getRegKeys(logger *logrus.Logger) (*WinRegKeys, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	baseUrl, _, err := key.GetStringValue(REG_RMM_BASEURL)
 	if err != nil {
 		logger.Fatalln("Unable to get BaseURL:", err)
