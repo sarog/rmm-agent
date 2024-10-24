@@ -16,7 +16,7 @@ Pre-requisites:
 
 ### Windows
 
-Clone the repository & download the dependencies. GoVersionInfo is used to generate the Windows file properties and icons.
+Clone the repository & download the dependencies. GoVersionInfo is used to optionally generate the Windows file properties and icons.
 ```shell
 git clone https://github.com/jetrmm/rmm-agent
 go mod download
@@ -55,7 +55,7 @@ See [CODESIGN](CODESIGN.md) for more information.
 
 ## Branding the agent
 
-Take a look at `common/const.go` and the defined constants at the top of every file to change the strings.
+Take a look at `agent/const.go` and the defined constants at the top of every file to change the strings.
 
 ## Attribution
 
